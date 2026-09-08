@@ -2458,6 +2458,11 @@ const USAGE = `sprig — the framework CLI
   sprig isolate [appDir]         component/page workbench — develop in isolation (default: .)
   sprig serve [entry]            run the app's host entry under its deno.json (default: serve.ts)
   sprig stop  [appDir]           stop this repo's shared 'sprig dev' process + free its ports
+  sprig migrate wire-paths [appDir] [--dry-run]
+                                  the D-7 codemod: prefix /api onto in-process client calls
+                                  that still use route-space paths (backend.get("/users") →
+                                  backend.get("/api/users")). Rewrites literal paths only and
+                                  REPORTS the computed ones for you to read.
   sprig install [--dev]          install the global sprig CLI + Claude Code skills + agents (--dev: from this checkout)
   sprig update                   re-install the global sprig CLI + skills + agents from the latest release
   sprig -v, --version            print the installed version + check JSR for a newer release
@@ -2469,6 +2474,21 @@ switch (cmd) {
   case "init":
     await init(rest[0]);
     break;
+  case "migrate": {
+    if (rest[0] !== "wire-paths") {
+      console.error("usage: sprig migrate wire-paths [appDir] [--dry-run]");
+      Deno.exit(2);
+    }
+    const { migrateWirePaths, printWireReport } = await import(
+      "./.sprig/wire-paths.ts"
+    );
+    const dryRun = rest.includes("--dry-run");
+    const target = resolve(
+      rest.slice(1).find((a) => !a.startsWith("-")) ?? ".",
+    );
+    printWireReport(await migrateWirePaths(target, { dryRun }), dryRun);
+    break;
+  }
   case "clean": {
     await clean(rest.find((a) => !a.startsWith("-")));
     break;
