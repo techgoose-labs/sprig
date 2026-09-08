@@ -11,8 +11,8 @@
     "reflect-metadata": "npm:reflect-metadata@^0.2",
     "#std/assert": "jsr:@std/assert",
     "#std/path": "jsr:@std/path",
-    "@techgoose-labs/rune": "jsr:@techgoose-labs/rune@^7.0.0",
-    "#assert": "jsr:@techgoose-labs/rune@^7.0.0/assert",
+    "@techgoose-labs/rune": "jsr:@techgoose-labs/rune@^7.0.1",
+    "#assert": "jsr:@techgoose-labs/rune@^7.0.1/assert",
     "#api-doc": "jsr:@danet/swagger@^2.1.1/decorators",
     "@techgoose-labs/bedrock": "jsr:@techgoose-labs/bedrock@^1.0.2"
   }
