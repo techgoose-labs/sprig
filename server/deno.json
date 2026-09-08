@@ -11,9 +11,9 @@
     "reflect-metadata": "npm:reflect-metadata@^0.2",
     "#std/assert": "jsr:@std/assert",
     "#std/path": "jsr:@std/path",
-    "@mrg-keystone/rune": "../../../rune/main/keep/src/bootstrap/mod.ts",
-    "#assert": "../../../rune/main/keep/src/assert/mod.ts",
+    "@mrg-keystone/rune": "jsr:@mrg-keystone/rune@^7",
+    "#assert": "jsr:@mrg-keystone/rune@^7/assert",
     "#api-doc": "jsr:@danet/swagger@^2.1.1/decorators",
-    "@mrg-keystone/bedrock": "../../../bedrock/mod.ts"
+    "@mrg-keystone/bedrock": "jsr:@mrg-keystone/bedrock@^1.0.1"
   }
 }

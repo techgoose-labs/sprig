@@ -23,8 +23,8 @@
     "@std/path": "jsr:@std/path@^1",
     "@std/fs": "jsr:@std/fs@^1",
     "@std/assert": "jsr:@std/assert@^1",
-    "@mrg-keystone/bedrock": "../../bedrock/mod.ts",
-    "@mrg-keystone/bedrock/artifact": "../../bedrock/src/artifact/mod.ts",
+    "@mrg-keystone/bedrock": "jsr:@mrg-keystone/bedrock@^1.0.1",
+    "@mrg-keystone/bedrock/artifact": "jsr:@mrg-keystone/bedrock@^1.0.1/artifact",
     "@mrg-keystone/sprig/bedrock": "./packages/keep/mod.ts"
   },
   "tasks": {
