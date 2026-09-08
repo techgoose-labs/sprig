@@ -7,21 +7,22 @@ import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { Frontend } from "./mod.ts";
 import { identityHeaderValue } from "@techgoose-labs/bedrock";
-import type { Bag, Identity } from "@techgoose-labs/bedrock";
+import type { Bag, Identity, Unit } from "@techgoose-labs/bedrock";
 import type { SprigApp } from "@techgoose-labs/sprig";
 
 /** A bag, as the root would hand one over. */
-function bagWith(fetch: typeof fetch): Bag {
+function bagWith(fetch: typeof globalThis.fetch): Bag {
+  // `typeof fetch` would resolve to the PARAMETER, not the global it shadows —
+  // a type that references itself. Naming the global explicitly settles it.
   return { fetch, app: { name: "test" }, policy: () => "open" };
 }
 
 async function withApp(
   fn: (
-    handler: (
-      req: Request,
-      info?: Deno.ServeHandlerInfo,
-      bag?: Bag,
-    ) => Promise<Response>,
+    // `Unit["handler"]` rather than a hand-written signature: a unit may answer
+    // SYNCHRONOUSLY (Response, not Promise<Response>), and spelling it out here
+    // drifted from the real type the moment Frontend() became a Unit.
+    handler: Unit["handler"],
     calls: {
       path: string;
       hadBackend: boolean;

@@ -109,11 +109,15 @@ Deno.test("bootstrap threads env.session into GuardCtx.session (present → prof
     renderDocument: () => Promise.resolve("<html></html>"),
   } as unknown as AppRenderer;
   const app = bootstrap({ routes, renderer });
+  // The profile is bedrock's `Identity` — { subject, claims, via } — not the
+  // pre-bedrock { email, grants }. `subject` IS the email in practice; what the
+  // rename bought is that the UI half and the guard read the SAME shape the
+  // composition root stamps on the envelope.
   await app.fetch(new Request("http://h/x"), undefined, {
-    session: { email: "a@b.com", grants: ["*"] },
+    session: { subject: "a@b.com", claims: ["*"], via: "test" },
   });
   assertEquals(
-    (seen as { email?: string } | null)?.email,
+    (seen as { subject?: string } | null)?.subject,
     "a@b.com",
     "env.session not threaded into ctx.session",
   );

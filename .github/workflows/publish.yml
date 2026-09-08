@@ -9,8 +9,18 @@ permissions:
   contents: write
   id-token: write
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test -A framework/ packages/
+
   publish:
-    uses: mrg-keystone/actions/.github/workflows/jsr-publish.yml@main
+    needs: test
+    uses: techgoose-labs/actions/.github/workflows/jsr-publish.yml@main
     secrets: inherit
     with:
       # Every cut repins @techgoose-labs/rune to its newest published version (server/deno.json + the

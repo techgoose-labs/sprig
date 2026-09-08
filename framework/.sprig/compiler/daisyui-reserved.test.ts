@@ -169,3 +169,19 @@ Deno.test("reserved list: every name the build warns on is documented in docs/sp
     );
   }
 });
+
+Deno.test("selectorClasses ignores url() values, however deeply nested", () => {
+  // The real shape from daisyUI's loading.css: a declaration carrying an SVG
+  // data URI, inside a block that ALSO contains a nested block. Block-stripping
+  // never sees that declaration as innermost, so without dropping url() the
+  // dotted host in `www.w3.org` scans as the selectors `.w3` and `.org`.
+  const css = `.loading{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E");
+    &.loading-spinner{animation:spin 2s linear infinite}
+  }`;
+  const found = selectorClasses(css);
+  assert(found.includes("loading"), "the real class must still be found");
+  assert(found.includes("loading-spinner"), "the nested class must still be found");
+  assert(!found.includes("w3"), `"w3" leaked from the data URI: ${found.join(", ")}`);
+  assert(!found.includes("org"), `"org" leaked from the data URI: ${found.join(", ")}`);
+});

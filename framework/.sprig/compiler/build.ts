@@ -462,7 +462,15 @@ export const DAISYUI_RESERVED_CLASSES: ReadonlySet<string> = new Set([
  *  sequences (`sm\:toast`) are removed before matching. Pure; exported for tests. */
 export function selectorClasses(css: string): string[] {
   const out: string[] = [];
-  let s = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  let s = css.replace(/\/\*[\s\S]*?\*\//g, "")
+    // Drop url(...) VALUES before scanning. Block-stripping alone cannot reach
+    // them: daisyUI embeds SVG data URIs in declarations whose enclosing block
+    // also contains a NESTED block, so `\{[^{}]*\}` never matches it as
+    // innermost and the URL text survives into the selector scan. The dotted
+    // host in `xmlns='http://www.w3.org/2000/svg'` then reads as the selectors
+    // `.w3` and `.org`, which is how "w3" ended up in the reserved-class set —
+    // enough to warn an app that its own `.w3` collides with daisyUI.
+    .replace(/url\([^)]*\)/g, "url()");
   for (let prev = ""; prev !== s; s = s.replace(/\{[^{}]*\}/g, "")) {
     prev = s;
     const level = s.replace(/\{[^{}]*\}/g, " ").replace(/@layer[^{;]*/g, "")

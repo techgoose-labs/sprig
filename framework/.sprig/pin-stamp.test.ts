@@ -126,3 +126,44 @@ Deno.test("pinnedSprigVersion reads exact, range, and subpath pins", () => {
   );
   assertEquals(pinnedSprigVersion("jsr:@std/path@^1"), null);
 });
+
+// ---- the @mrg-keystone -> @techgoose-labs scope move -----------------------
+//
+// The packages moved scope, so an app pinned to @mrg-keystone/sprig resolves a
+// scope that receives no further releases. That is the same shape as the
+// @sprig/* rename before it, so it travels the same migration path — and these
+// pin the two bugs that made the FIRST attempt at it silently wrong.
+
+Deno.test("migrateImports carries an app off the @mrg-keystone scope", () => {
+  const res = migrateImports({
+    "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@2.0.1",
+    "@mrg-keystone/sprig/bedrock": "jsr:@mrg-keystone/sprig@2.0.1/bedrock",
+    "@std/path": "jsr:@std/path@^1",
+  }, "2.0.2");
+  assert(res.changed);
+  assertEquals(res.imports, {
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.0.2",
+    "@techgoose-labs/sprig/bedrock": "jsr:@techgoose-labs/sprig@2.0.2/bedrock",
+    "@std/path": "jsr:@std/path@^1",
+  });
+});
+
+Deno.test("a migrated entry is RE-PINNED, not just renamed", () => {
+  // The bug this pins: the re-pin regex still matched the OLD scope, but ran
+  // AFTER the value had already been rewritten to the new one — so it matched
+  // nothing. Keys moved, versions stayed behind, and nothing failed loudly.
+  const res = migrateImports(
+    { "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@0.19.0" },
+    "2.0.2",
+  );
+  assertEquals(res.imports["@techgoose-labs/sprig"], "jsr:@techgoose-labs/sprig@2.0.2");
+});
+
+Deno.test("pinnedSprigVersion reads a version out of EITHER scope", () => {
+  // Reading only the modern scope made every legacy pin look version-less, so
+  // the migration could not tell an old pin from a local path override.
+  assertEquals(pinnedSprigVersion("jsr:@mrg-keystone/sprig@2.0.1"), "2.0.1");
+  assertEquals(pinnedSprigVersion("jsr:@techgoose-labs/sprig@2.0.2"), "2.0.2");
+  assertEquals(pinnedSprigVersion("jsr:@mrg-keystone/sprig@^2"), "2");
+  assertEquals(pinnedSprigVersion("../sprig/main/framework/mod.ts"), null);
+});

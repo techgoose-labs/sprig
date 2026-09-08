@@ -2,10 +2,12 @@ import { assertEquals } from "@std/assert";
 import { Frontend } from "./mod.ts";
 
 // Minimal UI unit; the asset branch runs before app.fetch, so a stub app is fine.
+// `Frontend`'s config parameter has a default, so `Parameters<typeof Frontend>[0]`
+// includes `undefined` and cannot be indexed. NonNullable strips that.
 const ui = Frontend({
-  app: { fetch: () => new Response("app") } as unknown as Parameters<
-    typeof Frontend
-  >[0]["app"],
+  app: { fetch: () => new Response("app") } as unknown as NonNullable<
+    Parameters<typeof Frontend>[0]
+  >["app"],
   assetsDir: "static",
 }).handler;
 

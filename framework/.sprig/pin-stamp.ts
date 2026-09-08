@@ -20,7 +20,11 @@ export function isLocalOverride(value: string): boolean {
 /** The version a `jsr:@techgoose-labs/sprig@X[/keep]` value pins (range markers
  *  `^`/`~` stripped), or null when the value doesn't carry one. */
 export function pinnedSprigVersion(value: string): string | null {
-  return value.match(/@mrg-keystone\/sprig@[\^~]?([^/]+)/)?.[1] ?? null;
+  // BOTH scopes: an app pinned to the pre-move `@mrg-keystone/sprig` still has
+  // a readable version, and `migrateVal` below is what renames it. Reading only
+  // the modern scope made every legacy pin look version-less, so the migration
+  // could not tell an old pin from a local override.
+  return value.match(/@(?:mrg-keystone|techgoose-labs)\/sprig@[\^~]?([^/]+)/)?.[1] ?? null;
 }
 
 /** Compare two semver-ish `a.b.c` strings. Returns >0 if `a` is newer than `b`. */
@@ -74,6 +78,14 @@ export function stampImports(
 
 /** Rename a legacy-scoped import KEY to the modern scope; non-legacy keys pass through. */
 export function migrateKey(k: string): string {
+  // The @mrg-keystone -> @techgoose-labs move is a scope rename like the
+  // @sprig/* one before it, so it belongs on the same path: an app that runs
+  // `sprig build` gets carried across instead of resolving a scope that no
+  // longer receives releases.
+  if (k === "@mrg-keystone/sprig") return "@techgoose-labs/sprig";
+  if (k.startsWith("@mrg-keystone/sprig/")) {
+    return "@techgoose-labs/sprig/" + k.slice("@mrg-keystone/sprig/".length);
+  }
   return k === "@sprig/core"
     ? "@techgoose-labs/sprig"
     : k === "@sprig/keep" || k === "@techgoose-labs/sprig/keep"
@@ -89,6 +101,7 @@ export function migrateKey(k: string): string {
  *  legacy-named app predates the rename, so its pin is behind by definition). */
 export function migrateVal(val: string, v: string | null): string {
   let out = val
+    .replaceAll("@mrg-keystone/sprig", "@techgoose-labs/sprig")
     .replaceAll("@sprig/keep", "@techgoose-labs/sprig/bedrock")
     .replaceAll("@techgoose-labs/sprig/keep", "@techgoose-labs/sprig/bedrock")
     .replaceAll("@sprig/core", "@techgoose-labs/sprig");
@@ -96,10 +109,13 @@ export function migrateVal(val: string, v: string | null): string {
   // (`jsr:@techgoose-labs/sprig@2.0.0/keep`), so the scope rewrites above never
   // see it. Retiring `/keep` without this leaves a key that resolves nowhere.
   out = out.replace(
-    /(jsr:@mrg-keystone\/sprig@[^/"']+)\/keep\b/g,
+    /(jsr:@(?:mrg-keystone|techgoose-labs)\/sprig@[^/"']+)\/keep\b/g,
     "$1/bedrock",
   );
-  if (v) out = out.replace(/(@mrg-keystone\/sprig)@[^/"']+/g, `$1@${v}`);
+  // Re-pin AFTER the scope rewrites above, so this matches the modern name the
+  // value now carries. Matching the old scope here made the re-pin a silent
+  // no-op: keys migrated, versions stayed behind.
+  if (v) out = out.replace(/(@techgoose-labs\/sprig)@[^/"']+/g, `$1@${v}`);
   return out;
 }
 
