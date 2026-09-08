@@ -70,3 +70,22 @@ Deno.test("does not touch an unrelated method call that happens to take a path",
   assertEquals(only('router.load("/users")'), 'router.load("/users")');
   assertEquals(only('list.includes("/users")'), 'list.includes("/users")');
 });
+
+Deno.test("does not drown the report in Map/Set false positives", () => {
+  // Found by running this on a real app: `.get(x)` / `.delete(x)` are also
+  // Map, Set, URLSearchParams and Headers. Reporting all of them buried the two
+  // real findings under 45 non-findings.
+  const src = [
+    "this.#scheduled.delete(t.id);",
+    "const d = this.docs.get(key);",
+    "params.get(name);",
+    "await kv.delete(entry.key);",
+  ].join("\n");
+  assertEquals(rewriteSource(src).manual.length, 0);
+});
+
+Deno.test("still reports the two forms that ARE worth reading", () => {
+  const src = "be.get(`/orders/${id}`);\nbe.fetch(path);";
+  const r = rewriteSource(src);
+  assertEquals(r.manual.length, 2, "a leading-slash template, and .fetch(<expr>)");
+});

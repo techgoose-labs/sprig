@@ -25,6 +25,7 @@ import {
 // static relative imports of the package's own modules (computed-path dynamic imports
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
+import { existingAuthSlot } from "./.sprig/auth-slot.ts";
 import {
   analyzeWiring,
   renderWiringMap,
@@ -1348,6 +1349,7 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *  serve.ts. The root is a BUILD ARTIFACT — a CLI concern, kept out of git:
  *  deploy builds regenerate it, and `sprig dev` composes the same thing
  *  in-process. */
+
 async function writeRuneServe(
   gitRoot: string,
   serverRel: string,
@@ -1364,6 +1366,11 @@ async function writeRuneServe(
       Deno.exit(1);
     }
   }
+  // CARRY THE AUTH SLOT ACROSS. The renderer emits from which halves this build
+  // can see, and it cannot see a third-party auth unit — so regenerating would
+  // silently DELETE `auth:` from an app that composes one, and the app would
+  // come back up with every guarded route open. A build must never remove auth.
+  const auth = await existingAuthSlot(servePath);
   const src = renderServe({
     ui: {
       from: "@mrg-keystone/sprig/bedrock",
@@ -1371,10 +1378,11 @@ async function writeRuneServe(
       expression: "Frontend()",
     },
     backend: { from: `./${serverRel}/bootstrap/mod.ts`, symbol: "api" },
+    ...(auth ? { auth } : {}),
     notes: [
       `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
       `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-      `Add an auth unit as the third slot when the app needs one.`,
+      ...(auth ? [] : [`Add an auth unit as the third slot when the app needs one.`]),
     ],
   });
   await Deno.writeTextFile(servePath, src);

@@ -23,9 +23,20 @@ const ALREADY_WIRE = /^\/(api|auth)(\/|$)/;
 const CALL =
   /(\.(?:get|post|put|patch|delete|fetch)\s*(?:<[^>]*>)?\(\s*)("\/[^"]*")/g;
 
-/** A call whose path this codemod cannot resolve — reported, never rewritten. */
-const DYNAMIC =
-  /\.(?:get|post|put|patch|delete|fetch)\s*(?:<[^>]*>)?\(\s*(`|[A-Za-z_$])/g;
+/**
+ * A call whose path this codemod cannot resolve — reported, never rewritten.
+ *
+ * Deliberately NARROW, because the obvious pattern is useless in a real app:
+ * `.get(x)` and `.delete(x)` are also `Map`, `Set`, `URLSearchParams` and
+ * `Headers`, so reporting every one of them buried the two real findings in an
+ * app under 45 false positives — and a report that is mostly noise trains
+ * people to skip it. Two forms are worth a human's attention:
+ *
+ *   1. a TEMPLATE LITERAL that starts with `/` — unambiguously a path;
+ *   2. `.fetch(<not a string>)` — `fetch` is the client's own method, and no
+ *      collection has one.
+ */
+const DYNAMIC = /(?:\.(?:get|post|put|patch|delete|fetch)\s*(?:<[^>]*>)?\(\s*`\/)|(?:\.fetch\s*(?:<[^>]*>)?\(\s*[A-Za-z_$])/g;
 
 export interface WireHit {
   file: string;
