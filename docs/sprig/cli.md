@@ -74,7 +74,7 @@ Production build of `appDir/src` → `static/`. See
 ```
 static/client.js           the eager loader (scans the DOM, lazy-loads islands by trigger)
 static/isl.<sel>.js        one tiny chunk per island (its template AST baked in)
-static/chunk-<hash>.js     the shared runtime (@mrg-keystone/sprig + interpreter + hydrate), loaded once
+static/chunk-<hash>.js     the shared runtime (@techgoose-labs/sprig + interpreter + hydrate), loaded once
 static/app.css             all component CSS, scoped + Tailwind-expanded + minified
 static/templates.json      server-only prebuilt ASTs so the SSR renders without the tree-sitter parser
 ```

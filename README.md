@@ -56,7 +56,7 @@ framework/
       hydrate.ts          #   client runtime: hydration, delegation, reactive updates, soft-nav
       dev.ts / hmr.ts     #   dev server + hot template/CSS swap (SSE)
       compiler.test.ts    #   framework unit tests
-packages/keep/mod.ts      # @mrg-keystone/sprig/bedrock — Frontend(): the app's UI half, as a Unit
+packages/keep/mod.ts      # @techgoose-labs/sprig/bedrock — Frontend(): the app's UI half, as a Unit
 app/                      # the isolate workbench, an example app built ON sprig
 tree-sitter-angular-template/  # grammar source → build the wasm, store it as grammar.bin (NOT .wasm: JSR rewrites .wasm imports; see parse.ts)
 ```

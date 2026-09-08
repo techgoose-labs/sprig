@@ -10,7 +10,7 @@
 
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { specRootOf, vendoredVector } from "@mrg-keystone/bedrock/artifact";
+import { specRootOf, vendoredVector } from "@techgoose-labs/bedrock/artifact";
 
 interface TreeEntry {
   path: string;

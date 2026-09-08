@@ -57,7 +57,7 @@ an explicit table, there is no filesystem routing, no Vite, no manifest. **NOT
 Fresh/Preact/Next/Angular.**
 
 1. **Scaffold or recognize.** Fresh:
-   `deno install -gAf -n sprig jsr:@mrg-keystone/sprig/cli` then
+   `deno install -gAf -n sprig jsr:@techgoose-labs/sprig/cli` then
    `sprig init <app>`. Existing: read `deno.json` (tasks/imports), `main.ts`,
    `serve.ts`, the `ui/src/` tree. Confirm the project shape (`shell/` +
    `pages/` + `components/` + `islands/` + optional `services/`).
@@ -150,11 +150,11 @@ already at hand:
   - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
   - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
   - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
-- **To resolve an import alias** (e.g. `@mrg-keystone/sprig`, `#assert`): read
+- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read
   the PROJECT's `deno.json` `imports` map — the alias is defined there and
   nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run
-  `deno info jsr:@mrg-keystone/sprig` (or `deno info <specifier>`) — it prints
+  `deno info jsr:@techgoose-labs/sprig` (or `deno info <specifier>`) — it prints
   the exact cached path in milliseconds. If you must grep vendored source, scope
   it to that path or to `~/Library/Caches/deno`, never `/`.
 - **Playwright screenshots / console logs** land in the PROJECT's own

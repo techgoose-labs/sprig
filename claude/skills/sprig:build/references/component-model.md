@@ -40,7 +40,7 @@ instance IS the template scope — its fields and methods are what `{{ }}`,
 `[prop]`, and `(event)` bind to.
 
 ```ts
-import { inject } from "@mrg-keystone/sprig";
+import { inject } from "@techgoose-labs/sprig";
 import State from "../../services/state/mod.ts";
 
 export default class Greeter {
@@ -61,7 +61,7 @@ export default class Greeter {
 good for small islands built from signals.
 
 ```ts
-import { defineComponent, signal } from "@mrg-keystone/sprig";
+import { defineComponent, signal } from "@techgoose-labs/sprig";
 
 export default defineComponent({
   setup: () => {
@@ -99,7 +99,7 @@ instances; non-finite numbers drop). `onServerInit` may be `async` (its
 
 ## Signals
 
-`signal`/`computed`/`effect`/`isSignal` from `@mrg-keystone/sprig`. A signal is
+`signal`/`computed`/`effect`/`isSignal` from `@techgoose-labs/sprig`. A signal is
 callable to read and has `.set`/`.update`:
 
 ```ts
@@ -124,7 +124,7 @@ it can react on the client.
 The shape is **snapshot → mutate → call → reconcile**:
 
 ```ts
-import { inject, signal } from "@mrg-keystone/sprig";
+import { inject, signal } from "@techgoose-labs/sprig";
 import Api from "../../services/api/mod.ts";
 
 export default class Todo {
@@ -188,7 +188,7 @@ An island's own enumerable fields are snapshotted on the server and
 injector.
 
 ```ts
-import { Backend, inject, Injectable } from "@mrg-keystone/sprig";
+import { Backend, inject, Injectable } from "@techgoose-labs/sprig";
 
 @Injectable({ providedIn: "root", scope: "both" }) // scope: "both" | "server" | "client"
 class Api {
@@ -217,7 +217,7 @@ A `StateService` subclass is a DI singleton whose serializable fields persist to
 **localStorage** across navigation + full reload, restored on load.
 
 ```ts
-import { Injectable, StateService } from "@mrg-keystone/sprig";
+import { Injectable, StateService } from "@techgoose-labs/sprig";
 
 @Injectable({ providedIn: "root", scope: "both" })
 export default class State extends StateService {

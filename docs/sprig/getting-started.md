@@ -28,7 +28,7 @@ It creates:
 
 ```
 my-app/
-  deno.json                 # imports (@mrg-keystone/sprig, @mrg-keystone/sprig/bedrock, @mrg-keystone/bedrock, …) + tasks
+  deno.json                 # imports (@techgoose-labs/sprig, @techgoose-labs/sprig/bedrock, @techgoose-labs/bedrock, …) + tasks
   build.ts                  # calls buildClient(src, static)
   serve.ts                  # Bedrock({ ui: Frontend() }) — the starter composes no backend
   src/
@@ -80,7 +80,7 @@ code triggers a rebuild + reload. (Details: [cli.md](./cli.md).)
 
 ```ts
 // src/pages/home/resolve.ts
-import type { Resolve } from "@mrg-keystone/sprig";
+import type { Resolve } from "@techgoose-labs/sprig";
 export const resolve: Resolve = () => ({ name: "sprig" });
 ```
 
@@ -92,7 +92,7 @@ can't be islands, so put it in `src/shared-components/` (or
 
 ```ts
 // src/shared-components/counter/logic.ts
-import { defineComponent, signal } from "@mrg-keystone/sprig";
+import { defineComponent, signal } from "@techgoose-labs/sprig";
 
 export default defineComponent({
   inputs: ["start"],

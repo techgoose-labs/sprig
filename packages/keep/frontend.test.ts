@@ -6,9 +6,9 @@
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
 import { Frontend } from "./mod.ts";
-import { identityHeaderValue } from "@mrg-keystone/bedrock";
-import type { Bag, Identity } from "@mrg-keystone/bedrock";
-import type { SprigApp } from "@mrg-keystone/sprig";
+import { identityHeaderValue } from "@techgoose-labs/bedrock";
+import type { Bag, Identity } from "@techgoose-labs/bedrock";
+import type { SprigApp } from "@techgoose-labs/sprig";
 
 /** A bag, as the root would hand one over. */
 function bagWith(fetch: typeof fetch): Bag {

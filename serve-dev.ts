@@ -8,8 +8,8 @@
 // the user's components into app/src/_preview/targets/* — which lands under app/src, so the
 // dev server picks it up and hot-swaps. Structural changes (isolate/ cases, new components)
 // re-discover + re-generate the previews.
-import { Bedrock } from "@mrg-keystone/bedrock";
-import { Frontend } from "@mrg-keystone/sprig/bedrock";
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { Frontend } from "@techgoose-labs/sprig/bedrock";
 import { createDevServer } from "./framework/.sprig/compiler/dev.ts";
 import { api } from "./server/bootstrap/mod.ts";
 import { discover } from "./server/src/core/business/discover/mod.ts";
@@ -22,8 +22,8 @@ import {
   relative,
   toFileUrl,
 } from "@std/path";
-import type { SprigApp } from "@mrg-keystone/sprig";
-import type { SsrRenderer } from "@mrg-keystone/sprig/bedrock";
+import type { SprigApp } from "@techgoose-labs/sprig";
+import type { SsrRenderer } from "@techgoose-labs/sprig/bedrock";
 
 const root = dirname(fromFileUrl(import.meta.url)); // the install root (repo or ~/.sprig)
 // The WORKBENCH working dir is per repo-branch (`~/.sprig/work/<repo-branch>`), so two projects —

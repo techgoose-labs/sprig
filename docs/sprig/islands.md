@@ -11,7 +11,7 @@ code-split chunk**, loaded on its trigger.
 
 ```ts
 // shared-components/counter/logic.ts
-import { defineComponent, signal } from "@mrg-keystone/sprig";
+import { defineComponent, signal } from "@techgoose-labs/sprig";
 
 export default defineComponent({
   trigger: "visible", // "load" (default) | "idle" | "visible" | "interaction"
@@ -41,7 +41,7 @@ then defaults to `[]` and `trigger` to `"load"`.
 </div>
 ```
 
-## Reactive primitives (from `@mrg-keystone/sprig`)
+## Reactive primitives (from `@techgoose-labs/sprig`)
 
 Templates read **both** signals and computeds as `name()`.
 

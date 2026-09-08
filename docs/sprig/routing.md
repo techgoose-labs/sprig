@@ -15,7 +15,7 @@ import {
   defineRoutes,
   type Route,
   type SprigApp,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 import { dirname, fromFileUrl } from "@std/path";
 import {
   createRenderer,
@@ -75,7 +75,7 @@ request with a **302 redirect** there instead (bare path, prefixed with `base`).
 Guards attach to routes; a parent's guards protect its whole subtree.
 
 ```ts
-import { defineRoutes, type Guard, inject } from "@mrg-keystone/sprig";
+import { defineRoutes, type Guard, inject } from "@techgoose-labs/sprig";
 import { Session } from "./services/session.ts";
 
 const requireAuth: Guard = (ctx) => {

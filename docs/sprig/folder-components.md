@@ -73,7 +73,7 @@ full path), so their styles never cross-apply. See [styling.md](./styling.md).
 
 ```ts
 // pages/home/resolve.ts
-import type { Resolve } from "@mrg-keystone/sprig";
+import type { Resolve } from "@techgoose-labs/sprig";
 export const resolve: Resolve = () => ({ name: "sprig" });
 ```
 

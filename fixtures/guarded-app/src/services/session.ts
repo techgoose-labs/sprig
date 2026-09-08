@@ -2,7 +2,7 @@
 // process, so the fixture needs no cookies or backend — click "log in" and every
 // subsequent request sees it. A real app would key the session off the request
 // (cookie → session store) inside a service shaped exactly like this one.
-import { Injectable } from "@mrg-keystone/sprig";
+import { Injectable } from "@techgoose-labs/sprig";
 
 let currentUser: string | null = null;
 

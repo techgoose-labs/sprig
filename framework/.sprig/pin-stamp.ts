@@ -4,7 +4,7 @@
 //
 // Contract, learned the hard way (a stale 0.21.1 CLI silently DOWNGRADED an
 // app pinned to 1.0.0, resurrecting every runtime bug fixed in between):
-//   · stamping keeps an app's @mrg-keystone/sprig pin matched to the CLI that
+//   · stamping keeps an app's @techgoose-labs/sprig pin matched to the CLI that
 //     builds it, but NEVER downgrades — a pin AHEAD of the CLI means the CLI
 //     install is stale, not the app;
 //   · migration renames the legacy `@sprig/core`/`@sprig/keep` scope AND the
@@ -17,7 +17,7 @@ export function isLocalOverride(value: string): boolean {
   return /^(\.{0,2}\/|\/|file:)/.test(value);
 }
 
-/** The version a `jsr:@mrg-keystone/sprig@X[/keep]` value pins (range markers
+/** The version a `jsr:@techgoose-labs/sprig@X[/keep]` value pins (range markers
  *  `^`/`~` stripped), or null when the value doesn't carry one. */
 export function pinnedSprigVersion(value: string): string | null {
   return value.match(/@mrg-keystone\/sprig@[\^~]?([^/]+)/)?.[1] ?? null;
@@ -41,7 +41,7 @@ export interface StampResult {
   aheadPin: string | null;
 }
 
-/** Re-pin the existing @mrg-keystone/sprig mappings to the CLI version `v`.
+/** Re-pin the existing @techgoose-labs/sprig mappings to the CLI version `v`.
  *  Only existing keys are touched; local overrides and pins NEWER than `v`
  *  are left alone (never downgrade). */
 export function stampImports(
@@ -49,8 +49,8 @@ export function stampImports(
   v: string,
 ): StampResult {
   const wanted: Record<string, string> = {
-    "@mrg-keystone/sprig": `jsr:@mrg-keystone/sprig@${v}`,
-    "@mrg-keystone/sprig/bedrock": `jsr:@mrg-keystone/sprig@${v}/bedrock`,
+    "@techgoose-labs/sprig": `jsr:@techgoose-labs/sprig@${v}`,
+    "@techgoose-labs/sprig/bedrock": `jsr:@techgoose-labs/sprig@${v}/bedrock`,
   };
   const out = { ...imports };
   let changed = false;
@@ -75,13 +75,13 @@ export function stampImports(
 /** Rename a legacy-scoped import KEY to the modern scope; non-legacy keys pass through. */
 export function migrateKey(k: string): string {
   return k === "@sprig/core"
-    ? "@mrg-keystone/sprig"
-    : k === "@sprig/keep" || k === "@mrg-keystone/sprig/keep"
-    ? "@mrg-keystone/sprig/bedrock"
+    ? "@techgoose-labs/sprig"
+    : k === "@sprig/keep" || k === "@techgoose-labs/sprig/keep"
+    ? "@techgoose-labs/sprig/bedrock"
     : k.startsWith("@sprig/core/")
-    ? "@mrg-keystone/sprig/" + k.slice("@sprig/core/".length)
+    ? "@techgoose-labs/sprig/" + k.slice("@sprig/core/".length)
     : k.startsWith("@sprig/keep/")
-    ? "@mrg-keystone/sprig/bedrock/" + k.slice("@sprig/keep/".length)
+    ? "@techgoose-labs/sprig/bedrock/" + k.slice("@sprig/keep/".length)
     : k;
 }
 
@@ -89,11 +89,11 @@ export function migrateKey(k: string): string {
  *  legacy-named app predates the rename, so its pin is behind by definition). */
 export function migrateVal(val: string, v: string | null): string {
   let out = val
-    .replaceAll("@sprig/keep", "@mrg-keystone/sprig/bedrock")
-    .replaceAll("@mrg-keystone/sprig/keep", "@mrg-keystone/sprig/bedrock")
-    .replaceAll("@sprig/core", "@mrg-keystone/sprig");
+    .replaceAll("@sprig/keep", "@techgoose-labs/sprig/bedrock")
+    .replaceAll("@techgoose-labs/sprig/keep", "@techgoose-labs/sprig/bedrock")
+    .replaceAll("@sprig/core", "@techgoose-labs/sprig");
   // The subpath also moved: in a jsr specifier it trails the VERSION
-  // (`jsr:@mrg-keystone/sprig@2.0.0/keep`), so the scope rewrites above never
+  // (`jsr:@techgoose-labs/sprig@2.0.0/keep`), so the scope rewrites above never
   // see it. Retiring `/keep` without this leaves a key that resolves nowhere.
   out = out.replace(
     /(jsr:@mrg-keystone\/sprig@[^/"']+)\/keep\b/g,

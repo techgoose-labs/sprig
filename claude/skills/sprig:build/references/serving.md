@@ -1,6 +1,6 @@
 # Serving & composing the app
 
-`@mrg-keystone/sprig/bedrock` exposes the SSR renderer (`createRenderer`) and
+`@techgoose-labs/sprig/bedrock` exposes the SSR renderer (`createRenderer`) and
 `Frontend()` — the app's UI half, as a bedrock **`Unit`**. In dev you write none
 of this: `sprig dev` composes the same thing with HMR. For production the
 scaffold writes the git-root `serve.ts`.
@@ -11,8 +11,8 @@ ONE call composes the app. The generated `serve.ts` is the whole of it:
 
 ```ts
 // serve.ts — the git-root composition root; run from the git root
-import { Bedrock } from "@mrg-keystone/bedrock";
-import { Frontend } from "@mrg-keystone/sprig/bedrock";
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { Frontend } from "@techgoose-labs/sprig/bedrock";
 import { api } from "./server/bootstrap/mod.ts"; // the keep backend: await bootstrapServer(...)
 
 export default Bedrock({ ui: Frontend(), backend: api });
@@ -68,7 +68,7 @@ checked against `session.claims` by default, with no app wiring.
 ## Mounting inside another host
 
 `sprigUi` is gone. To put the app under a prefix inside a host you do not
-control, use `withBasePath(prefix, handler)` from `@mrg-keystone/bedrock` around
+control, use `withBasePath(prefix, handler)` from `@techgoose-labs/bedrock` around
 the composed `App`. Prefer composing at the root: a mount outside the root gives
 that host's requests no envelope, no guard, and no client.
 

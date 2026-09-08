@@ -24,7 +24,7 @@ Deno.test("BUG V: a { setup } (defineComponent) page builds its setup scope for 
       "shell/template.html": `<div><router-outlet></router-outlet></div>`,
       "pages/home/template.html": `<p>{{ greeting() }}</p>`,
       "pages/home/logic.ts":
-        `import { defineComponent, signal } from "@mrg-keystone/sprig";\n` +
+        `import { defineComponent, signal } from "@techgoose-labs/sprig";\n` +
         `export default defineComponent(() => ({ greeting: signal("hello") }));`,
     });
     const r = await createRenderer(tmp, "/ui", { dev: true });
@@ -44,7 +44,7 @@ Deno.test("BUG V control: a class page with the same template already renders th
     await writeTree(tmp, {
       "shell/template.html": `<div><router-outlet></router-outlet></div>`,
       "pages/home/template.html": `<p>{{ greeting() }}</p>`,
-      "pages/home/logic.ts": `import { signal } from "@mrg-keystone/sprig";\n` +
+      "pages/home/logic.ts": `import { signal } from "@techgoose-labs/sprig";\n` +
         `export default class Home { greeting = signal("hello"); }`,
     });
     const r = await createRenderer(tmp, "/ui", { dev: true });

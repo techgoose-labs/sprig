@@ -17,19 +17,19 @@
     "./app"
   ],
   "imports": {
-    "@mrg-keystone/sprig": "./framework/.sprig/core.ts",
+    "@techgoose-labs/sprig": "./framework/.sprig/core.ts",
     "@preact/signals-core": "npm:@preact/signals-core@^1.8.0",
     "web-tree-sitter": "npm:web-tree-sitter@^0.25",
     "@std/path": "jsr:@std/path@^1",
     "@std/fs": "jsr:@std/fs@^1",
     "@std/assert": "jsr:@std/assert@^1",
-    "@mrg-keystone/bedrock": "jsr:@mrg-keystone/bedrock@^1.0.1",
-    "@mrg-keystone/bedrock/artifact": "jsr:@mrg-keystone/bedrock@^1.0.1/artifact",
-    "@mrg-keystone/sprig/bedrock": "./packages/keep/mod.ts"
+    "@techgoose-labs/bedrock": "jsr:@techgoose-labs/bedrock@^1.0.2",
+    "@techgoose-labs/bedrock/artifact": "jsr:@techgoose-labs/bedrock@^1.0.2/artifact",
+    "@techgoose-labs/sprig/bedrock": "./packages/keep/mod.ts"
   },
   "tasks": {
     "sprig": "deno run -A framework/cli.ts",
-    "install": "deno run -A jsr:@mrg-keystone/sprig/cli install",
+    "install": "deno run -A jsr:@techgoose-labs/sprig/cli install",
     "install:dev": "deno run -A framework/cli.ts install --dev",
     "dev": "deno run -A framework/cli.ts dev app",
     "build": "deno run -A framework/cli.ts build app --ui-only",
@@ -38,7 +38,7 @@
     "sync:agent-guardrail": "deno run -A scripts/sync-agent-guardrail.ts",
     "check:agent-guardrail": "deno run -A scripts/sync-agent-guardrail.ts --check"
   },
-  "name": "@mrg-keystone/sprig",
+  "name": "@techgoose-labs/sprig",
   "version": "2.0.1",
   "license": "MIT",
   "exports": {
@@ -87,5 +87,6 @@
     "commit": "34556dc10529e98aec45490ef41dfb7e8d98dee4",
     "branch": "main",
     "buildTime": "2026-07-06T20:08:51.515Z"
-  }
+  },
+  "minimumDependencyAge": "0"
 }

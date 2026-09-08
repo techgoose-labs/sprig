@@ -23,7 +23,7 @@ async function readJson(
 
 /** Write the workbench app's deno.json so the client build resolves the PROJECT's `$.*` aliases
  *  (islands import `$.services/…`) — forcedImportMap walks up from `<wbApp>/src` and reads this.
- *  The app was copied OUT of the install tree, so the template's relative `@mrg-keystone/sprig/*` are re-pinned
+ *  The app was copied OUT of the install tree, so the template's relative `@techgoose-labs/sprig/*` are re-pinned
  *  to the install by absolute URL. Rewritten every run (the project — hence `$` — can change). */
 export async function writeWorkbenchConfig(
   wbApp: string,
@@ -33,7 +33,7 @@ export async function writeWorkbenchConfig(
   const proj = await readJson(join(projectDir, "deno.json"));
   const imports: Record<string, string> = { ...(tmpl.imports ?? {}) };
   for (const [k, v] of Object.entries(proj.imports ?? {})) {
-    if (k === "@mrg-keystone/sprig" || k === "@mrg-keystone/sprig/keep") {
+    if (k === "@techgoose-labs/sprig" || k === "@techgoose-labs/sprig/keep") {
       continue; // the install owns the one runtime
     }
     if (typeof v === "string" && /^\.\.?\//.test(v)) {
@@ -44,9 +44,9 @@ export async function writeWorkbenchConfig(
       imports[k] = v;
     }
   }
-  imports["@mrg-keystone/sprig"] =
+  imports["@techgoose-labs/sprig"] =
     toFileUrl(join(REPO_DIR, "framework", ".sprig", "core.ts")).href;
-  imports["@mrg-keystone/sprig/keep"] =
+  imports["@techgoose-labs/sprig/keep"] =
     toFileUrl(join(REPO_DIR, "packages", "keep", "mod.ts")).href;
   await Deno.writeTextFile(
     join(wbApp, "deno.json"),

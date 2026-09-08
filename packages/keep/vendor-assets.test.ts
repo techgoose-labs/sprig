@@ -12,7 +12,7 @@
 // out of lockstep, and that class of bug cannot recur.
 import { assert, assertEquals } from "jsr:@std/assert";
 import { Frontend } from "./mod.ts";
-import type { SprigApp } from "@mrg-keystone/sprig";
+import type { SprigApp } from "@techgoose-labs/sprig";
 
 const fakeApp: SprigApp = {
   fetch: () => Promise.resolve(new Response("SSR", { status: 200 })),

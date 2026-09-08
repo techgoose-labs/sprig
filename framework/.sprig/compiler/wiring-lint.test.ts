@@ -33,7 +33,7 @@ async function makeApp(files: Record<string, string>): Promise<string> {
 
 /** A minimal island logic.ts declaring the given signal fields (class style). */
 const logic = (...signals: string[]): string =>
-  `import { signal } from "@mrg-keystone/sprig";\n` +
+  `import { signal } from "@techgoose-labs/sprig";\n` +
   `export default class C {\n` +
   signals.map((s) => `  ${s} = signal<string | null>(null);\n`).join("") +
   `}\n`;
@@ -265,7 +265,7 @@ Deno.test("a forwarded sets: page satisfies the rule-2 origin (the outlet is a c
 // ─────────────────────────── signal-declaration scan ────────────────────────
 Deno.test("declaredSignals: class fields, setup consts, object properties, computed — comments ignored", () => {
   const s = declaredSignals(`
-    import { computed, defineComponent, signal } from "@mrg-keystone/sprig";
+    import { computed, defineComponent, signal } from "@techgoose-labs/sprig";
     // count = signal(9)  ← a comment, not a declaration
     export default class C {
       org = signal<string | null>(null);

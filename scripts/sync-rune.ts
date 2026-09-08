@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run -A
-// Repin @mrg-keystone/rune to its newest published version across sprig's own packages, then relock.
+// Repin @techgoose-labs/rune to its newest published version across sprig's own packages, then relock.
 //
 //   deno task sync:rune            # pin to the latest rune on JSR
 //   deno task sync:rune 3.1.0      # pin to an explicit version (for a deliberate downgrade/hold)
@@ -13,9 +13,9 @@
 //
 // api.jsr.io is authoritative (jsr.io/@scope/pkg/meta.json is CDN-cached and lags minutes behind).
 
-const PKG = "@mrg-keystone/rune";
+const PKG = "@techgoose-labs/rune";
 const [scope, name] = PKG.slice(1).split("/");
-const UA = "sprig-sync-rune/1.0; https://jsr.io/@mrg-keystone/sprig";
+const UA = "sprig-sync-rune/1.0; https://jsr.io/@techgoose-labs/sprig";
 
 // Files whose rune pins we own. server/ is the source of truth the scaffold reads; the fixtures are
 // standalone demo apps (not workspace members, so a `deno install` relock won't reach them) that
@@ -27,7 +27,7 @@ const TARGETS = [
     .map((e) => `fixtures/${e.name}/deno.json`),
 ];
 
-// Matches every rune pin regardless of the import-map KEY (bare `@mrg-keystone/rune`, the aliased
+// Matches every rune pin regardless of the import-map KEY (bare `@techgoose-labs/rune`, the aliased
 // `#assert` → `.../rune@X/assert`, …). The char class stops at `/`, so a `/assert` subpath survives.
 const PIN = new RegExp(`jsr:@${scope}/${name}@[^"/]+`, "g");
 

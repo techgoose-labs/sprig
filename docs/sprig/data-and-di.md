@@ -13,7 +13,7 @@ A page's `resolve.ts` exports `resolve`. It runs on the server inside a
 
 ```ts
 // pages/workbench/resolve.ts
-import { inject, type Resolve } from "@mrg-keystone/sprig";
+import { inject, type Resolve } from "@techgoose-labs/sprig";
 import { DiscoveryService } from "../../services/discovery/mod.ts";
 
 export const resolve: Resolve = async (ctx) => {
@@ -45,7 +45,7 @@ A service is a class decorated with `@Injectable`. The `scope` controls which
 side may resolve it:
 
 ```ts
-import { Backend, inject, Injectable } from "@mrg-keystone/sprig";
+import { Backend, inject, Injectable } from "@techgoose-labs/sprig";
 
 @Injectable({ scope: "server" }) // "server" | "client" | "both" (default "both")
 export class DiscoveryService {
@@ -72,7 +72,7 @@ reaches islands only as serialized `@inputs`.
 For non-class providers (config objects, factories), use `token`:
 
 ```ts
-import { token } from "@mrg-keystone/sprig";
+import { token } from "@techgoose-labs/sprig";
 export const ApiBase = token<string>("ApiBase", {
   scope: "both",
   factory: () => "/api",
@@ -113,7 +113,7 @@ import {
   inject,
   Injectable,
   setResponseStatus,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 
 @Injectable({ scope: "server" })
 export class IssueService {

@@ -9,7 +9,7 @@ import {
   currentInjector,
   type Resolve,
   setResponseStatus,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 
 const WIDGETS: Record<string, { name: string; blurb: string }> = {
   a: { name: "Sprocket", blurb: "A fine widget." },

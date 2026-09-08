@@ -1,7 +1,7 @@
 // Proves the lifecycle + state-snapshot contract: the exact behaviours we agreed on,
 // as failing-if-reordered assertions.
 import { assert, assertEquals } from "jsr:@std/assert";
-import { signal } from "@mrg-keystone/sprig";
+import { signal } from "@techgoose-labs/sprig";
 import {
   destroyOnClient,
   hydrateOnClient,

@@ -8,7 +8,7 @@ verb wiring design (§2–§9).
 
 ### Problem
 
-`@mrg-keystone/sprig` 1.0.2 resolves `(event)` handlers by numeric index
+`@techgoose-labs/sprig` 1.0.2 resolves `(event)` handlers by numeric index
 (`data-sprig-click="2"`) with only a `root.contains(el)` check per island
 listener. When live islands NEST, a child element's index N also fires the
 ancestor's handler N (infra: clicking a page row opened the shell's modal;

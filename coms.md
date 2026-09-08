@@ -21,7 +21,7 @@ The hard part is **already shipped on the sprig side**. `serveSprig()` already:
   bound to the `Backend` DI token so `resolve.ts` reads data with **no TCP, no token**.
 
 So requirements 1 ("run off the app, not `Deno.serve`") and 2 ("wired natively to the in-process
-client") are **met by the current `serve.ts` + `@mrg-keystone/sprig/keep`**. The remaining work is mostly on the
+client") are **met by the current `serve.ts` + `@techgoose-labs/sprig/keep`**. The remaining work is mostly on the
 **rune side** (drop the Fresh story, fix the package name) plus **doc/skill alignment** so a _user's_
 freshly-built app gets this wiring by default.
 
@@ -49,7 +49,7 @@ const api = await bootstrapServer(appName, Module, { port?, swagger? });
 - Trust model: in-process (header) OR localhost (loopback `remoteAddr`, needs `info` forwarded) are
   trusted; all other network traffic needs a credential. `keep/.../token-auth/mod.ts`.
 
-### sprig consumes (`@mrg-keystone/sprig/keep`)
+### sprig consumes (`@techgoose-labs/sprig/keep`)
 
 `packages/keep/mod.ts`
 
@@ -85,8 +85,8 @@ serveSprig({ keep, app, base, apiPrefix?="/api", docsPrefix?="/docs", assetsDir?
 | 2   | sprig wired natively to the in-process client          | ✅ DONE             | `serveSprig` binds `Backend` to `keep.backend.fetch`                                                                                                                                                                                                    |
 | 3   | build skill integrates via in-process client, not HTTP | ✅ DONE (by design) | sprig:build teaches `inject(Backend)` for SSR; islands keep `/api/*` (unavoidable — see standing note). rune:framework docs reframed to match                                                                                                           |
 | 4   | rune stops shipping the Fresh story                    | ✅ DONE             | rune side: `embed`/`EmbeddableBackend`/`KeepState`/`EmbedContext` removed; `examples/fresh-project` deleted; `rune:framework` SKILL+deployment+auth + `keep/README` rewritten to sprig; keep `2.0.0` (breaking)                                         |
-| 5   | package name the sprig scaffold imports resolves       | ✅ DONE             | sprig retargeted `@mrg-keystone/keep` → `@mrg-keystone/rune` (server source + both lockfiles + `framework/.sprig/core.ts` comment)                                                                                                                      |
-| 6   | `rune init` scaffolds the sprig composition            | ✅ DONE             | `rune init` now emits `serve.ts` (serveSprig) + `app/src/main.ts` + `app/src/pages/home` + `@mrg-keystone/sprig/*` imports + `deno serve serve.ts` task. Verified: generated app `deno check`s clean against published `@mrg-keystone/sprig@^0.12` + `@mrg-keystone/rune@^1` |
+| 5   | package name the sprig scaffold imports resolves       | ✅ DONE             | sprig retargeted `@mrg-keystone/keep` → `@techgoose-labs/rune` (server source + both lockfiles + `framework/.sprig/core.ts` comment)                                                                                                                      |
+| 6   | `rune init` scaffolds the sprig composition            | ✅ DONE             | `rune init` now emits `serve.ts` (serveSprig) + `app/src/main.ts` + `app/src/pages/home` + `@techgoose-labs/sprig/*` imports + `deno serve serve.ts` task. Verified: generated app `deno check`s clean against published `@techgoose-labs/sprig@^0.12` + `@techgoose-labs/rune@^1` |
 
 ---
 
@@ -94,18 +94,18 @@ serveSprig({ keep, app, base, apiPrefix?="/api", docsPrefix?="/docs", assetsDir?
 
 Evidence:
 
-- rune publishes **`@mrg-keystone/rune`** — `keep/deno.json:2` (`"name": "@mrg-keystone/rune"`, v1.22.3).
+- rune publishes **`@techgoose-labs/rune`** — `keep/deno.json:2` (`"name": "@techgoose-labs/rune"`, v1.22.3).
 - sprig's rune-generated backend imports **`@mrg-keystone/keep`** — `server/bootstrap/mod.ts:6`,
   `server/deno.json` → `jsr:@mrg-keystone/keep@^1`.
 - rune's own `rune:framework` deployment docs _also_ already say `@mrg-keystone/keep`
   (`skills/rune:framework/references/deployment.md:40`), but `examples/in-process-client/server.ts`
-  still imports `@mrg-keystone/rune`, and `rune init` writes `jsr:@mrg-keystone/rune@^1`.
+  still imports `@techgoose-labs/rune`, and `rune init` writes `jsr:@techgoose-labs/rune@^1`.
 
 Rune-side memory note says the **cutover to `keep` is "pending."** Until rune publishes (or aliases)
 `@mrg-keystone/keep@^1`, a freshly `rune sync`'d sprig project **will not resolve its backend import.**
 
 **Decision needed:** finish the rune→keep package rename (publish `@mrg-keystone/keep`), or change the
-sprig scaffold to import `@mrg-keystone/rune`? (Recommendation: finish rune→keep; sprig + rune docs
+sprig scaffold to import `@techgoose-labs/rune`? (Recommendation: finish rune→keep; sprig + rune docs
 already assume it.)
 
 ---
@@ -132,7 +132,7 @@ already assume it.)
 
 ### SPRIG side (`/Users/raphaelcastro/Documents/programming/sprig`)
 
-1. Confirm the `@mrg-keystone/sprig/keep` `KeepApi` contract stays pinned to `{ backend, handler }` (it does).
+1. Confirm the `@techgoose-labs/sprig/keep` `KeepApi` contract stays pinned to `{ backend, handler }` (it does).
 2. Confirm `sprig init`'s scaffold mounts via `sprigUi`/`serveSprig` against a user keep backend
    (the framework `cli.ts init` currently scaffolds a Danet host + `sprigUi`; the all-in-one is
    `serveSprig`). Decide the default for a rune-backed app.
@@ -148,20 +148,20 @@ already assume it.)
   keep exports (`embed`, `EmbeddableBackend`, `KeepState`, `EmbedContext`), and rewrite
   `rune:framework` + `keep/README.md` to teach only the sprig story. `withBasePath` stays (generic).
   This is a breaking keep major.
-- **Q2 (package name): KEEP `@mrg-keystone/rune` — retarget sprig to it.** No rune→keep rename. The
-  rune ENGINE already emits `@mrg-keystone/rune` everywhere (`src/rune/entrypoints/sync/mod.ts:404,644`,
+- **Q2 (package name): KEEP `@techgoose-labs/rune` — retarget sprig to it.** No rune→keep rename. The
+  rune ENGINE already emits `@techgoose-labs/rune` everywhere (`src/rune/entrypoints/sync/mod.ts:404,644`,
   stubs, manifest). **Sprig-side action:** change `server/bootstrap/mod.ts` + `server/deno.json` from
-  `@mrg-keystone/keep` → `@mrg-keystone/rune`, and align the `@mrg-keystone/sprig/keep`/skill docs. (rune-side: fix
+  `@mrg-keystone/keep` → `@techgoose-labs/rune`, and align the `@techgoose-labs/sprig/keep`/skill docs. (rune-side: fix
   the one stale `@mrg-keystone/keep` line in `skills/rune:framework/references/deployment.md:40`, which
   is in the Fresh section being rewritten anyway.)
 - **Q3 (scaffold ownership): `rune init` scaffolds the WHOLE sprig+keep app.** One command produces the
   keep backend (`bootstrap/` + generated `src/<module>`), the sprig UI (`app/`), and the `serve.ts`
-  `serveSprig` composition root, plus a `deno.json` wired with `@mrg-keystone/sprig` + `@mrg-keystone/rune` and
+  `serveSprig` composition root, plus a `deno.json` wired with `@techgoose-labs/sprig` + `@techgoose-labs/rune` and
   a `deno serve serve.ts` start task. Proposed layout for a user app (flat, matching rune's existing
   convention — NOT the sprig monorepo's workspace layout):
   ```
   <root>/
-    deno.json            # @mrg-keystone/sprig + @mrg-keystone/rune; tasks: start = deno serve serve.ts
+    deno.json            # @techgoose-labs/sprig + @techgoose-labs/rune; tasks: start = deno serve serve.ts
     serve.ts             # export default serveSprig({ keep: api, app, base: "" })
     bootstrap/mod.ts     # api = await bootstrapServer(name, modules, {...})  (dev-owned)
     bootstrap/modules.ts # GENERATED module registry
@@ -174,7 +174,7 @@ already assume it.)
   ```
   **NEEDS SPRIG-SIDE CONFIRMATION:** the exact `app/` layout + the `createRenderer`/`bootstrap` import
   surface a generated `app/src/main.ts` should use, so rune's emitted scaffold stays byte-compatible
-  with what `@mrg-keystone/sprig` expects. (See `app/src/main.ts` + `serve.ts` in this repo as the template.)
+  with what `@techgoose-labs/sprig` expects. (See `app/src/main.ts` + `serve.ts` in this repo as the template.)
 
 ### Standing note (not a blocker)
 
@@ -196,10 +196,10 @@ docs are stale. Mentioning here only so the sprig-side auth assumptions stay cor
 ## Append log
 
 - 2026-06-26 — rune side: initial mapping of both repos; wrote this contract. Awaiting decisions Q1–Q3.
-- 2026-06-26 — decisions locked: Q1 REPLACE (breaking), Q2 keep `@mrg-keystone/rune` (retarget sprig),
+- 2026-06-26 — decisions locked: Q1 REPLACE (breaking), Q2 keep `@techgoose-labs/rune` (retarget sprig),
   Q3 `rune init` scaffolds all. rune-side starting Fresh removal + scaffolder. **Sprig-side TODO:**
-  (a) `server/bootstrap/mod.ts` + `server/deno.json`: `@mrg-keystone/keep` → `@mrg-keystone/rune`;
-  (b) align `@mrg-keystone/sprig/keep` + sprig:build/sprig:audit/interfaces skill docs to the `rune` package name;
+  (a) `server/bootstrap/mod.ts` + `server/deno.json`: `@mrg-keystone/keep` → `@techgoose-labs/rune`;
+  (b) align `@techgoose-labs/sprig/keep` + sprig:build/sprig:audit/interfaces skill docs to the `rune` package name;
   (c) confirm the `app/src/main.ts` scaffold surface for Q3.
 - 2026-06-26 — **IMPLEMENTED + VERIFIED (rune side did the sprig-side edits too).**
 
@@ -208,13 +208,13 @@ docs are stale. Mentioning here only so the sprig-side auth assumptions stay cor
       (SKILL/deployment/auth, incl. installed copy) + `keep/README` rewritten to the sprig story.
       `mount` test = 7 passed/0 failed; `keep/src/bootstrap/mod.ts` + the scaffolder `deno check` clean.
   - rune: `rune init` scaffolds the whole sprig+keep app (`serve.ts`, `app/src/main.ts`,
-    `app/src/pages/home/{template.html,resolve.ts}`, `@mrg-keystone/sprig/*` imports + `deno serve serve.ts` task).
-    Smoke test: generated app `deno check`s clean against PUBLISHED `@mrg-keystone/sprig@^0.12` (the `./keep`
-    subpath has `serveSprig`+`createRenderer`) and `@mrg-keystone/rune@^1`. The `KeepApi` contract
+    `app/src/pages/home/{template.html,resolve.ts}`, `@techgoose-labs/sprig/*` imports + `deno serve serve.ts` task).
+    Smoke test: generated app `deno check`s clean against PUBLISHED `@techgoose-labs/sprig@^0.12` (the `./keep`
+    subpath has `serveSprig`+`createRenderer`) and `@techgoose-labs/rune@^1`. The `KeepApi` contract
     (rune's `bootstrapServer` result satisfies `{backend,handler}`) holds structurally.
-  - sprig: retargeted `@mrg-keystone/keep` → `@mrg-keystone/rune` (server source + `framework/.sprig/
+  - sprig: retargeted `@mrg-keystone/keep` → `@techgoose-labs/rune` (server source + `framework/.sprig/
 core.ts` comment); refreshed `deno.lock` + `server/deno.lock` (keep=0, rune resolved). Sprig:build/
-    audit/interfaces skills referenced only `@mrg-keystone/sprig/keep`/conceptual "keep" — no package edits needed.
+    audit/interfaces skills referenced only `@techgoose-labs/sprig/keep`/conceptual "keep" — no package edits needed.
   - Sprig-side TODO (a)+(b) DONE; (c) CONFIRMED working via the smoke `deno check`.
 
 - 2026-06-26 — sprig-side scaffold work (in progress): found `sprig init` (framework/cli.ts `init()`)
@@ -222,11 +222,11 @@ core.ts` comment); refreshed `deno.lock` + `server/deno.lock` (keep=0, rune reso
   NO in-process client (violates all three goals) — and pins a STALE `SPRIG_RANGE = "^0.2.0"` while
   JSR latest is **0.12.7** (so the scaffold predates `serveSprig`; effectively broken). The repo's own
   `serve.ts` already uses the native `serveSprig` composition. Rewriting `sprig init` to match:
-  serveSprig + a minimal keep backend (`@mrg-keystone/rune`) + `deno serve serve.ts`, pin `^0.12.0`.
+  serveSprig + a minimal keep backend (`@techgoose-labs/rune`) + `deno serve serve.ts`, pin `^0.12.0`.
 - 2026-06-26 — **`sprig init` rewritten to native + VERIFIED.** `framework/cli.ts init()` now emits:
   `serve.ts` (`serveSprig({ keep: api, app: sprigApp, base: "/ui" })`), `bootstrap/mod.ts`
   (`await bootstrapServer("<name>", [], {})` — the keep backend, imported not listened), a `deno.json`
-  with `@mrg-keystone/sprig@^0.12.0` + `@mrg-keystone/rune@^1` + `reflect-metadata@0.1.13` (EXACT — a range
+  with `@techgoose-labs/sprig@^0.12.0` + `@techgoose-labs/rune@^1` + `reflect-metadata@0.1.13` (EXACT — a range
   double-loads the Reflect polyfill and wipes decorator metadata) + `start: deno serve -A --unstable-kv
 serve.ts`. Dropped `@danet/core`. **Also fixed a latent bug:** the shell was written to
   `bootstrap/template.html`, which the renderer NEVER discovers (it scans `src/` for a folder named
@@ -243,11 +243,11 @@ serve.ts`. Dropped `@danet/core`. **Also fixed a latent bug:** the shell was wri
 
   ### Still open / sprig-side follow-ups
 
-  1. **`@mrg-keystone/sprig` version pin** lives in TWO scaffolders — rune `src/rune/entrypoints/init/mod.ts`
+  1. **`@techgoose-labs/sprig` version pin** lives in TWO scaffolders — rune `src/rune/entrypoints/init/mod.ts`
      (`SPRIG_IMPORTS`, `^0.12`) and sprig `framework/cli.ts` (`SPRIG_RANGE`, now `^0.12.0`). Bump BOTH
      when sprig moves to `0.13+`/`1.x`. (sprig's was stale at `^0.2.0` — fixed.)
   2. **Post-`2.0.0`-publish pin migration:** keep is staged at `2.0.0` but NOT yet published; the
-     `@mrg-keystone/rune@^1` pins (rune `REQUIRED_IMPORTS`, examples, sprig `server/deno.json`) still
+     `@techgoose-labs/rune@^1` pins (rune `REQUIRED_IMPORTS`, examples, sprig `server/deno.json`) still
      resolve to `1.22.x`. AFTER `2.0.0` is on JSR, bump those to `@^2` (publish-before-pin). The breaking
      change (removed `embed`) does NOT affect sprig — sprig only needs `{backend,handler}`, unchanged.
   3. ~~Decide whether sprig's own `framework cli.ts init` should defer to `rune init` or stay no-backend.~~
@@ -284,7 +284,7 @@ serve.ts`. Dropped `@danet/core`. **Also fixed a latent bug:** the shell was wri
     exercise-harness): "mounted under Fresh" → "under a host" / `serveSprig`/`sprigUi`.
   `withBasePath` stays (framework-agnostic, as decided 2026-06-26). Verified: keep `deno check` clean,
   token-auth + mount tests 46/0. **Pin note:** supersedes "still open #2" — keep is now staged at
-  `4.0.0`; after publish, bump `@mrg-keystone/rune` pins to `@^4`. Still no impact on sprig (needs
+  `4.0.0`; after publish, bump `@techgoose-labs/rune` pins to `@^4`. Still no impact on sprig (needs
   only `{backend,handler}`).
   - **RESOLVED (behavior, by design): `rune dev` stays backend-only.** `dev/mod.ts:232` spawns
     `deno run bootstrap/mod.ts` → `api.listen()` (backend + emulator + `/docs` live-reload via
@@ -295,27 +295,27 @@ serve.ts`. Dropped `@danet/core`. **Also fixed a latent bug:** the shell was wri
 - 2026-07-04 — **reconcile: the ship-bot (`b48f112`, `infra-ship-mrg-keystone[bot]`) independently
   landed the Fresh/Vite sweep + keep `4.0.0` + the keep→rune ENGINE retarget while the above was
   in-flight.** So the two items above are IN `develop`, and the `@^4` pin note is moot for now: the
-  engine now emits `@mrg-keystone/rune@^3` for ALL generated code (`REQUIRED_IMPORTS`, `renderMain`,
+  engine now emits `@techgoose-labs/rune@^3` for ALL generated code (`REQUIRED_IMPORTS`, `renderMain`,
   the manifest/stubs/e2e emitters) — `@^3` resolves against the PUBLISHED `rune@3.1.0`; `keep/deno.json`
   is staged at `4.0.0` but unpublished, so pins stay `@^3` (correct publish-before-pin posture). This
   also **retires coms.md's BLOCKER** (package-name mismatch): generated backends no longer import the
-  abandoned `@mrg-keystone/keep@1.22.0` — they import `@mrg-keystone/rune`, the same name sprig's
+  abandoned `@mrg-keystone/keep@1.22.0` — they import `@techgoose-labs/rune`, the same name sprig's
   scaffold + serve.ts + fixtures use. One framework, one name.
 
 - 2026-07-04 — **`rune init` now DELEGATES the UI to the sprig CLI (branch
   `feat/rune-init-delegate-sprig-cli`).** sprig is CLI-compilation now, and rune's hand-rolled sprig
-  scaffold had gone stale (pinned `@mrg-keystone/sprig@^0.12`, hand-written createRenderer `serve.ts`, **no
+  scaffold had gone stale (pinned `@techgoose-labs/sprig@^0.12`, hand-written createRenderer `serve.ts`, **no
   build step** → islands never got a client bundle). Fix: `rune init` runs `sprig init <dir>` (sprig
   owns serve.ts + the src/ UI + the `sprig dev`/`sprig build` tasks + its own pins), then OVERLAYS the
   spec-driven keep backend — replaces the empty `bootstrap/mod.ts` with the registry-driven `renderMain`
   (its `api` export is what the sprig-written `serve.ts` imports; the `import.meta.main` listen keeps
   `rune dev` backend-only), adds the module registry + config + `spec/` layout, and merges rune's engine
-  import map into sprig's `deno.json` additively (sprig's `@mrg-keystone/rune` pin preserved).
+  import map into sprig's `deno.json` additively (sprig's `@techgoose-labs/rune` pin preserved).
   **Corrects the line above:** the composed UI dev task is now `sprig dev` (via `deno task dev`), NOT
-  `deno serve --watch`. Requires the sprig CLI installed (errors with `deno run -A jsr:@mrg-keystone/sprig/cli
+  `deno serve --watch`. Requires the sprig CLI installed (errors with `deno run -A jsr:@techgoose-labs/sprig/cli
   install` guidance; sprig can't run from `jsr:` — needs the on-disk `~/.sprig` runtime). The pure
   overlay is `overlayRuneBackend()`, unit-tested against a fixture sprig scaffold (no CLI/network).
   Verified end-to-end: `rune init` → `deno check serve.ts` clean → `sprig build .` emits
   `static/{client.js, isl.*.js, chunk-*.js, templates.json, app.css}` vs published
-  `@mrg-keystone/sprig@0.20.2` + `@mrg-keystone/rune@3.1.0`; init tests 4/4. **Sprig-side note:** no change
+  `@techgoose-labs/sprig@0.20.2` + `@techgoose-labs/rune@3.1.0`; init tests 4/4. **Sprig-side note:** no change
   needed — this consumes `sprig init` + `sprig dev`/`sprig build` as-is.

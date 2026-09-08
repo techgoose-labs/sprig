@@ -1,5 +1,5 @@
 /**
- * `@mrg-keystone/sprig/bedrock` — the app's UI half, as a bedrock `Unit`.
+ * `@techgoose-labs/sprig/bedrock` — the app's UI half, as a bedrock `Unit`.
  *
  *   export default Bedrock({ ui: Frontend(), backend: api, auth: Infra() });
  *
@@ -18,9 +18,9 @@ import {
   type Route,
   type RouteMeta,
   type SprigApp,
-} from "@mrg-keystone/sprig";
-import { logger, of } from "@mrg-keystone/bedrock";
-import type { Bag, Identity, Unit } from "@mrg-keystone/bedrock";
+} from "@techgoose-labs/sprig";
+import { logger, of } from "@techgoose-labs/bedrock";
+import type { Bag, Identity, Unit } from "@techgoose-labs/bedrock";
 import { dirname, fromFileUrl, join, toFileUrl } from "@std/path";
 import { createRenderer as makeRenderer } from "../../framework/.sprig/compiler/mod.ts";
 // Third-party browser libs VENDORED INTO the server source (imported as TEXT → part of the
@@ -28,7 +28,7 @@ import { createRenderer as makeRenderer } from "../../framework/.sprig/compiler/
 // from JSR). Frontend hands them to the client at <base>/_assets/vendor/<name>; every app
 // AND the isolate workbench gets them without compiling them into its own frontend bundle.
 // The app declares these in deno.json ONLY for type-checking — this vendored copy is the one
-// and only version that actually runs (same "CLI owns the runtime" rule as @mrg-keystone/sprig).
+// and only version that actually runs (same "CLI owns the runtime" rule as @techgoose-labs/sprig).
 // Load each vendored lib as TEXT from this module's OWN location — works both from a local file://
 // install (~/.sprig) and the published https:// JSR module. (A static `import … with { type: "text" }`
 // can't be published: JSR's module-graph builder rejects the text import attribute. Same eagerness as
@@ -66,7 +66,7 @@ function serveVendorAsset(path: string, assetPrefix: string): Response | null {
 }
 
 // The SSR renderer is server-only (Deno APIs) so it can't live in client-safe
-// @mrg-keystone/sprig; it belongs with the rest of the server glue. The actual COMPILER
+// @techgoose-labs/sprig; it belongs with the rest of the server glue. The actual COMPILER
 // (buildClient + the tree-sitter parser) is CLI-only and is NOT re-exported here.
 export {
   createRenderer,

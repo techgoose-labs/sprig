@@ -8,7 +8,7 @@ import {
   runInInjector,
   signal,
   type WritableAccessor,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 import type { Scope } from "./expr.ts";
 
 /** Run an island's setup() with a SERVER component injector active, so

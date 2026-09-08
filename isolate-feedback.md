@@ -147,7 +147,7 @@ so they don't require the shell's postMessage bridge.
   (`playwright install chrome` → "not supported on Linux Arm64"), so the Playwright MCP
   can't launch; use the JSR-provisioned **chromium** instead.
 - `~/.sprig` (the sprig install) was being wiped between sessions — re-run
-  `deno run -A jsr:@mrg-keystone/sprig@0.20.29/cli install` to restore `sprig`.
+  `deno run -A jsr:@techgoose-labs/sprig@0.20.29/cli install` to restore `sprig`.
 - The isolate workbench **crashed under a cold full-suite run** (330 cases × 3 workers
   building chunks on demand → `ERR_CONNECTION_REFUSED`); warming case pages first + modest
   worker counts avoids it.

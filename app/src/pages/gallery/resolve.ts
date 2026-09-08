@@ -1,6 +1,6 @@
 // Gallery page resolver (SSR): the flat index fallback (/components, /pages).
 // Groups the discovery cases target → category → folder for the template.
-import { inject, type Resolve } from "@mrg-keystone/sprig";
+import { inject, type Resolve } from "@techgoose-labs/sprig";
 import { DiscoveryService } from "../../services/discovery/mod.ts";
 import type { Case } from "../../lib/types.ts";
 

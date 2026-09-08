@@ -6,7 +6,7 @@
 // resolve.ts worked — the first real composed app hit it in production.
 
 import { assertEquals, assertThrows } from "@std/assert";
-import { inject, Injector, token } from "@mrg-keystone/sprig";
+import { inject, Injector, token } from "@techgoose-labs/sprig";
 import { withServerInjector } from "./island.ts";
 
 const Cap = token<string>("test:cap", {

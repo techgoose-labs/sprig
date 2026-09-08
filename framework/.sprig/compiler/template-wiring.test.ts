@@ -30,7 +30,7 @@ import {
   teardownInside,
 } from "./hydrate.ts";
 import { resetWiring } from "./wiring.ts";
-import { isSignal, signal, type WritableAccessor } from "@mrg-keystone/sprig";
+import { isSignal, signal, type WritableAccessor } from "@techgoose-labs/sprig";
 import type { Scope } from "./expr.ts";
 
 // ────────────────────────────────── harness ─────────────────────────────────

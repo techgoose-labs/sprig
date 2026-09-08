@@ -6,8 +6,8 @@ import {
   defineRoutes,
   type Route,
   type SprigApp,
-} from "@mrg-keystone/sprig";
-import { createRenderer } from "@mrg-keystone/sprig/bedrock";
+} from "@techgoose-labs/sprig";
+import { createRenderer } from "@techgoose-labs/sprig/bedrock";
 import { dirname, fromFileUrl } from "@std/path";
 
 export const routes: Route[] = defineRoutes([

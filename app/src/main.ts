@@ -6,8 +6,8 @@ import {
   defineRoutes,
   type Route,
   type SprigApp,
-} from "@mrg-keystone/sprig";
-import { createRenderer, type SsrRenderer } from "@mrg-keystone/sprig/bedrock";
+} from "@techgoose-labs/sprig";
+import { createRenderer, type SsrRenderer } from "@techgoose-labs/sprig/bedrock";
 import { dirname, fromFileUrl } from "@std/path";
 
 // workbench/gallery resolve.ts are auto-loaded by their route `load` (no imports needed).

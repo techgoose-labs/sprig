@@ -13,7 +13,7 @@
 // snapshot of the instance's serializable own fields (signal VALUES included), taken
 // after onServerInit and restored before onBrowserInit — so the client's first paint
 // matches the server's and onBrowserInit sees the server-produced state.
-import { isSignal } from "@mrg-keystone/sprig";
+import { isSignal } from "@techgoose-labs/sprig";
 import { tagSelf } from "./expr.ts";
 
 // deno-lint-ignore no-explicit-any

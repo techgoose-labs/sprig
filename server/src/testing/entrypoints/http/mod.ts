@@ -5,7 +5,7 @@ import {
   Endpoint,
   EndpointController,
   endpointModule,
-} from "@mrg-keystone/rune";
+} from "@techgoose-labs/rune";
 import { TestRunRequestDto } from "@/src/testing/dto/test-run-request.ts";
 import { TestReportDto } from "@/src/testing/dto/test-report.ts";
 import { RootDto } from "@/src/testing/dto/root.ts";

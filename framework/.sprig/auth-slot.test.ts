@@ -24,7 +24,7 @@ async function withServe(src: string, fn: (path: string) => Promise<void>) {
 
 Deno.test("reads back a called auth unit and where it came from", async () => {
   await withServe(
-    `import { Bedrock } from "@mrg-keystone/bedrock";
+    `import { Bedrock } from "@techgoose-labs/bedrock";
 import { AlfredAuth } from "./auth/mod.ts";
 export default Bedrock({ ui, backend: api, auth: AlfredAuth() });`,
     async (p) => {
@@ -51,7 +51,7 @@ export default Bedrock({ backend: api, auth: myAuth });`,
 
 Deno.test("no auth slot → undefined, and the build emits the two-slot shape", async () => {
   await withServe(
-    `import { Bedrock } from "@mrg-keystone/bedrock";
+    `import { Bedrock } from "@techgoose-labs/bedrock";
 export default Bedrock({ ui: Frontend(), backend: api });`,
     async (p) => assertEquals(await existingAuthSlot(p), undefined),
   );

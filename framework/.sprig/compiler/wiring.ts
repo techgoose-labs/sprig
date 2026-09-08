@@ -34,7 +34,7 @@
 //  • TETHERING REPLACES: the channel's accessor (write-guarded for reads:) is
 //    assigned onto the component's declared field; constructor-time closures over
 //    the pre-tether signal keep observing the stale one (documented).
-import { isSignal, signal, type WritableAccessor } from "@mrg-keystone/sprig";
+import { isSignal, signal, type WritableAccessor } from "@techgoose-labs/sprig";
 import type { TetherSpec, WiringSpec } from "./render.ts";
 
 interface Channel {

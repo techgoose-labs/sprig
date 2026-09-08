@@ -3,7 +3,7 @@
 // proceed, any other route to answer with a 302 there. `inject()` works
 // synchronously inside a guard; it runs on the same route injector the page's
 // resolve() gets, so a service instantiated here is the same instance there.
-import { type Guard, inject } from "@mrg-keystone/sprig";
+import { type Guard, inject } from "@techgoose-labs/sprig";
 import { Session } from "./services/session.ts";
 
 /** Anyone logged in may pass; anonymous → /login. Guards the whole /admin tree. */

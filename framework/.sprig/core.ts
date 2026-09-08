@@ -1,9 +1,9 @@
 /**
- * @mrg-keystone/sprig — the runtime contract for the folder-component model.
+ * @techgoose-labs/sprig — the runtime contract for the folder-component model.
  *
  * This is the SERVER spine: dependency injection, the keep in-process `Backend`
  * bridge, and `bootstrap()` (routing → guards → resolve → SSR). It is backend-agnostic —
- * it does NOT import @mrg-keystone/rune; the in-process client arrives as an
+ * it does NOT import @techgoose-labs/rune; the in-process client arrives as an
  * opaque `BackendClient` value threaded through `SprigApp.fetch`.
  *
  * It also carries the reactive accessors + defineComponent used by islands (run

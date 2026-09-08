@@ -66,7 +66,7 @@ Deno.test("gate: ZERO sentinel chunks → does NOT block (sentinel moved = frame
   }
 });
 
-Deno.test("forcedImportMap: the APP'S @mrg-keystone/sprig pin wins (dev == prod resolution), app imports preserved + absolutized", async () => {
+Deno.test("forcedImportMap: the APP'S @techgoose-labs/sprig pin wins (dev == prod resolution), app imports preserved + absolutized", async () => {
   // an app whose deno.json pins the runtime (the stamped jsr pin) plus an app-specific relative
   // import and a bare jsr specifier
   const app = await Deno.makeTempDir({ prefix: "sprig-fmap-" });
@@ -76,10 +76,10 @@ Deno.test("forcedImportMap: the APP'S @mrg-keystone/sprig pin wins (dev == prod 
     join(app, "deno.json"),
     JSON.stringify({
       imports: {
-        "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@0.9.9", // the app's pin — the ONE runtime the bundle must resolve
+        "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@0.9.9", // the app's pin — the ONE runtime the bundle must resolve
         "@preact/signals-core": "npm:@preact/signals-core@0.0.1", // still overridden (single signals)
         "$.services/": "./src/services/", // app import — must survive, made absolute
-        "@mrg-keystone/rune": "jsr:@mrg-keystone/rune@^3", // bare — must survive as-is
+        "@techgoose-labs/rune": "jsr:@techgoose-labs/rune@^3", // bare — must survive as-is
       },
     }),
   );
@@ -87,8 +87,8 @@ Deno.test("forcedImportMap: the APP'S @mrg-keystone/sprig pin wins (dev == prod 
     const { imports } = await forcedImportMap(src);
     // the APP'S pin wins — dev bundles the same runtime bytes prod does (stamp keeps it == CLI version)
     assertEquals(
-      imports["@mrg-keystone/sprig"],
-      "jsr:@mrg-keystone/sprig@0.9.9",
+      imports["@techgoose-labs/sprig"],
+      "jsr:@techgoose-labs/sprig@0.9.9",
     );
     assertEquals(
       imports["@preact/signals-core"],
@@ -100,7 +100,7 @@ Deno.test("forcedImportMap: the APP'S @mrg-keystone/sprig pin wins (dev == prod 
         imports["$.services/"].endsWith("/src/services/"),
       imports["$.services/"],
     );
-    assertEquals(imports["@mrg-keystone/rune"], "jsr:@mrg-keystone/rune@^3");
+    assertEquals(imports["@techgoose-labs/rune"], "jsr:@techgoose-labs/rune@^3");
   } finally {
     await Deno.remove(app, { recursive: true });
   }
@@ -113,14 +113,14 @@ Deno.test("forcedImportMap: an app that maps NO runtime falls back to the CLI's 
   await Deno.writeTextFile(
     join(app, "deno.json"),
     JSON.stringify({
-      imports: { "@mrg-keystone/rune": "jsr:@mrg-keystone/rune@^3" },
+      imports: { "@techgoose-labs/rune": "jsr:@techgoose-labs/rune@^3" },
     }),
   );
   try {
     const { imports } = await forcedImportMap(src);
     assert(
-      imports["@mrg-keystone/sprig"].endsWith("/core.ts"),
-      imports["@mrg-keystone/sprig"],
+      imports["@techgoose-labs/sprig"].endsWith("/core.ts"),
+      imports["@techgoose-labs/sprig"],
     );
   } finally {
     await Deno.remove(app, { recursive: true });
@@ -129,7 +129,7 @@ Deno.test("forcedImportMap: an app that maps NO runtime falls back to the CLI's 
 
 Deno.test("gate: the dual-core error names a legacy @sprig/core mapping as the culprit", async () => {
   // an app tree whose member deno.json still maps the RENAMED package — the exact alfred failure:
-  // the old advice ("remove @mrg-keystone/sprig from the member") was wrong for this case.
+  // the old advice ("remove @techgoose-labs/sprig from the member") was wrong for this case.
   const app = await Deno.makeTempDir({ prefix: "sprig-legacy-" });
   const src = join(app, "src");
   const out = join(app, "static");

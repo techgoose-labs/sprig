@@ -6,8 +6,8 @@ and auto-loads its data.
 
 ```ts
 // src/main.ts
-import { bootstrap, defineRoutes } from "@mrg-keystone/sprig";
-import { createRenderer } from "@mrg-keystone/sprig/bedrock";
+import { bootstrap, defineRoutes } from "@techgoose-labs/sprig";
+import { createRenderer } from "@techgoose-labs/sprig/bedrock";
 import { dirname, fromFileUrl } from "@std/path";
 
 export const routes = defineRoutes([
@@ -45,7 +45,7 @@ either:
 
    ```ts
    // pages/user/logic.ts
-   import { Backend, inject } from "@mrg-keystone/sprig";
+   import { Backend, inject } from "@techgoose-labs/sprig";
    export default class User {
      user: { name: string } | null = null;
      async onServerInit() {
@@ -62,7 +62,7 @@ either:
 
    ```ts
    // pages/home/resolve.ts
-   import type { Resolve } from "@mrg-keystone/sprig";
+   import type { Resolve } from "@techgoose-labs/sprig";
    export const resolve: Resolve = ({ params, url }) => ({ name: "sprig" });
    ```
 
@@ -88,7 +88,7 @@ either:
      matched route whose RESOURCE is missing is not a throw: capture the
      injector synchronously and set the status —
      ```ts
-     import { currentInjector, setResponseStatus } from "@mrg-keystone/sprig";
+     import { currentInjector, setResponseStatus } from "@techgoose-labs/sprig";
      export const resolve: Resolve = async ({ params }) => {
        const inj = currentInjector(); // capture BEFORE any await
        const org = await inject(Backend).fetch(`/orgs/${params.id}`).then((r) =>
@@ -110,7 +110,7 @@ parent's guards protect its whole subtree (chain runs parent-first, before
 `resolve`, so a denied page does no data work).
 
 ```ts
-import { type Guard, inject } from "@mrg-keystone/sprig";
+import { type Guard, inject } from "@techgoose-labs/sprig";
 
 const requireAuth: Guard = (ctx) => {
   if (!inject(Session).user) return ["login"]; // → 302 /login

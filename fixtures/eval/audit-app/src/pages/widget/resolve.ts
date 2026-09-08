@@ -1,5 +1,5 @@
 // Widget detail resolver. Looks up a widget by the :id route param.
-import { type Resolve } from "@mrg-keystone/sprig";
+import { type Resolve } from "@techgoose-labs/sprig";
 
 const WIDGETS: Record<string, { name: string; blurb: string }> = {
   a: { name: "Sprocket", blurb: "A fine widget." },

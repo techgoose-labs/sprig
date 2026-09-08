@@ -15,7 +15,7 @@ import { DOMParser } from "jsr:@b-fuze/deno-dom";
 import { parseTemplate } from "./parse.ts";
 import { serialize } from "./serialize.ts";
 import { type IslandEntry, makeClassSetup, registerIsland } from "./hydrate.ts";
-import { inject, Injectable, StateService } from "@mrg-keystone/sprig";
+import { inject, Injectable, StateService } from "@techgoose-labs/sprig";
 
 function mockLocalStorage(): Map<string, string> {
   const store = new Map<string, string>();

@@ -153,7 +153,7 @@ template reads.
 
 ```ts
 // shared-components/counter/logic.ts
-import { defineComponent, signal } from "@mrg-keystone/sprig";
+import { defineComponent, signal } from "@techgoose-labs/sprig";
 
 export default defineComponent({
   trigger: "visible", // "load" (default) | "idle" | "visible" | "interaction"
@@ -177,7 +177,7 @@ export default defineComponent({
 </div>
 ```
 
-Reactivity primitives (from `@mrg-keystone/sprig`):
+Reactivity primitives (from `@techgoose-labs/sprig`):
 
 - `signal(initial)` → a callable accessor: read `count()`, write `count.set(v)`.
 - `computed(() => …)` → derived, read-only accessor.
@@ -352,7 +352,7 @@ returns the template's inputs:
 
 ```ts
 // pages/board/resolve.ts
-import { inject, type Resolve } from "@mrg-keystone/sprig";
+import { inject, type Resolve } from "@techgoose-labs/sprig";
 import { BoardService } from "../../services/board/mod.ts";
 
 export const resolve: Resolve = async () => {
@@ -371,7 +371,7 @@ import {
   inject,
   Injectable,
   setResponseStatus,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 
 @Injectable({ scope: "server" }) // "server" | "client" | "both"
 export class BoardService {
@@ -427,7 +427,7 @@ import {
   defineRoutes,
   type Route,
   type SprigApp,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 import { createRenderer } from "<framework>/.sprig/compiler/mod.ts";
 import { resolve as boardResolve } from "./pages/board/resolve.ts";
 
@@ -460,7 +460,7 @@ outside islands persist).
 ### Route guards
 
 ```ts
-import { type Guard, inject } from "@mrg-keystone/sprig";
+import { type Guard, inject } from "@techgoose-labs/sprig";
 
 const requireAuth: Guard = (ctx) => {
   if (!inject(Session).user) return ["login"];   // → 302 <base>/login
@@ -507,8 +507,8 @@ full reload, no Vite); editing `logic.ts`/server code rebuilds and reloads.
 
 ```ts
 // serve.ts  (generated, at the git root)
-import { Bedrock } from "@mrg-keystone/bedrock";
-import { Frontend } from "@mrg-keystone/sprig/bedrock";
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { Frontend } from "@techgoose-labs/sprig/bedrock";
 import { api } from "./server/bootstrap/mod.ts"; // the keep backend: a Unit
 
 export default Bedrock({ ui: Frontend(), backend: api });

@@ -12,8 +12,8 @@
 //
 //   deno serve -A --unstable-kv serve.ts
 import { fromFileUrl } from "@std/path";
-import { Bedrock } from "@mrg-keystone/bedrock";
-import { Frontend } from "@mrg-keystone/sprig/bedrock";
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { Frontend } from "@techgoose-labs/sprig/bedrock";
 import { api } from "./server/bootstrap/mod.ts"; // keep: bootstrapServer already awaited
 import { app } from "./app/src/main.ts"; // sprig: bootstrap({ routes })
 

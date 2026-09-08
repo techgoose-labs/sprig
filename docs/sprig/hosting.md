@@ -3,16 +3,16 @@
 # Hosting
 
 The app is composed by **one call**, in the git-root `serve.ts`:
-`Bedrock({ ui, backend, auth })` from `@mrg-keystone/bedrock`. sprig's half is
+`Bedrock({ ui, backend, auth })` from `@techgoose-labs/bedrock`. sprig's half is
 `Frontend()` — the UI as a bedrock **`Unit`** — from
-`@mrg-keystone/sprig/bedrock`.
+`@techgoose-labs/sprig/bedrock`.
 
 ## Composition
 
 ```ts
 // serve.ts  (generated, at the git root)
-import { Bedrock } from "@mrg-keystone/bedrock";
-import { Frontend } from "@mrg-keystone/sprig/bedrock";
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { Frontend } from "@techgoose-labs/sprig/bedrock";
 import { api } from "./server/bootstrap/mod.ts"; // the keep backend: a Unit
 
 export default Bedrock({ ui: Frontend(), backend: api });

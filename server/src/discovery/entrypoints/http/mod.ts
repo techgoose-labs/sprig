@@ -5,7 +5,7 @@ import {
   Endpoint,
   EndpointController,
   endpointModule,
-} from "@mrg-keystone/rune";
+} from "@techgoose-labs/rune";
 import { RootDto } from "@/src/discovery/dto/root.ts";
 import { DiscoverResultDto } from "@/src/discovery/dto/discover-result.ts";
 import { ManifestDto } from "@/src/discovery/dto/manifest.ts";

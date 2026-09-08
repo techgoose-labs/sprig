@@ -29,7 +29,7 @@ ACROSS THE 5 HEAVIEST PAGE AGENTS (env-detail, org-detail, app-detail, apps, das
  345KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/ui-rework/spec/ui/breakdown/screenshots/orgs/org-detail-acme--page--1280.png"}
  246KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/ui-rework/spec/ui/breakdown/screenshots/orgs/org-detail--page--loading-1280.png"}
   92KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/main/org-detail-default-attempt1.png"}
-  40KB  Bash   {"command": "cd /Users/raphaelcastro/Documents/programming/infra/ui-rework/ui && deno info \"jsr:@mrg-keystone/sprig@0.20.29/keep\" 2>&1"}
+  40KB  Bash   {"command": "cd /Users/raphaelcastro/Documents/programming/infra/ui-rework/ui && deno info \"jsr:@techgoose-labs/sprig@0.20.29/keep\" 2>&1"}
   39KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/main/org-detail-default-attempt2.png"}
   36KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/ui-rework/spec/ui/breakdown/pages/env-detail/env-detail.md"}
   29KB  Read   {"file_path": "/Users/raphaelcastro/Documents/programming/infra/ui-rework/spec/ui/breakdown/pages/env-detail/components/secrets-table/secrets-table.md

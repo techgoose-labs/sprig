@@ -36,7 +36,7 @@ import type {
   Injector,
   MatchedLevel,
   Resolve,
-} from "@mrg-keystone/sprig";
+} from "@techgoose-labs/sprig";
 
 export interface SsrRenderer {
   /** Render the matched CHAIN (outer layouts → leaf page) nested inside the shell, return a

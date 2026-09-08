@@ -103,7 +103,7 @@ change **and** VALIDATE's check passed.
    for this stage. → take its `bugs[]` / `needs_investigation` /
    `checked_healthy`.
 2. **ROOT-CAUSE.** First resolve the sprig runtime's cached-source path ONCE
-   (`deno info jsr:@mrg-keystone/sprig` — the printed local path); then for each
+   (`deno info jsr:@techgoose-labs/sprig` — the printed local path); then for each
    `bugs[]` entry spawn one **`sprig-audit-root-cause`** with the bug + PROJECT
    ROOT/MAP + REFERENCES DIR + that **SPRIG RUNTIME SRC** path — send them in
    **one message, multiple Task calls** so they run concurrently (cap 4–6,
