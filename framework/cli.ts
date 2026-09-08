@@ -653,7 +653,7 @@ async function build(
  *  (infra) stamps `{ repo, commit, branch, buildTime }` into **`.infra/git.json`** at the repo root
  *  BEFORE the build runs — a server-only sidecar file (it moved OUT of deno.json: a stamp inside the
  *  most-contended file in the repo conflicted every lagging branch at the merge). This copies it
- *  beside the built assets so serveSprig can emit it as `<meta>` in every SSR document head at
+ *  beside the built assets so the ui unit can emit it as `<meta>` in every SSR document head at
  *  runtime (the serving isolate has no git and no repo). Walks up from `appDir` for the nearest
  *  `.infra/git.json`, falling back to a legacy `git` block in `deno.json(c)`; absent (local dev, or
  *  infra didn't stamp) → writes nothing, and the head stays clean. */
@@ -864,7 +864,11 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
       continue;
     }
     if (!src.includes("@sprig/core") && !src.includes("@sprig/keep")) continue;
-    const out = src.replaceAll("@sprig/keep", "@mrg-keystone/sprig/keep")
+    // The legacy `@sprig/*` scope AND the retired `/keep` subpath, in one pass:
+    // the module is `@mrg-keystone/sprig/bedrock` now, because what it exports
+    // is a bedrock Unit rather than a keep-specific serving layer.
+    const out = src.replaceAll("@sprig/keep", "@mrg-keystone/sprig/bedrock")
+      .replaceAll("@mrg-keystone/sprig/keep", "@mrg-keystone/sprig/bedrock")
       .replaceAll("@sprig/core", "@mrg-keystone/sprig");
     if (out !== src) {
       await Deno.writeTextFile(f, out);
@@ -1086,8 +1090,8 @@ function findProjectRoot(uiAbs: string): string {
 
 /** `--rune`: after building the client assets, fold the sibling rune/keep backend and this
  *  sprig UI into ONE deployable composition AT THE GIT ROOT — a generated `serve.ts`
- *  (the serveSprig { fetch } default export) plus a Deno workspace in the root deno.json so
- *  each half keeps its own import map. serveSprig binds keep's in-process Backend, so the
+ *  (the `Bedrock({ ui, backend })` default export) plus a Deno workspace in the root deno.json
+ *  so each half keeps its own import map. The root binds the in-process Backend, so the
  *  UI's resolve.ts reads data with no TCP and no token. Idempotent: safe after every build. */
 async function emitRuneComposition(
   appDir: string,
@@ -1829,7 +1833,7 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // out-of-band HMR activation: SPRIG_DEV (set above) makes the renderer emit cfg.hmr, which
   // wakes the loader's dormant HMR client. The bundle itself is byte-identical to `sprig build`.
   // RUNE PARITY: when this UI is half of a rune monorepo, dev serves EXACTLY the prod composition —
-  // serveSprig folding the backend's /api + /docs around the app. Detect it + load its .env FIRST
+  // the root composing the backend's /api around the app. Detect it + load its .env FIRST
   // (the keep reads env at module-eval), then OVERLAP the three independent bring-ups instead of
   // running them back-to-back — none shares mutable state, so this only hides wall-clock:
   //   (1) keep backend import (rune/danet DI): started here, awaited after the renderer;
@@ -2054,7 +2058,7 @@ async function init(dir = "."): Promise<void> {
     "$.shared-components/": "./src/shared-components/",
     "$.services/": "./src/services/",
     "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@${sprigPin}",
-    "@mrg-keystone/sprig/keep": "jsr:@mrg-keystone/sprig@${sprigPin}/keep",
+    "@mrg-keystone/sprig/bedrock": "jsr:@mrg-keystone/sprig@${sprigPin}/bedrock",
     "@std/path": "jsr:@std/path@^1",
     "@std/assert": "jsr:@std/assert@^1"
   }
@@ -2081,10 +2085,11 @@ async function init(dir = "."): Promise<void> {
 `,
 
     "server/bootstrap/mod.ts": [
-      `// Your keep backend (jsr:@mrg-keystone/rune). The git-root serve.ts mounts it through`,
-      `// serveSprig: the in-process client is bound to the Backend DI token for SSR, and the`,
-      `// network handler serves /api/* (token-gated) + /docs. It is imported, never listened`,
-      `// on — \`deno serve serve.ts\` owns the socket. Add endpoints by generating rune modules`,
+      `// Your keep backend (jsr:@mrg-keystone/rune) — a bedrock UNIT. The git-root`,
+      `// serve.ts composes it: the bag's in-process client is bound to the Backend DI`,
+      `// token for SSR, and its routes serve at /api/* (docs + cake at /api/docs/*). It is`,
+      `// imported, never listened on — the composition root owns the socket. Add`,
+      `// endpoints by generating rune modules`,
       `// (\`rune sync\` fills the array via server/bootstrap/modules.ts) or hand-writing controllers.`,
       `import "reflect-metadata";`,
       `import { bootstrapServer } from "@mrg-keystone/rune";`,
@@ -2103,7 +2108,7 @@ async function init(dir = "."): Promise<void> {
       `  type Route,`,
       `  type SprigApp,`,
       `} from "@mrg-keystone/sprig";`,
-      `import { createRenderer } from "@mrg-keystone/sprig/keep";`,
+      `import { createRenderer } from "@mrg-keystone/sprig/bedrock";`,
       `import { dirname, fromFileUrl } from "@std/path";`,
       ``,
       `export const routes: Route[] = defineRoutes([`,
@@ -2209,7 +2214,7 @@ async function init(dir = "."): Promise<void> {
   await Deno.mkdir(join(appAbs, "ui", "src", "shared-components"), {
     recursive: true,
   });
-  // Compose the git root: the generated serve.ts (serveSprig, importing api from
+  // Compose the git root: the generated serve.ts (Bedrock, importing api from
   // ./server/bootstrap/mod.ts) + the Deno workspace over [./ui, ./server]. writeRuneServe
   // derives srcDir/assetsDir from the ui/ convention; ensureRuneWorkspace hoists
   // @mrg-keystone/sprig to the root so both members share ONE runtime, adds the `start`
@@ -2236,7 +2241,7 @@ async function init(dir = "."): Promise<void> {
     `Scaffolded a sprig app (ui/ + server/) at ${appAbs}\n\n` +
       `  cd ${dir}\n` +
       `  deno task dev                       # sprig HMR dev → http://localhost:8000/ui\n` +
-      `  deno task build && deno task start  # production: serveSprig on the keep backend (UI /ui, API /api, docs /docs)\n`,
+      `  deno task build && deno task start  # production: the composed app (UI /ui, API /api, docs /api/docs)\n`,
   );
 }
 
@@ -2441,7 +2446,7 @@ const USAGE = `sprig — the framework CLI
                                   regardless of who else is dev'ing this repo and leaves nothing behind.
   sprig build [appDir] [--rune]  code-split islands + scope CSS + Tailwind → static/ (default: .; never annotate)
                                   --rune also folds the sibling keep backend + this UI into a git-root
-                                  serve.ts (serveSprig) and makes the root deno.json a Deno workspace
+                                  serve.ts (the Bedrock composition root) and makes the root a workspace
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
   sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free

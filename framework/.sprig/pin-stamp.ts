@@ -7,7 +7,9 @@
 //   · stamping keeps an app's @mrg-keystone/sprig pin matched to the CLI that
 //     builds it, but NEVER downgrades — a pin AHEAD of the CLI means the CLI
 //     install is stale, not the app;
-//   · migration renames the LEGACY `@sprig/core`/`@sprig/keep` scope only — an
+//   · migration renames the legacy `@sprig/core`/`@sprig/keep` scope AND the
+//     retired `/keep` subpath (now `/bedrock`, because the module exports a
+//     bedrock Unit rather than a keep-specific serving layer) — an
 //     entry already on the modern name passes through byte-identical.
 
 /** A relative / absolute / `file:` value — an intentional local dev override. */
@@ -74,21 +76,28 @@ export function stampImports(
 export function migrateKey(k: string): string {
   return k === "@sprig/core"
     ? "@mrg-keystone/sprig"
-    : k === "@sprig/keep"
-    ? "@mrg-keystone/sprig/keep"
+    : k === "@sprig/keep" || k === "@mrg-keystone/sprig/keep"
+    ? "@mrg-keystone/sprig/bedrock"
     : k.startsWith("@sprig/core/")
     ? "@mrg-keystone/sprig/" + k.slice("@sprig/core/".length)
     : k.startsWith("@sprig/keep/")
-    ? "@mrg-keystone/sprig/keep/" + k.slice("@sprig/keep/".length)
+    ? "@mrg-keystone/sprig/bedrock/" + k.slice("@sprig/keep/".length)
     : k;
 }
 
 /** Rewrite a LEGACY value's scope and re-pin its version to the CLI's (a
  *  legacy-named app predates the rename, so its pin is behind by definition). */
 export function migrateVal(val: string, v: string | null): string {
-  let out = val.replaceAll("@sprig/core", "@mrg-keystone/sprig").replaceAll(
-    "@sprig/keep",
-    "@mrg-keystone/sprig/keep",
+  let out = val
+    .replaceAll("@sprig/keep", "@mrg-keystone/sprig/bedrock")
+    .replaceAll("@mrg-keystone/sprig/keep", "@mrg-keystone/sprig/bedrock")
+    .replaceAll("@sprig/core", "@mrg-keystone/sprig");
+  // The subpath also moved: in a jsr specifier it trails the VERSION
+  // (`jsr:@mrg-keystone/sprig@2.0.0/keep`), so the scope rewrites above never
+  // see it. Retiring `/keep` without this leaves a key that resolves nowhere.
+  out = out.replace(
+    /(jsr:@mrg-keystone\/sprig@[^/"']+)\/keep\b/g,
+    "$1/bedrock",
   );
   if (v) out = out.replace(/(@mrg-keystone\/sprig)@[^/"']+/g, `$1@${v}`);
   return out;
@@ -99,11 +108,12 @@ export interface MigrateResult {
   changed: boolean;
 }
 
-/** Migrate the legacy `@sprig/*` entries of an import map to the modern scope.
- *  An entry with a modern key AND no legacy name in its value is NOT an input
- *  to this migration and passes through byte-identical — this function must be
- *  a true no-op on an already-migrated app. A deliberate LOCAL override already
- *  present on the modern key wins over a migrating legacy key (which is dropped). */
+/** Migrate an import map onto the current names: the legacy `@sprig/*` SCOPE,
+ *  and the retired `/keep` SUBPATH (now `/bedrock`, because the module exports
+ *  a bedrock Unit rather than a keep-specific serving layer). An entry that is
+ *  already current passes through byte-identical — this function must be a true
+ *  no-op on an already-migrated app. A deliberate LOCAL override already present
+ *  on the modern key wins over a migrating key (which is dropped). */
 export function migrateImports(
   imports: Record<string, string>,
   v: string | null,
@@ -113,7 +123,9 @@ export function migrateImports(
   for (const [k, val] of Object.entries(imports)) {
     const key = migrateKey(k);
     if (
-      key === k && !val.includes("@sprig/core") && !val.includes("@sprig/keep")
+      key === k && !val.includes("@sprig/core") &&
+      !val.includes("@sprig/keep") &&
+      !/jsr:@mrg-keystone\/sprig@[^/"']+\/keep\b/.test(val)
     ) {
       next[k] = val;
       continue;

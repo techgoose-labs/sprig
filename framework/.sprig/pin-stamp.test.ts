@@ -50,15 +50,20 @@ Deno.test("stampImports handles range pins (^/~) and local overrides", () => {
   assert(!absent.changed);
 });
 
-Deno.test("migrateImports is a BYTE-IDENTICAL no-op on a modern app", () => {
+Deno.test("migrateImports is a BYTE-IDENTICAL no-op on a CURRENT app", () => {
   const imports = {
-    "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@1.0.0",
-    "@mrg-keystone/sprig/keep": "jsr:@mrg-keystone/sprig@1.0.0/keep",
+    "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@2.0.0",
+    // `/bedrock`, not `/keep` — the fixture moved with the subpath, because a
+    // map still on `/keep` HAS something to migrate (see the test above).
+    "@mrg-keystone/sprig/bedrock": "jsr:@mrg-keystone/sprig@2.0.0/bedrock",
     "@std/path": "jsr:@std/path@^1",
   };
   // the CLI is OLDER than the pin — pre-fix, migrateVal restamped every entry
   const res = migrateImports(imports, "0.21.1");
-  assert(!res.changed, "no legacy names → nothing to migrate");
+  assert(
+    !res.changed,
+    "nothing legacy and nothing retired → nothing to migrate",
+  );
   assertEquals(res.imports, imports);
 });
 
@@ -74,9 +79,29 @@ Deno.test("migrateImports renames legacy entries and re-pins them to the CLI", (
   assert(res.changed);
   assertEquals(res.imports, {
     "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@1.0.0",
-    "@mrg-keystone/sprig/keep": "jsr:@mrg-keystone/sprig@1.0.0/keep",
+    // The subpath moved with the scope: `/keep` is `/bedrock` in sprig 2,
+    // because what it exports is a bedrock Unit, not a serving layer.
+    "@mrg-keystone/sprig/bedrock": "jsr:@mrg-keystone/sprig@1.0.0/bedrock",
     "@std/path": "jsr:@std/path@^1",
   });
+});
+
+Deno.test("migrateImports retires the /keep subpath on an already-modern app", () => {
+  // A sprig-1 app has the modern SCOPE but the old SUBPATH — nothing legacy to
+  // rename, and still a key that resolves nowhere in sprig 2 if left alone.
+  const res = migrateImports(
+    {
+      "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@1.1.3",
+      "@mrg-keystone/sprig/keep": "jsr:@mrg-keystone/sprig@1.1.3/keep",
+    },
+    "2.0.0",
+  );
+  assert(res.changed, "the retired subpath is a migration, not a no-op");
+  assertEquals(
+    res.imports["@mrg-keystone/sprig/bedrock"],
+    "jsr:@mrg-keystone/sprig@2.0.0/bedrock",
+  );
+  assertEquals(res.imports["@mrg-keystone/sprig/keep"], undefined);
 });
 
 Deno.test("migrateImports lets a local override on the modern key win over a legacy key", () => {
