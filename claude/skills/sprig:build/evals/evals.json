@@ -12,7 +12,7 @@
         "Data is loaded in the page's logic.ts class onServerInit() (or a resolve.ts), not a Fresh handler/page()",
         "Routes use defineRoutes with `load: \"pages/home\"`; no per-page module map",
         "Template uses Angular-flavored {{ greeting }}, not JSX",
-        "App is wired with bootstrap({ routes, base, renderer }) and createRenderer from @mrg-keystone/sprig/keep",
+        "App is wired with bootstrap({ routes, base, renderer }) and createRenderer from @mrg-keystone/sprig/bedrock",
         "Run via the sprig CLI (`sprig init`, `deno task dev`), no Vite/_fresh/manifest"
       ]
     },

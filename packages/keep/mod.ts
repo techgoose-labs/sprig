@@ -454,7 +454,7 @@ async function resolveAppRoutes(srcDir: string): Promise<Route[]> {
 
 /** Compose the SSR app from `srcDir` (createRenderer scans it for pages/islands; bootstrap wires the
  *  routes) — the composition `ui/src/mod.ts` used to hand-author. Async; called lazily on first request
- *  so serveSprig/sprigUi keep their synchronous `{ fetch }` return. */
+ *  so the unit's handler keeps its synchronous construction. */
 async function composeApp(srcDir: string, base: string): Promise<SprigApp> {
   const renderer = await makeRenderer(srcDir, base, {
     dev: !!Deno.env.get("SPRIG_DEV"),
@@ -479,7 +479,7 @@ function assetsGuard(assetsDir: string): void {
   }
   if (empty) {
     console.warn(
-      `serveSprig: assetsDir "${assetsDir}" has no built assets — ?v= cache-busting + <meta> ` +
+      `sprig: assetsDir "${assetsDir}" has no built assets — ?v= cache-busting + <meta> ` +
         `provenance are degraded. Did the build run? (set SPRIG_DEV=1 to silence in dev.)`,
     );
   }
@@ -489,7 +489,7 @@ function assetsGuard(assetsDir: string): void {
  *  base, `/` can only mean "go to the app" and `/favicon.ico` is served from the built assets.
  *  Returns a redirect Response or null. A ROOT mount — `base: "/"` OR `base: ""` (the isolate
  *  workbench mounts at "") — means the app is already at `/`, so NO redirect: redirecting `/` to an
- *  empty `location` self-loops into a blank page. Applied by serveSprig BEFORE the SSR app so the
+ *  empty `location` self-loops into a blank page. Applied by the unit BEFORE the SSR app so the
  *  app authors neither. */
 export function derivedRedirect(path: string, base: string): Response | null {
   if (base === "/" || base === "") return null; // root mount — the app IS at "/", nothing to redirect to

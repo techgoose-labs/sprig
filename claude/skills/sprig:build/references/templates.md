@@ -1,17 +1,19 @@
 # Templates — Angular-flavored HTML
 
-A `template.html` is HTML with Angular-style bindings, evaluated against the component's
-`logic.ts` scope (the class instance, or the object `setup()` returns). No JSX, no Preact.
-Bindings are parsed at build time (tree-sitter) and rendered to HTML on the server;
-`(event)` bindings wire up at hydration (so they need a `logic.ts`).
+A `template.html` is HTML with Angular-style bindings, evaluated against the
+component's `logic.ts` scope (the class instance, or the object `setup()`
+returns). No JSX, no Preact. Bindings are parsed at build time (tree-sitter) and
+rendered to HTML on the server; `(event)` bindings wire up at hydration (so they
+need a `logic.ts`).
 
 ## Interpolation
 
 ```html
 <h1>Hello, {{ name }}</h1>
 <p>{{ count() }} item(s)</p>            <!-- call a signal/method to read it -->
-<span>{{ ok ? '✓' : '✗' }}</span>      <!-- expressions, ternaries, member access -->
+<span>{{ ok ? "✓" : "✗" }}</span>      <!-- expressions, ternaries, member access -->
 ```
+
 Interpolated text is **HTML-escaped**. To inject trusted HTML use `[innerHTML]`.
 
 ## Property / input bindings — `[prop]="expr"`
@@ -21,14 +23,16 @@ One-way bind a DOM property or a child component's input:
 ```html
 <button [disabled]="busy()">Save</button>
 <input [value]="query" />
-<article [innerHTML]="renderedMarkdown"></article>      <!-- trusted: not escaped -->
-<count-display [value]="count()"></count-display>       <!-- input into a child component -->
+<article [innerHTML]="renderedMarkdown"></article>
+<!-- trusted: not escaped -->
+<count-display [value]="count()"></count-display>
+<!-- input into a child component -->
 ```
 
 ## Event bindings — `(event)="handler()"`
 
-Bind a DOM event to a scope method. Runs **only after hydration**, so the component needs a
-`logic.ts`:
+Bind a DOM event to a scope method. Runs **only after hydration**, so the
+component needs a `logic.ts`:
 
 ```html
 <button (click)="inc()">+1</button>
@@ -50,68 +54,82 @@ Bind a DOM event to a scope method. Runs **only after hydration**, so the compon
   <li>Nothing yet.</li>
 }
 ```
-`@for` needs a `track` expression (a stable key). `@empty` renders when the list is empty.
+
+`@for` needs a `track` expression (a stable key). `@empty` renders when the list
+is empty.
 
 ## Composing components
 
-Render another folder-component by its **selector** (the folder basename), passing inputs
-with `[in]` and listening with `(ev)`:
+Render another folder-component by its **selector** (the folder basename),
+passing inputs with `[in]` and listening with `(ev)`:
 
 ```html
 <ui-button id="increment" content="+1" (click)="inc()"></ui-button>
 <badge></badge>
 ```
-A child folder named `components/ui-button/` is `<ui-button>`. If it has a `logic.ts` it
-hydrates as its own island; if static it renders inline with zero JS.
+
+A child folder named `components/ui-button/` is `<ui-button>`. If it has a
+`logic.ts` it hydrates as its own island; if static it renders inline with zero
+JS.
 
 ## Projection — `<content>`
 
-A component projects its children into its own template where it places `<content>` (which
-may self-close as `<content/>`). `<ng-content>` is accepted as an alias.
+A component projects its children into its own template where it places
+`<content>` (which may self-close as `<content/>`). `<ng-content>` is accepted
+as an alias.
 
 ```html
 <!-- components/card/template.html -->
-<section class="card"><content/></section>
-```
-```html
-<!-- usage -->
-<card><p>projected into the card</p></card>
+<section class="card">
+  <content />
+</section>
 ```
 
-Scope a slot with `select="tag" / ".class" / "[attr]"`; the unmatched remainder fills the
-default `<content/>`. A slot's own children are the fallback shown when nothing is projected:
-`<content>default label</content>`.
+```html
+<!-- usage -->
+<card>
+  <p>projected into the card</p>
+</card>
+```
+
+Scope a slot with `select="tag" / ".class" / "[attr]"`; the unmatched remainder
+fills the default `<content/>`. A slot's own children are the fallback shown
+when nothing is projected: `<content>default label</content>`.
 
 ## Expression language limits (a sandboxed subset, not JavaScript)
 
-Template expressions (`{{ }}`, `[prop]`, `@if`/`@let`…) evaluate in a sandbox against the
-component scope — three traps measured on real fleets (agents reverse-engineered the
-compiler to learn these; don't):
+Template expressions (`{{ }}`, `[prop]`, `@if`/`@let`…) evaluate in a sandbox
+against the component scope — three traps measured on real fleets (agents
+reverse-engineered the compiler to learn these; don't):
 
-- **`|` is the PIPE operator** (Angular-style: `{{ 0.575 | percent }}`), so bitwise OR can
-  never work — `expr | 0` is parsed as a pipe, not a floor. Floor/round without `Math`:
-  integer arithmetic (`(n - (n % 60)) / 60`) or compute in `logic.ts`.
-- **Host globals (`Math`, `Date`, `JSON`…) are not in scope** — expressions see the
-  component's fields/`@let` locals only. Derive anything non-trivial in `logic.ts` (islands)
-  or via `@let` arithmetic (static templates).
-- **`@let` is ONE physical line** — a multi-line `@let` doesn't parse. Split long
-  derivations into several `@let`s.
+- **`|` is the PIPE operator** (Angular-style: `{{ 0.575 | percent }}`), so
+  bitwise OR can never work — `expr | 0` is parsed as a pipe, not a floor.
+  Floor/round without `Math`: integer arithmetic (`(n - (n % 60)) / 60`) or
+  compute in `logic.ts`.
+- **Host globals (`Math`, `Date`, `JSON`…) are not in scope** — expressions see
+  the component's fields/`@let` locals only. Derive anything non-trivial in
+  `logic.ts` (islands) or via `@let` arithmetic (static templates).
+- **`@let` is ONE physical line** — a multi-line `@let` doesn't parse. Split
+  long derivations into several `@let`s.
 
 Static (no-`logic.ts`) components render **inlined server-side** — no
-`<my-component>` wrapper element survives into the served HTML. Tests and parent styles must
-target the rendered inner DOM (e.g. `.avatar img`), never the component-tag selector.
+`<my-component>` wrapper element survives into the served HTML. Tests and parent
+styles must target the rendered inner DOM (e.g. `.avatar img`), never the
+component-tag selector.
 
 ## The shell + `<router-outlet>`
 
-`src/shell/template.html` is the document layout; the matched page renders where you place
-`<router-outlet>`:
+`src/shell/template.html` is the document layout; the matched page renders where
+you place `<router-outlet>`:
 
 ```html
-<div class="app-root"><router-outlet></router-outlet></div>
+<div class="app-root">
+  <router-outlet></router-outlet>
+</div>
 ```
 
 ## Styles
 
-A folder's `styles.css` is **component-scoped** by the build (a path-derived marker), so
-selectors can't leak between components. App-wide styles (tokens, resets, fonts) go in the
-shell.
+A folder's `styles.css` is **component-scoped** by the build (a path-derived
+marker), so selectors can't leak between components. App-wide styles (tokens,
+resets, fonts) go in the shell.

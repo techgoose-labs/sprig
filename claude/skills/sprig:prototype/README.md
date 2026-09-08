@@ -2,9 +2,10 @@
 
 A focused toolkit for building **throwaway, single-file clickable prototypes** —
 the kind you make to answer "what are we building" before any production work.
-Prototypes are styled with **daisyUI** (Tailwind component classes, loaded by CDN,
-no build step) and **Lucide** icons, with correct daisyUI markup pulled from the
-**daisyUI MCP** — see [daisyUI integration](#daisyui-integration-mcp) below.
+Prototypes are styled with **daisyUI** (Tailwind component classes, loaded by
+CDN, no build step) and **Lucide** icons, with correct daisyUI markup pulled
+from the **daisyUI MCP** — see [daisyUI integration](#daisyui-integration-mcp)
+below.
 
 Two pieces ship together in this repo:
 
@@ -23,9 +24,10 @@ skills/sprig:prototype/
                          gut-check on the prototype it generates.
 ```
 
-Click-to-feedback (annotate) is now built into the sprig CLI: **`sprig dev --annotate <html>`**
-serves a prototype with the cmd/ctrl+click overlay (the same overlay the full-app build mode
-uses). It lives in the framework (`framework/.sprig/annotate-client.js` + `annotate.ts`).
+Click-to-feedback (annotate) is now built into the sprig CLI:
+**`sprig dev --annotate <html>`** serves a prototype with the cmd/ctrl+click
+overlay (the same overlay the full-app build mode uses). It lives in the
+framework (`framework/.sprig/annotate-client.js` + `annotate.ts`).
 
 design-lint is derived from [impeccable](https://github.com/pbakaus/impeccable)
 (Apache-2.0). See `design-lint/NOTICE` for attribution and the list of changes.
@@ -42,6 +44,7 @@ agent → node …/prototype/scripts/detect.mjs --json <file>.html
 ```
 
 `detect.mjs` finds `design-lint` by, in order:
+
 1. `$DESIGN_LINT_BIN` — absolute path to `design-lint/bin/detect.mjs`
 2. `$DESIGN_LINT_DIR` — the `design-lint/` checkout
 3. walking up from the skill for a `design-lint/` directory (finds the bundled
@@ -52,21 +55,25 @@ the linter.
 
 ## daisyUI integration (MCP)
 
-The skill defaults to **daisyUI** for the look-and-feel of every prototype. It's a
-class-based component layer on top of Tailwind, loaded entirely by CDN — so it
+The skill defaults to **daisyUI** for the look-and-feel of every prototype. It's
+a class-based component layer on top of Tailwind, loaded entirely by CDN — so it
 keeps the one-file, no-build, double-click-to-open ethos intact:
 
 ```html
-<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-<link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet"
+  type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet"
+  type="text/css" />
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 ```
 
-These tags are shown here as the stack at a glance; **`SKILL.md` is the canonical source**
-for them (and for the daisyUI/Lucide usage gotchas — the explicit `/dist/umd/` Lucide path,
-calling `lucide.createIcons()` after each render). Icons come from **Lucide** (the last tag);
-browse names at <https://lucide.dev/icons/>. See `SKILL.md` → *Icons (Lucide)*.
+These tags are shown here as the stack at a glance; **`SKILL.md` is the
+canonical source** for them (and for the daisyUI/Lucide usage gotchas — the
+explicit `/dist/umd/` Lucide path, calling `lucide.createIcons()` after each
+render). Icons come from **Lucide** (the last tag); browse names at
+<https://lucide.dev/icons/>. See `SKILL.md` → _Icons (Lucide)_.
 
 To get the daisyUI component markup right, the skill calls the **daisyUI MCP**
 (`daisyui-blueprint`):
@@ -75,19 +82,21 @@ To get the daisyUI component markup right, the skill calls the **daisyUI MCP**
   copy-paste examples for components, layouts, whole-screen templates
   (`dashboard`, `login-form`), and themes. Called with nested objects, e.g.
   `{ "components": { "card": true, "modal": true } }`.
-- **`Figma-to-daisyUI`** — when the source is a Figma URL, fetches the design and
-  drives its conversion into daisyUI markup.
+- **`Figma-to-daisyUI`** — when the source is a Figma URL, fetches the design
+  and drives its conversion into daisyUI markup.
 
 These tools are declared in the skill's `allowed-tools`. The CDN styling itself
 needs nothing but a browser; the MCP only needs to be connected when you want it
-to supply snippets or convert a Figma file. See `SKILL.md` → *Style with daisyUI*.
+to supply snippets or convert a Figma file. See `SKILL.md` → _Style with
+daisyUI_.
 
 ## Click-to-feedback (annotate)
 
-**`sprig dev --annotate <html>`** serves a prototype with a cmd/ctrl+click feedback overlay
-and writes the notes to `<prototype>.feedback.json` next to the file, which the skill reads on
-the next iteration. (Same overlay as the full-app build mode — `sprig dev --annotate` with no
-file. The overlay lives in `framework/.sprig/`.)
+**`sprig dev --annotate <html>`** serves a prototype with a cmd/ctrl+click
+feedback overlay and writes the notes to `<prototype>.feedback.json` next to the
+file, which the skill reads on the next iteration. (Same overlay as the full-app
+build mode — `sprig dev --annotate` with no file. The overlay lives in
+`framework/.sprig/`.)
 
 ```sh
 sprig dev --annotate spec/ui/<your>-prototype.html
@@ -102,15 +111,15 @@ sprig dev --annotate spec/ui/<your>-prototype.html
   styles the page from CDN — you just write the classes directly.
 - **Node** on `PATH` for the skill's optional gut-check wrapper (it just spawns
   Deno).
-- **Deno / the `sprig` CLI** on `PATH` only if you use the gut-check or `sprig dev --annotate`;
-  the prototype itself needs nothing but a browser.
+- **Deno / the `sprig` CLI** on `PATH` only if you use the gut-check or
+  `sprig dev --annotate`; the prototype itself needs nothing but a browser.
 
 ## Install
 
 At user scope this skill is installed with the package's other skills:
-`deno task install` (dev symlink) or `isolate update` (latest release) — see
-the repo README. The skill is self-contained, so a per-project install is a
-plain copy:
+`deno task install` (dev symlink) or `isolate update` (latest release) — see the
+repo README. The skill is self-contained, so a per-project install is a plain
+copy:
 
 ```sh
 cp -R skills/sprig:prototype /path/to/project/.claude/skills/sprig:prototype

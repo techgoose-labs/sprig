@@ -6,7 +6,7 @@
 // app/src/_preview/targets/<alias>/ with a dash-cased selector (`x-<name>`) so it
 // never shadows a native element like <button>. A manifest.gen.ts of
 // { routes, modules } is spread into app/src/main.ts. The app then builds (islands
-// code-split) and serves under one serveSprig origin — no Vite, no Fresh.
+// code-split) and serves under one composed origin — no Vite, no Fresh.
 import { basename, dirname, join, resolve, toFileUrl } from "#std/path";
 import { ensureDir, exists, walk } from "#std/fs";
 import type {

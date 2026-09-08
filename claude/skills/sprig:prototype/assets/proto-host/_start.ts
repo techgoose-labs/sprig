@@ -27,7 +27,14 @@ const FEEDBACK_DIR = ROOT + "feedback";
 const PORT = Number(Deno.env.get("PORT") ?? 8723);
 
 type Obj = Record<string, unknown> & { id: string };
-type CommandDef = { type: string; kind: string; field?: string; by?: string; input: Record<string, string>; does?: string };
+type CommandDef = {
+  type: string;
+  kind: string;
+  field?: string;
+  by?: string;
+  input: Record<string, string>;
+  does?: string;
+};
 
 // ---------------------------------------------------------------------------
 // State. The read model is held IN MEMORY, seeded from objects/*.json at boot —
@@ -42,19 +49,26 @@ async function boot() {
   for await (const e of Deno.readDir(OBJECTS_DIR)) {
     if (e.isFile && e.name.endsWith(".json")) {
       const type = e.name.slice(0, -5);
-      state[type] = JSON.parse(await Deno.readTextFile(`${OBJECTS_DIR}/${type}.json`));
+      state[type] = JSON.parse(
+        await Deno.readTextFile(`${OBJECTS_DIR}/${type}.json`),
+      );
     }
   }
   const raw = JSON.parse(await Deno.readTextFile(COMMANDS_FILE));
   // Keep only the real command entries (drop the $doc/$kinds documentation keys).
-  commands = Object.fromEntries(Object.entries(raw).filter(([k]) => !k.startsWith("$"))) as Record<string, CommandDef>;
+  commands = Object.fromEntries(
+    Object.entries(raw).filter(([k]) => !k.startsWith("$")),
+  ) as Record<string, CommandDef>;
 }
 
-const newId = (t: string) => t.slice(0, 1) + "_" + crypto.randomUUID().slice(0, 6);
+const newId = (t: string) =>
+  t.slice(0, 1) + "_" + crypto.randomUUID().slice(0, 6);
 
 async function appendEvent(ev: unknown) {
   let all: unknown[] = [];
-  try { all = JSON.parse(await Deno.readTextFile(EVENTS_FILE)); } catch { /* first event */ }
+  try {
+    all = JSON.parse(await Deno.readTextFile(EVENTS_FILE));
+  } catch { /* first event */ }
   all.push(ev);
   await Deno.writeTextFile(EVENTS_FILE, JSON.stringify(all, null, 2));
 }
@@ -62,13 +76,20 @@ async function appendEvent(ev: unknown) {
 // The generic command applier. A handful of `kind`s cover every write shape, and
 // each maps to a rune:data immutability strategy (see commands.json $kinds). The
 // AI never writes a reducer — it DECLARES the command and the host applies it.
-async function runCommand(name: string, input: Record<string, unknown>): Promise<Obj | { error: string }> {
+async function runCommand(
+  name: string,
+  input: Record<string, unknown>,
+): Promise<Obj | { error: string }> {
   const def = commands[name];
   if (!def) return { error: `no command "${name}"` };
   const coll = state[def.type];
-  if (!coll) return { error: `command "${name}" targets unknown type "${def.type}"` };
+  if (!coll) {
+    return { error: `command "${name}" targets unknown type "${def.type}"` };
+  }
   const fields = Object.keys(def.input);
-  const setable = (o: Obj) => { for (const f of fields) if (f !== "id" && f in input) o[f] = input[f]; };
+  const setable = (o: Obj) => {
+    for (const f of fields) if (f !== "id" && f in input) o[f] = input[f];
+  };
   const find = () => coll.find((o) => o.id === input.id);
 
   let result: Obj;
@@ -76,33 +97,50 @@ async function runCommand(name: string, input: Record<string, unknown>): Promise
     case "create": {
       const o = { id: newId(def.type) } as Obj;
       for (const f of fields) if (f in input) o[f] = input[f];
-      coll.push(o); result = o; break;
+      coll.push(o);
+      result = o;
+      break;
     }
     case "set": {
-      const o = find(); if (!o) return { error: `no ${def.type} "${input.id}"` };
-      setable(o); result = o; break;
+      const o = find();
+      if (!o) return { error: `no ${def.type} "${input.id}"` };
+      setable(o);
+      result = o;
+      break;
     }
     case "append": {
-      const o = find(); if (!o) return { error: `no ${def.type} "${input.id}"` };
+      const o = find();
+      if (!o) return { error: `no ${def.type} "${input.id}"` };
       const field = def.field ?? "items";
       const child = { id: newId(field) } as Obj;
       for (const f of fields) if (f !== "id" && f in input) child[f] = input[f];
-      ((o[field] ??= []) as Obj[]).push(child); result = child; break;
+      ((o[field] ??= []) as Obj[]).push(child);
+      result = child;
+      break;
     }
     case "adjust": {
-      const o = find(); if (!o) return { error: `no ${def.type} "${input.id}"` };
+      const o = find();
+      if (!o) return { error: `no ${def.type} "${input.id}"` };
       const field = def.field ?? "count";
-      o[field] = (Number(o[field]) || 0) + (Number(input[def.by ?? "by"]) || 0); result = o; break;
+      o[field] = (Number(o[field]) || 0) + (Number(input[def.by ?? "by"]) || 0);
+      result = o;
+      break;
     }
     case "remove": {
       const i = coll.findIndex((o) => o.id === input.id);
       if (i < 0) return { error: `no ${def.type} "${input.id}"` };
-      result = coll.splice(i, 1)[0]; break;
+      result = coll.splice(i, 1)[0];
+      break;
     }
     default:
       return { error: `command "${name}" has unknown kind "${def.kind}"` };
   }
-  await appendEvent({ command: name, kind: def.kind, input, ts: new Date().toISOString() });
+  await appendEvent({
+    command: name,
+    kind: def.kind,
+    input,
+    ts: new Date().toISOString(),
+  });
   return result;
 }
 
@@ -191,14 +229,21 @@ const ANNOTATE_OVERLAY = /* html */ `
 </script>`;
 
 function injectHost(html: string): string {
-  let out = html.includes("</head>") ? html.replace("</head>", SEAMS_CLIENT + "\n</head>") : SEAMS_CLIENT + html;
-  out = out.includes("</body>") ? out.replace("</body>", ANNOTATE_OVERLAY + "\n</body>") : out + ANNOTATE_OVERLAY;
+  let out = html.includes("</head>")
+    ? html.replace("</head>", SEAMS_CLIENT + "\n</head>")
+    : SEAMS_CLIENT + html;
+  out = out.includes("</body>")
+    ? out.replace("</body>", ANNOTATE_OVERLAY + "\n</body>")
+    : out + ANNOTATE_OVERLAY;
   return out;
 }
 
 // ---------------------------------------------------------------------------
 const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data, null, 2), { status, headers: { "content-type": "application/json" } });
+  new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 
 await boot();
 
@@ -207,9 +252,15 @@ Deno.serve({
   onListen: ({ port }) => {
     console.log(`\n  ✎ prototype host running\n`);
     console.log(`     UI        →  http://localhost:${port}/`);
-    console.log(`     objects   →  http://localhost:${port}/objects        (read model)`);
-    console.log(`     commands  →  http://localhost:${port}/commands       (write contract)`);
-    console.log(`     events    →  http://localhost:${port}/events         (append-only log)`);
+    console.log(
+      `     objects   →  http://localhost:${port}/objects        (read model)`,
+    );
+    console.log(
+      `     commands  →  http://localhost:${port}/commands       (write contract)`,
+    );
+    console.log(
+      `     events    →  http://localhost:${port}/events         (append-only log)`,
+    );
     console.log(`     feedback  →  ./feedback/\n`);
   },
 }, async (req) => {
@@ -218,7 +269,9 @@ Deno.serve({
   // 1. The page (wrapped with both seams + annotate).
   if (pathname === "/" || pathname === "/index.html") {
     try {
-      return new Response(injectHost(await Deno.readTextFile(HTML)), { headers: { "content-type": "text/html; charset=utf-8" } });
+      return new Response(injectHost(await Deno.readTextFile(HTML)), {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
     } catch {
       return new Response("prototype html not found", { status: 500 });
     }
@@ -241,14 +294,20 @@ Deno.serve({
   const cm = pathname.match(/^\/commands\/([a-z0-9_.-]+)$/i);
   if (cm && req.method === "POST") {
     let input: Record<string, unknown> = {};
-    try { input = await req.json(); } catch { /* empty body ok */ }
+    try {
+      input = await req.json();
+    } catch { /* empty body ok */ }
     const result = await runCommand(cm[1], input);
     return json(result, "error" in result ? 400 : 200);
   }
 
   // 4. The append-only event log (introspection).
   if (pathname === "/events" && req.method === "GET") {
-    try { return json(JSON.parse(await Deno.readTextFile(EVENTS_FILE))); } catch { return json([]); }
+    try {
+      return json(JSON.parse(await Deno.readTextFile(EVENTS_FILE)));
+    } catch {
+      return json([]);
+    }
   }
 
   // 5. annotate feedback sink.
@@ -257,7 +316,9 @@ Deno.serve({
       const note = await req.json();
       const file = `${FEEDBACK_DIR}/feedback.json`;
       let all: unknown[] = [];
-      try { all = JSON.parse(await Deno.readTextFile(file)); } catch { /* first note */ }
+      try {
+        all = JSON.parse(await Deno.readTextFile(file));
+      } catch { /* first note */ }
       all.push(note);
       await Deno.writeTextFile(file, JSON.stringify(all, null, 2));
       return json({ ok: true, count: all.length });

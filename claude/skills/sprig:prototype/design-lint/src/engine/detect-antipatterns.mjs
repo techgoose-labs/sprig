@@ -8,36 +8,67 @@
  * Public API facade. Runtime engines live under cli/engine/engines/.
  */
 
-import { detectCli } from './cli/main.mjs';
+import { detectCli } from "./cli/main.mjs";
 
-export { ANTIPATTERNS, RULE_ENGINE_SUPPORT, getAntipattern, getRulesForCategory, getRuleEngineSupport } from './registry/antipatterns.mjs';
-export { SAFE_TAGS, BORDER_SAFE_TAGS, OVERUSED_FONTS, GENERIC_FONTS, KNOWN_SERIF_FONTS } from './shared/constants.mjs';
-export { isNeutralColor, parseRgb, relativeLuminance, contrastRatio, parseGradientColors, hasChroma, getHue, colorToHex } from './shared/color.mjs';
-export { isFullPage } from './shared/page.mjs';
+export {
+  ANTIPATTERNS,
+  getAntipattern,
+  getRuleEngineSupport,
+  getRulesForCategory,
+  RULE_ENGINE_SUPPORT,
+} from "./registry/antipatterns.mjs";
+export {
+  BORDER_SAFE_TAGS,
+  GENERIC_FONTS,
+  KNOWN_SERIF_FONTS,
+  OVERUSED_FONTS,
+  SAFE_TAGS,
+} from "./shared/constants.mjs";
+export {
+  colorToHex,
+  contrastRatio,
+  getHue,
+  hasChroma,
+  isNeutralColor,
+  parseGradientColors,
+  parseRgb,
+  relativeLuminance,
+} from "./shared/color.mjs";
+export { isFullPage } from "./shared/page.mjs";
 export {
   checkElementBorders,
-  checkElementMotion,
   checkElementGlow,
-  checkPageTypography,
-  checkPageLayout,
+  checkElementMotion,
   checkHtmlPatterns,
-} from './rules/checks.mjs';
-export { createDetectorProfile, summarizeDetectorProfile } from './profile/profiler.mjs';
-export { detectHtml } from './engines/static-html/detect-html.mjs';
-export { detectUrl, createBrowserDetector } from './engines/browser/detect-url.mjs';
-export { detectText, extractStyleBlocks, extractCSSinJS } from './engines/regex/detect-text.mjs';
+  checkPageLayout,
+  checkPageTypography,
+} from "./rules/checks.mjs";
 export {
-  walkDir,
+  createDetectorProfile,
+  summarizeDetectorProfile,
+} from "./profile/profiler.mjs";
+export { detectHtml } from "./engines/static-html/detect-html.mjs";
+export {
+  createBrowserDetector,
+  detectUrl,
+} from "./engines/browser/detect-url.mjs";
+export {
+  detectText,
+  extractCSSinJS,
+  extractStyleBlocks,
+} from "./engines/regex/detect-text.mjs";
+export {
+  buildImportGraph,
+  detectFrameworkConfig,
+  FRAMEWORK_CONFIGS,
+  isPortListening,
+  resolveImport,
   SCANNABLE_EXTENSIONS,
   SKIP_DIRS,
-  buildImportGraph,
-  resolveImport,
-  detectFrameworkConfig,
-  isPortListening,
-  FRAMEWORK_CONFIGS,
-} from './node/file-system.mjs';
-export { formatFindings, detectCli } from './cli/main.mjs';
+  walkDir,
+} from "./node/file-system.mjs";
+export { detectCli, formatFindings } from "./cli/main.mjs";
 
-const isMainModule = process.argv[1]?.endsWith('detect-antipatterns.mjs') ||
-  process.argv[1]?.endsWith('detect-antipatterns.mjs/');
+const isMainModule = process.argv[1]?.endsWith("detect-antipatterns.mjs") ||
+  process.argv[1]?.endsWith("detect-antipatterns.mjs/");
 if (isMainModule) detectCli();

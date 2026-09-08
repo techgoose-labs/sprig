@@ -1,6 +1,6 @@
 // deriveUiPackageDir resolves the UI package under the project root by probing the
 // sanctioned names (ui/, then app/ — the alternate rune's structure spec sanctions).
-// The probe is what lets a generated one-line `serveSprig({ keep })` compose correctly
+// The probe is what lets a generated one-line `Bedrock({ ui: Frontend(), backend })` compose correctly
 // for BOTH layouts: before it, an app/-layout monorepo 500'd on every SSR page
 // (createRenderer walked the non-existent <root>/ui/src).
 import { assertEquals } from "jsr:@std/assert";

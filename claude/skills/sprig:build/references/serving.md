@@ -1,83 +1,101 @@
-# Serving & mounting the UI
+# Serving & composing the app
 
-`@mrg-keystone/sprig/keep` is the server glue. It exposes the SSR renderer (`createRenderer`) and two
-ways to serve the app. In dev you don't write any of this — `sprig dev` serves the app with
-HMR. For production the scaffold writes a `serve.ts` host file.
+`@mrg-keystone/sprig/bedrock` exposes the SSR renderer (`createRenderer`) and
+`Frontend()` — the app's UI half, as a bedrock **`Unit`**. In dev you write none
+of this: `sprig dev` composes the same thing with HMR. For production the
+scaffold writes the git-root `serve.ts`.
 
-## `serveSprig` — the single-origin composition root (the scaffold default)
+## `Bedrock({ ui, backend, auth })` — the composition root
 
-A sprig app runs **on** a keep backend (`@mrg-keystone/rune`), wired natively to its
-in-process client — no HTTP between the UI and its own backend. `serveSprig({ keep, app,
-base })` returns one `{ fetch }` default export that **`deno serve` drives** — there is no
-`Deno.serve()` and no `app.listen()` of your own:
+ONE call composes the app. The generated `serve.ts` is the whole of it:
 
 ```ts
-// serve.ts — the generated git-root composition root; run from the git root:  deno serve -A serve.ts
-import { serveSprig } from "@mrg-keystone/sprig/keep";
+// serve.ts — the git-root composition root; run from the git root
+import { Bedrock } from "@mrg-keystone/bedrock";
+import { Frontend } from "@mrg-keystone/sprig/bedrock";
 import { api } from "./server/bootstrap/mod.ts"; // the keep backend: await bootstrapServer(...)
 
-export default serveSprig({ keep: api }); // the sprig UI is the ./ui workspace package
+export default Bedrock({ ui: Frontend(), backend: api });
+```
+
+Every slot is optional and every subset serves:
+
+```ts
+Bedrock({ ui: Frontend(), backend: api }); // full-stack
+Bedrock({ ui: Frontend() }); // frontend alone
+Bedrock({ ui: Frontend(), backend: api, auth: Infra() }); // + auth
 ```
 
 Dispatch (you write none of it):
 
-- `/api/*` → the keep backend's **token-gated network handler** (prefix stripped). This is
-  the channel browser **islands** use (`fetch("/api/…")`) — the only HTTP hop, and it is
-  unavoidable: a browser can't make in-process calls.
-- `/docs*` → the backend's Swagger/emulator UI.
+- `/api/*` → the keep backend, including its docs/emulator at **`/api/docs/*`**.
+  This is the channel browser **islands** use (`fetch("/api/…")`) — the only
+  HTTP hop, and it is unavoidable: a browser cannot make in-process calls.
+- `/auth/*` → the auth unit, when one is composed.
 - `<base>/_assets/*` → the built client assets.
-- everything else → the **sprig SSR app**, with keep's **in-process client bound to the
-  `Backend` DI token**. So a page's `resolve.ts`/service reads data with `inject(Backend)` —
-  no TCP, no token, straight through the backend pipeline.
+- everything else → the **sprig SSR app**, with the one in-process client bound
+  to the `Backend` DI token. A page's `resolve.ts`/service reads data with
+  `inject(Backend)` — no TCP, straight through the backend pipeline, carrying
+  this request's own cookies.
 
-This is what `sprig init` scaffolds (and what `rune init` scaffolds for a spec-driven
-backend). The keep backend is `const api = await bootstrapServer("app", modules, {})`; it is
-imported, **not** listened on — `deno serve serve.ts` owns the single socket.
+The backend is `const api = await bootstrapServer("app", modules, {})`; it is
+imported, **not** listened on — the composition root owns the single socket.
 
-## `sprigUi` — mount the UI inside an existing host
+`Bedrock(...)` returns a callable `App` (a handler carrying `client`, `listen`,
+`stop`), so the runtime's serve command, `Deno.serve(app)` and
+`export default app` all work.
 
-When you already have a host (Danet/Oak/Hono/bare `Deno.serve`) and want sprig to own only a
-sub-path, `sprigUi({ app, base })` returns a function that handles anything under `base` (the
-built assets at `<base>/_assets/*` + the SSR app) and returns **`null` to pass through** when
-the request isn't ours.
+## Wire paths — one client, both scopes
+
+The in-process client takes the SAME paths a browser would:
 
 ```ts
-// bare Deno.serve — host owns everything but /ui:
-import { sprigUi } from "@mrg-keystone/sprig/keep";
-const ui = sprigUi({ app, base: "/ui", backend: api.backend }); // backend → inject(Backend) for SSR
-export default {
-  fetch: (req: Request, info: Deno.ServeHandlerInfo) =>
-    ui(req, info).then((r) => r ?? new Response("Not Found", { status: 404 })),
-};
+inject(Backend).get("/api/users"); // NOT "/users"
 ```
 
-It composes the same way into Danet (`app.use(async (ctx, next) => (await ui(ctx.req.raw)) ?? next())`),
-Oak (`ctx.request.source`), or Hono (`(await ui(c.req.raw)) ?? next()`). Pass `backend:
-{ fetch }` (the host's in-process client) to thread `inject(Backend)` for SSR data loading;
-`assetsDir` defaults to `"static"`. Prefer `serveSprig` unless you're embedding under a host
-you don't control.
+There is no implicit `/api` mount any more. A route-space path still works for
+one release — `.get` prefixes it and logs the call site — and
+`sprig migrate wire-paths` rewrites them.
+
+## Who the caller is
+
+`ctx.session` in a guard, and the `session` in the SSR env, are the **auth
+unit's verdict for this dispatch**, stamped on the request by the composition
+root and read off its envelope. sprig no longer resolves a session from a cookie
+— it never could on the in-process channel — and a route's `requiredGrant` is
+checked against `session.claims` by default, with no app wiring.
+
+## Mounting inside another host
+
+`sprigUi` is gone. To put the app under a prefix inside a host you do not
+control, use `withBasePath(prefix, handler)` from `@mrg-keystone/bedrock` around
+the composed `App`. Prefer composing at the root: a mount outside the root gives
+that host's requests no envelope, no guard, and no client.
 
 ## The typed client — data across the waist (bridge 2)
 
-When the backend is spec-driven (a ratified contract at the git root), the scaffold
-generates a **typed client** from the rune OpenAPI (`spec/contract/openapi.json`) into
-`spec/contract/client/` — via the `contract client` CLI (`@dev-tools/contract`) —
-`dtos.ts` (one TS type per DTO) + `client.ts` (one wrapper per
-endpoint: **queries** are reads, **commands** are intent writes — never an
-edit-this-record call; the waist rule of the sprig repo's `contract.md`). Every wrapper
-takes a `{ fetch }` backend, so both channels reuse it:
+When the backend is spec-driven (a ratified contract at the git root), the
+scaffold generates a **typed client** from the rune OpenAPI
+(`spec/contract/openapi.json`) into `spec/contract/client/` — via the
+`contract client` CLI (`@dev-tools/contract`) — `dtos.ts` (one TS type per
+DTO) + `client.ts` (one wrapper per endpoint: **queries** are reads,
+**commands** are intent writes — never an edit-this-record call; the waist rule
+of the sprig repo's `contract.md`). Every wrapper takes a `{ fetch }` backend,
+so both channels reuse it:
 
-- **SSR** (`resolve.ts` / services) passes `inject(Backend)` — in-process, no HTTP.
-- **Islands** pass a `/api/*`-prefixed `fetch` — the one unavoidable HTTP hop.
+- **SSR** (`resolve.ts` / services) passes `inject(Backend)` — in-process, no
+  HTTP.
+- **Islands** pass a plain `fetch` at `/api/*` — the one unavoidable HTTP hop.
 
-Import the generated DTO types — no hand-typed shapes, no bare string routes. When the
-backend contract changes, regenerate the client (the OpenAPI is the source); type errors
-at the import sites are the drift alarm doing its job.
+Import the generated DTO types — no hand-typed shapes, no bare string routes.
+When the backend contract changes, regenerate the client (the OpenAPI is the
+source); type errors at the import sites are the drift alarm doing its job.
 
 ## The build output
 
-`sprig build` (or `deno task build`) writes `static/`: `client.js` (the hydration runtime),
-`isl.<sel>.js` (one code-split chunk per island), shared `chunk-*.js`, scoped `app.css`, and
-`templates.json` (the prebuilt serialized templates — so the runtime never parses HTML).
-Assets are content-hash cache-busted via `?v=`. **Run the production path before shipping**:
+`sprig build` (or `deno task build`) writes `static/`: `client.js` (the
+hydration runtime), `isl.<sel>.js` (one code-split chunk per island), shared
+`chunk-*.js`, scoped `app.css`, and `templates.json` (the prebuilt serialized
+templates — so the runtime never parses HTML). Assets are content-hash
+cache-busted via `?v=`. **Run the production path before shipping**:
 `deno task build` then `deno task start`, and hit a real URL.

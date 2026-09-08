@@ -18,25 +18,27 @@
  *   3. a `design-lint/bin/detect.mjs` found by walking up from this script
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function resolveDesignLintBin() {
-  if (process.env.DESIGN_LINT_BIN && fs.existsSync(process.env.DESIGN_LINT_BIN)) {
+  if (
+    process.env.DESIGN_LINT_BIN && fs.existsSync(process.env.DESIGN_LINT_BIN)
+  ) {
     return process.env.DESIGN_LINT_BIN;
   }
   if (process.env.DESIGN_LINT_DIR) {
-    const p = path.join(process.env.DESIGN_LINT_DIR, 'bin', 'detect.mjs');
+    const p = path.join(process.env.DESIGN_LINT_DIR, "bin", "detect.mjs");
     if (fs.existsSync(p)) return p;
   }
   // Walk up from the skill looking for a sibling design-lint checkout.
   let dir = __dirname;
   for (let i = 0; i < 8; i++) {
-    const candidate = path.join(dir, 'design-lint', 'bin', 'detect.mjs');
+    const candidate = path.join(dir, "design-lint", "bin", "detect.mjs");
     if (fs.existsSync(candidate)) return candidate;
     const parent = path.dirname(dir);
     if (parent === dir) break;
@@ -48,8 +50,8 @@ function resolveDesignLintBin() {
 const bin = resolveDesignLintBin();
 if (!bin) {
   process.stderr.write(
-    'Error: design-lint not found. Set DESIGN_LINT_DIR (the design-lint checkout) ' +
-    'or DESIGN_LINT_BIN (path to design-lint/bin/detect.mjs).\n',
+    "Error: design-lint not found. Set DESIGN_LINT_DIR (the design-lint checkout) " +
+      "or DESIGN_LINT_BIN (path to design-lint/bin/detect.mjs).\n",
   );
   process.exit(1);
 }
@@ -58,20 +60,22 @@ if (!bin) {
 // works regardless of the executable bit, and so design-lint's import map
 // (puppeteer -> Astral shim) is in effect.
 const denoArgs = [
-  'run',
-  '--allow-read',
-  '--allow-env',
-  '--allow-net',
-  '--allow-write',
-  '--allow-run',
+  "run",
+  "--allow-read",
+  "--allow-env",
+  "--allow-net",
+  "--allow-write",
+  "--allow-run",
   bin,
   ...process.argv.slice(2),
 ];
 
-const result = spawnSync('deno', denoArgs, { stdio: 'inherit' });
+const result = spawnSync("deno", denoArgs, { stdio: "inherit" });
 if (result.error) {
-  if (result.error.code === 'ENOENT') {
-    process.stderr.write('Error: `deno` not found on PATH. design-lint requires Deno.\n');
+  if (result.error.code === "ENOENT") {
+    process.stderr.write(
+      "Error: `deno` not found on PATH. design-lint requires Deno.\n",
+    );
     process.exit(1);
   }
   throw result.error;

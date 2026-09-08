@@ -574,7 +574,7 @@ async function withMergedConfig(appDir: string): Promise<void> {
 
 /** Dev/HMR build output lives in a per-project temp dir, NOT the project's static/, so
  *  `sprig dev` never litters the source tree. Stable per project so HMR rebuilds reuse it.
- *  (`sprig build` keeps writing <cwd>/static — the deploy artifact serveSprig reads.) */
+ *  (`sprig build` keeps writing <cwd>/static — the deploy artifact the ui unit reads.) */
 function devCacheDir(appDir: string): string {
   const tmp = Deno.env.get("TMPDIR") ?? "/tmp";
   const key =

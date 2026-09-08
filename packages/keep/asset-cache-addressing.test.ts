@@ -127,7 +127,7 @@ Deno.test("conditional GET still 304s on BOTH cache-control branches", async () 
   }
 });
 
-Deno.test("sprigUi threads env.assetsVersion = the served dir's hash into app.fetch", async () => {
+Deno.test("the unit threads env.assetsVersion = the served dir's hash into app.fetch", async () => {
   const dir = await makeAssets();
   const hash = await versionOf(dir);
   const { app, lastEnv } = fakeApp();

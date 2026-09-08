@@ -23,14 +23,14 @@ description: >-
 # audit — orchestrate hunt → root-cause → fix → verify on a running sprig app
 
 > **Pipeline stage — audit** (end). Consumes the `sprig-app` contract
-> (`../interfaces/sprig-app.md`) and leaves `fixes.md`. Full chain:
-> design → prototype → breakdown → build → audit.
+> (`../interfaces/sprig-app.md`) and leaves `fixes.md`. Full chain: design →
+> prototype → breakdown → build → audit.
 
 **You are the orchestrator. You never hunt, diagnose, edit, or verify yourself —
-you delegate each stage to a named specialist** (via the Task tool), summarize what
-comes back, and pass the artifact down the line. Your job is coordination: boot the
-app, route to the right specialist with the right brief, assemble `fixes.md`, and
-loop back on a red check.
+you delegate each stage to a named specialist** (via the Task tool), summarize
+what comes back, and pass the artifact down the line. Your job is coordination:
+boot the app, route to the right specialist with the right brief, assemble
+`fixes.md`, and loop back on a red check.
 
 ```
 HUNT ─▶ ROOT-CAUSE ─▶ FIX ─▶ VALIDATE
@@ -40,105 +40,114 @@ HUNT ─▶ ROOT-CAUSE ─▶ FIX ─▶ VALIDATE
 
 ## The specialists you delegate to
 
-| Stage | Agent | What it returns |
-|---|---|---|
-| 1 · HUNT | **`sprig-audit-hunter`** | evidence-backed bug list (JSON: `bugs` / `needs_investigation` / `checked_healthy`) |
-| 2 · ROOT-CAUSE | **`sprig-audit-root-cause`** (one per bug, parallel) | a per-bug finding (JSON: verdict + `file:line` + fix + verify) |
-| 3 · FIX | **`sprig-audit-fixer`** | a summary of which issues are ☑ fixed / ☐ deferred |
-| 4 · VALIDATE | **`sprig-audit-validator`** | per-issue pass/fail + regressions + overall verdict |
+| Stage          | Agent                                                | What it returns                                                                     |
+| -------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1 · HUNT       | **`sprig-audit-hunter`**                             | evidence-backed bug list (JSON: `bugs` / `needs_investigation` / `checked_healthy`) |
+| 2 · ROOT-CAUSE | **`sprig-audit-root-cause`** (one per bug, parallel) | a per-bug finding (JSON: verdict + `file:line` + fix + verify)                      |
+| 3 · FIX        | **`sprig-audit-fixer`**                              | a summary of which issues are ☑ fixed / ☐ deferred                                  |
+| 4 · VALIDATE   | **`sprig-audit-validator`**                          | per-issue pass/fail + regressions + overall verdict                                 |
 
-Each specialist owns its own procedure. **Do not restate their steps here** — hand
-them their input contract and let them run. The detection playbook, MCP recipes, and
-`fixes.md` format live in `references/` (the agents read them); you pass each agent
-the absolute path to this skill's `references/` dir.
+Each specialist owns its own procedure. **Do not restate their steps here** —
+hand them their input contract and let them run. The detection playbook, MCP
+recipes, and `fixes.md` format live in `references/` (the agents read them); you
+pass each agent the absolute path to this skill's `references/` dir.
 
 ## The one rule every stage serves: evidence, not vibes
 
-Each stage hands the next something it can trust only if it's backed — a reproduced
-symptom with a screenshot/console line/status, a `file:line` proven by reading code,
-a runnable check that passed. This is why the pipeline is staged: hunting,
-diagnosing, fixing, and verifying are different jobs, each gating the next. Require
-sequential reasoning of yourself (use `mcp__sequential-thinking__sequentialthinking`
-between stages) and of every agent (their briefs already carry it).
+Each stage hands the next something it can trust only if it's backed — a
+reproduced symptom with a screenshot/console line/status, a `file:line` proven
+by reading code, a runnable check that passed. This is why the pipeline is
+staged: hunting, diagnosing, fixing, and verifying are different jobs, each
+gating the next. Require sequential reasoning of yourself (use
+`mcp__sequential-thinking__sequentialthinking` between stages) and of every
+agent (their briefs already carry it).
 
 ## fixes.md — the artifact you assemble and flow through the pipeline
 
-`fixes.md` lives at the **project root** (next to `deno.json` / `user-stories.md`);
-evidence goes in a sibling `fixes-evidence/`. Derive both automatically; never ask.
-**You assemble it** from the root-cause findings (drop refuted ones; surface notable
-"Checked and healthy" / "Needs investigation"); FIX executes and ticks it; VALIDATE
-confirms it. One section per issue, severity-ordered, in the checklist format in
-**`references/fixes-format.md`** — read it before assembling the file. A box turns ☑
-only when FIX applied the change **and** VALIDATE's check passed.
+`fixes.md` lives at the **project root** (next to `deno.json` /
+`user-stories.md`); evidence goes in a sibling `fixes-evidence/`. Derive both
+automatically; never ask. **You assemble it** from the root-cause findings (drop
+refuted ones; surface notable "Checked and healthy" / "Needs investigation");
+FIX executes and ticks it; VALIDATE confirms it. One section per issue,
+severity-ordered, in the checklist format in **`references/fixes-format.md`** —
+read it before assembling the file. A box turns ☑ only when FIX applied the
+change **and** VALIDATE's check passed.
 
 ## Before stage 1 — orient and boot (your prep)
 
 - **Confirm it's a sprig app** and read its shape: `deno.json`, `main.ts`
   (`defineRoutes`/route `guards`/`createRenderer`/`bootstrap`), `serve.ts`
-  (`serveSprig`), the `ui/src/` tree (`shell/`, `pages/`, `components/`, `islands/`,
-  `services/`), and — if it fronts a keep backend — the `server/` package
-  (`server/bootstrap/mod.ts`).
-- **Read `user-stories.md` end to end** if present — each bullet is a contract the
-  hunter verifies. No file? Tell the hunter to derive the story list from the route
-  table + islands and note its absence.
-- **Determine data ownership** — owns its data (in-app store, Deno KV, local JSON) or
-  **fronts** a keep backend in-process? If it fronts one, the Backend bugs in the
-  catalog are in scope (invisible from the DOM) — say so in the hunter's brief.
-- **Boot a FRESH server and keep its lifecycle.** Start `sprig dev` on a known port
-  (background) — fresh, not a long-poked server that can serve stale modules. For a
-  "production-ready" audit also build and serve (`sprig build && sprig serve`, or
-  `deno serve -A --unstable-kv serve.ts`). **After FIX edits code, restart a fresh
-  server before VALIDATE.** Consider creating a dedicated git branch first so the
-  whole audit is one reviewable diff.
+  (`Bedrock({ ui, backend, auth })`), the `ui/src/` tree (`shell/`, `pages/`,
+  `components/`, `islands/`, `services/`), and — if it fronts a keep backend —
+  the `server/` package (`server/bootstrap/mod.ts`).
+- **Read `user-stories.md` end to end** if present — each bullet is a contract
+  the hunter verifies. No file? Tell the hunter to derive the story list from
+  the route table + islands and note its absence.
+- **Determine data ownership** — owns its data (in-app store, Deno KV, local
+  JSON) or **fronts** a keep backend in-process? If it fronts one, the Backend
+  bugs in the catalog are in scope (invisible from the DOM) — say so in the
+  hunter's brief.
+- **Boot a FRESH server and keep its lifecycle.** Start `sprig dev` on a known
+  port (background) — fresh, not a long-poked server that can serve stale
+  modules. For a "production-ready" audit also build and serve
+  (`sprig build && sprig serve`, or `deno serve -A --unstable-kv serve.ts`).
+  **After FIX edits code, restart a fresh server before VALIDATE.** Consider
+  creating a dedicated git branch first so the whole audit is one reviewable
+  diff.
 
 ## The flow
 
-1. **HUNT.** Delegate to **`sprig-audit-hunter`** with its input contract: the running
-   base URL, project root + map, data-ownership, `user-stories.md` (or "derive"), the
-   evidence dir, and the `references/` path. It owns the browser for this stage. →
-   take its `bugs[]` / `needs_investigation` / `checked_healthy`.
+1. **HUNT.** Delegate to **`sprig-audit-hunter`** with its input contract: the
+   running base URL, project root + map, data-ownership, `user-stories.md` (or
+   "derive"), the evidence dir, and the `references/` path. It owns the browser
+   for this stage. → take its `bugs[]` / `needs_investigation` /
+   `checked_healthy`.
 2. **ROOT-CAUSE.** First resolve the sprig runtime's cached-source path ONCE
    (`deno info jsr:@mrg-keystone/sprig` — the printed local path); then for each
    `bugs[]` entry spawn one **`sprig-audit-root-cause`** with the bug + PROJECT
-   ROOT/MAP + REFERENCES DIR + that **SPRIG RUNTIME SRC** path —
-   send them in **one message, multiple Task calls** so they run concurrently (cap
-   4–6, chunked waves; cluster tightly-related bugs into one — measured on real
-   fleets, wider fan-outs trip the org's rate limits and agents die and re-execute;
-   and parallel root-causers each re-derived the runtime path themselves, two via
-   whole-disk `find /` scans, when it wasn't passed).
-   Each returns confirmed / refuted / needs-repro. **For any `needs_repro`, you own the browser between stages** — run
-   the named check yourself and resolve it. Then **assemble `fixes.md`** from the
-   confirmed findings (dedupe ones resolving to the same `file:line`).
-3. **FIX.** Delegate to **`sprig-audit-fixer`** with `fixes.md` (and the running URL
-   for self-checks). It works the checklist one issue at a time and reports ☑/☐.
+   ROOT/MAP + REFERENCES DIR + that **SPRIG RUNTIME SRC** path — send them in
+   **one message, multiple Task calls** so they run concurrently (cap 4–6,
+   chunked waves; cluster tightly-related bugs into one — measured on real
+   fleets, wider fan-outs trip the org's rate limits and agents die and
+   re-execute; and parallel root-causers each re-derived the runtime path
+   themselves, two via whole-disk `find /` scans, when it wasn't passed). Each
+   returns confirmed / refuted / needs-repro. **For any `needs_repro`, you own
+   the browser between stages** — run the named check yourself and resolve it.
+   Then **assemble `fixes.md`** from the confirmed findings (dedupe ones
+   resolving to the same `file:line`).
+3. **FIX.** Delegate to **`sprig-audit-fixer`** with `fixes.md` (and the running
+   URL for self-checks). It works the checklist one issue at a time and reports
+   ☑/☐.
 4. **VALIDATE.** **Restart a fresh server** (FIX edited code), then delegate to
-   **`sprig-audit-validator`** with `fixes.md` + the stories. It re-runs every Verify
-   check and sweeps for regressions.
-   - **verdict pass** → done. `fixes.md` is fully ☑ and is the record; report the
-     summary (fixed N, deferred M, all verified).
-   - **any fail/regression** → reason about why (wrong root cause vs. incomplete fix
-     vs. collateral), loop that issue back through FIX — or re-open ROOT-CAUSE if the
-     diagnosis itself was wrong — restart a fresh server, and re-validate. Never
-     declare done over a red check.
+   **`sprig-audit-validator`** with `fixes.md` + the stories. It re-runs every
+   Verify check and sweeps for regressions.
+   - **verdict pass** → done. `fixes.md` is fully ☑ and is the record; report
+     the summary (fixed N, deferred M, all verified).
+   - **any fail/regression** → reason about why (wrong root cause vs. incomplete
+     fix vs. collateral), loop that issue back through FIX — or re-open
+     ROOT-CAUSE if the diagnosis itself was wrong — restart a fresh server, and
+     re-validate. Never declare done over a red check.
 
 ## Orchestrator conduct
 
-After spawning stage agents, END YOUR TURN — task notifications re-invoke you; never
-`sleep`-poll. Never search the filesystem yourself: skill references live at exact
-`~/.claude/skills/<skill>/references/` paths, and every artifact path you need comes from a
-stage return. Verify by receipt: the fixer's ticked boxes + `**Fixed**` notes and the
-validator's evidence JSON ARE the stage state — never re-run their checks inline; a
-still-red issue re-routes to the owning stage agent.
+After spawning stage agents, END YOUR TURN — task notifications re-invoke you;
+never `sleep`-poll. Never search the filesystem yourself: skill references live
+at exact `~/.claude/skills/<skill>/references/` paths, and every artifact path
+you need comes from a stage return. Verify by receipt: the fixer's ticked
+boxes + `**Fixed**` notes and the validator's evidence JSON ARE the stage state
+— never re-run their checks inline; a still-red issue re-routes to the owning
+stage agent.
 
 ## Rules
 
-- **You delegate; you do not perform the stage.** Each specialist runs in its own
-  context with its own tools — hand it its contract, summarize its return, chain on.
-- **Exercise the live app.** Findings come from a running browser session. If you
-  genuinely can't boot the app, say so and stop — a static-only pass is a weaker,
-  different thing; label it as such.
-- **Reproduced → fix queue. Suspected → "Needs investigation."** Never let an agent
-  edit code to chase a bug nobody reproduced.
+- **You delegate; you do not perform the stage.** Each specialist runs in its
+  own context with its own tools — hand it its contract, summarize its return,
+  chain on.
+- **Exercise the live app.** Findings come from a running browser session. If
+  you genuinely can't boot the app, say so and stop — a static-only pass is a
+  weaker, different thing; label it as such.
+- **Reproduced → fix queue. Suspected → "Needs investigation."** Never let an
+  agent edit code to chase a bug nobody reproduced.
 - **One issue at a time in FIX**; **validate on a fresh server** and re-check
   unrelated stories for regressions.
 - **Think step by step** — you between stages, and every agent in its brief.

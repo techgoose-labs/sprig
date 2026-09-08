@@ -29,9 +29,9 @@ deno task lint:url https://example.com
 deno task lint:url --json http://localhost:8000/
 ```
 
-Flags: `--json` (JSON output), `--gpt` / `--gemini` (also report provider-specific
-generated-code tells). Exit code is `2` when findings exist, `0` when clean —
-so it drops straight into CI.
+Flags: `--json` (JSON output), `--gpt` / `--gemini` (also report
+provider-specific generated-code tells). Exit code is `2` when findings exist,
+`0` when clean — so it drops straight into CI.
 
 ## Layout
 

@@ -1,9 +1,10 @@
 # sprig
 
-A folder-component web framework for Deno: **Angular-flavoured templates** compiled to
-HTML, **server-rendered** with **selective island hydration**, **view-encapsulated** CSS,
-and dependency injection — no Vite, a state-preserving HMR dev loop, and a single
-`deno serve` to production (Deno Deploy ready).
+A folder-component web framework for Deno: **Angular-flavoured templates**
+compiled to HTML, **server-rendered** with **selective island hydration**,
+**view-encapsulated** CSS, and dependency injection — no Vite, a
+state-preserving HMR dev loop, and a single `deno serve` to production (Deno
+Deploy ready).
 
 ```bash
 deno run -A framework/cli.ts init my-app   # scaffold
@@ -12,14 +13,17 @@ cd my-app && deno task dev                  # → http://localhost:8000/ui  (HMR
 
 ## Why
 
-- **Folder = component.** A folder with a `template.html` is a component; add a `logic.ts`
-  and it becomes an interactive **island**. No imports to wire, no registration.
-- **Server-first.** Pages render to HTML on the server (`resolve.ts` loads data via DI);
-  only islands ship JS, code-split one chunk per island, hydrated on their trigger.
-- **Encapsulated.** Each component's `styles.css` is scoped to its own markup — no leakage.
-- **One origin.** `serveSprig(...)` composes a [keep](packages/keep/mod.ts) backend (an
-  in-process `Backend` for SSR + a token-gated `/api/*` channel) with the UI under one
-  `{ fetch }` handler.
+- **Folder = component.** A folder with a `template.html` is a component; add a
+  `logic.ts` and it becomes an interactive **island**. No imports to wire, no
+  registration.
+- **Server-first.** Pages render to HTML on the server (`resolve.ts` loads data
+  via DI); only islands ship JS, code-split one chunk per island, hydrated on
+  their trigger.
+- **Encapsulated.** Each component's `styles.css` is scoped to its own markup —
+  no leakage.
+- **One origin.** `Bedrock({ ui, backend, auth })` composes a
+  [keep](packages/keep/mod.ts) backend (an in-process `Backend` for SSR + a
+  token-gated `/api/*` channel) with the UI under one `{ fetch }` handler.
 
 ## The CLI
 
@@ -30,7 +34,8 @@ sprig build [appDir]           code-split islands + scope CSS + Tailwind → sta
 sprig serve [entry]            boot a serve.ts's default { fetch } handler
 ```
 
-Run it as `deno run -A framework/cli.ts <cmd>` (or `deno task sprig <cmd>` in this repo).
+Run it as `deno run -A framework/cli.ts <cmd>` (or `deno task sprig <cmd>` in
+this repo).
 
 ## Repository layout
 
@@ -51,26 +56,28 @@ framework/
       hydrate.ts          #   client runtime: hydration, delegation, reactive updates, soft-nav
       dev.ts / hmr.ts     #   dev server + hot template/CSS swap (SSE)
       compiler.test.ts    #   framework unit tests
-packages/keep/mod.ts      # @mrg-keystone/sprig/keep — serveSprig(): the one-origin composition root
+packages/keep/mod.ts      # @mrg-keystone/sprig/bedrock — Frontend(): the app's UI half, as a Unit
 app/                      # the isolate workbench, an example app built ON sprig
 tree-sitter-angular-template/  # grammar source → build the wasm, store it as grammar.bin (NOT .wasm: JSR rewrites .wasm imports; see parse.ts)
 ```
 
 > The `cli/`, `server/`, and `app/` directories are the **isolate** project — a
-> sprig component testing workbench (`app/` is its UI). It discovers a sprig project's
-> folder-components, generates an isolated preview per case, and serves them under one
-> origin (no Vite, no Fresh): `deno run -A cli/main.ts dev -r fixtures/sprig-app`. See
+> sprig component testing workbench (`app/` is its UI). It discovers a sprig
+> project's folder-components, generates an isolated preview per case, and
+> serves them under one origin (no Vite, no Fresh):
+> `deno run -A cli/main.ts dev -r fixtures/sprig-app`. See
 > [`docs/guide.md`](docs/guide.md) for the full framework guide.
 >
-> The `claude/` directory holds the Claude Code assets sprig deploys on `sprig install` /
-> `sprig update`: `claude/skills/` → `~/.claude/skills` (one folder per skill) and
-> `claude/agents/` → `~/.claude/agents` (one `.md` file per subagent). See
-> [`claude/README.md`](claude/README.md).
+> The `claude/` directory holds the Claude Code assets sprig deploys on
+> `sprig install` / `sprig update`: `claude/skills/` → `~/.claude/skills` (one
+> folder per skill) and `claude/agents/` → `~/.claude/agents` (one `.md` file
+> per subagent). See [`claude/README.md`](claude/README.md).
 
 ## Documentation
 
-- **[docs/guide.md](docs/guide.md)** — the full guide: project layout, folder-components,
-  template syntax, islands & hydration, dependency injection, the CLI, and hosting.
+- **[docs/guide.md](docs/guide.md)** — the full guide: project layout,
+  folder-components, template syntax, islands & hydration, dependency injection,
+  the CLI, and hosting.
 
 ## Test
 
@@ -83,12 +90,13 @@ deno test -A app/spine.test.ts                            # the example app's SS
 
 Before bumping `version` in `deno.json` and publishing:
 
-1. **Agent-facing docs move WITH the API.** If the release changes any public runtime/
-   compiler surface (`framework/.sprig/core.ts` exported types, template semantics, the
-   isolate CLI's flags or report shape), the same commit must update the matching
-   `claude/skills/*/references/*.md` and agent defs. A release that ships an API the refs
-   don't describe sends every build fleet reverse-engineering the Deno cache (measured:
-   112 tool calls re-deriving `ResolveCtx` after 0.20.29 shipped it undocumented).
+1. **Agent-facing docs move WITH the API.** If the release changes any public
+   runtime/ compiler surface (`framework/.sprig/core.ts` exported types,
+   template semantics, the isolate CLI's flags or report shape), the same commit
+   must update the matching `claude/skills/*/references/*.md` and agent defs. A
+   release that ships an API the refs don't describe sends every build fleet
+   reverse-engineering the Deno cache (measured: 112 tool calls re-deriving
+   `ResolveCtx` after 0.20.29 shipped it undocumented).
 2. Run the framework + runner tests (above) and `deno check cli/main.ts`.
-3. Spot-check `claude/skills/sprig:build/references/` examples still typecheck against the
-   new surface.
+3. Spot-check `claude/skills/sprig:build/references/` examples still typecheck
+   against the new surface.
