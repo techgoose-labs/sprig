@@ -299,7 +299,7 @@
       }
     },
     "links": {
-      "jsr:@mrg-keystone/bedrock@0.1.0": {
+      "jsr:@mrg-keystone/bedrock@1.0.0": {
         "dependencies": [
           "jsr:@std/assert@1",
           "jsr:@std/path@1"
