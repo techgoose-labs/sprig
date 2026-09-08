@@ -5,9 +5,15 @@ import { DiscoveryService } from "../../services/discovery/mod.ts";
 import type { Case } from "../../lib/types.ts";
 
 const PROJECT = Deno.env.get("ISOLATE_PROJECT") ?? "fixtures/sprig-app";
-const TITLE: Record<string, string> = { component: "components", page: "pages" };
+const TITLE: Record<string, string> = {
+  component: "components",
+  page: "pages",
+};
 
-function groupBy(arr: Case[], key: (c: Case) => string): Record<string, Case[]> {
+function groupBy(
+  arr: Case[],
+  key: (c: Case) => string,
+): Record<string, Case[]> {
   const m: Record<string, Case[]> = {};
   for (const x of arr) (m[key(x)] = m[key(x)] || []).push(x);
   return m;

@@ -104,7 +104,12 @@ export interface ComponentEntry {
 
 /** A config problem found during discovery — surfaced up front, not swallowed. */
 export interface Problem {
-  kind: "fixture-json" | "case-json" | "component-file" | "component-export" | "unsupported";
+  kind:
+    | "fixture-json"
+    | "case-json"
+    | "component-file"
+    | "component-export"
+    | "unsupported";
   /** The offending file (fixture/case JSON) or component directory. */
   path: string;
   /** Human-readable explanation: a JSON parse message, or what resolution did. */
@@ -342,7 +347,8 @@ async function collectCases(
       problems.push({
         kind: "unsupported",
         path: jsonPath,
-        detail: "_mocks (sub-component stub / force-props) is not yet supported in sprig previews — the case renders without it.",
+        detail:
+          "_mocks (sub-component stub / force-props) is not yet supported in sprig previews — the case renders without it.",
       });
     }
     const props = { ...v.props };
@@ -445,7 +451,9 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
             ? (spec as { controls?: unknown }).controls
             : spec;
           subControlDefs[name] = parseControlDefs(ctrls);
-          const target = isWrapper ? (spec as { target?: unknown }).target : undefined;
+          const target = isWrapper
+            ? (spec as { target?: unknown }).target
+            : undefined;
           if (typeof target === "string") subTargets[name] = target;
         }
       }
@@ -460,7 +468,14 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
       }
       delete controlDefs._background;
 
-      const cases = await collectCases(isolateDir, controlDefs, prefix, category, folder, problems);
+      const cases = await collectCases(
+        isolateDir,
+        controlDefs,
+        prefix,
+        category,
+        folder,
+        problems,
+      );
 
       entries.push({
         // Root-qualified so a component and a page with the same name don't

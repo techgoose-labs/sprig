@@ -30,7 +30,11 @@ Deno.test("BUG Y: truncate does not split astral surrogate pairs", async () => {
   const s = "\u{1F600}\u{1F600}\u{1F600}X";
   const out = evalExpr(e, { s }) as string;
   // Must be the 3 emoji + ellipsis, with NO mojibake lone surrogate.
-  assertEquals(hasLoneHighSurrogate(out), false, `lone high surrogate in: ${JSON.stringify(out)}`);
+  assertEquals(
+    hasLoneHighSurrogate(out),
+    false,
+    `lone high surrogate in: ${JSON.stringify(out)}`,
+  );
   assertEquals(out, "\u{1F600}\u{1F600}\u{1F600}…");
 });
 

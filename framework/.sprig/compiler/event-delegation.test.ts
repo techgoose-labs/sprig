@@ -14,10 +14,18 @@ import { resolveHandlers } from "./hydrate.ts";
 
 /** Render a template in CLIENT mode and return the collected handlers + the
  *  `data-sprig-<base>` marker the renderer stamped on the (single) element. */
-async function clientRender(src: string, base: string): Promise<{ handlers: Handler[]; marker: string }> {
+async function clientRender(
+  src: string,
+  base: string,
+): Promise<{ handlers: Handler[]; marker: string }> {
   const root = await parseTemplate(src);
   const handlers: Handler[] = [];
-  const html = renderNodes(named(root), { scope: {}, registry: { get: () => undefined }, source: root.text, handlers });
+  const html = renderNodes(named(root), {
+    scope: {},
+    registry: { get: () => undefined },
+    source: root.text,
+    handlers,
+  });
   const m = html.match(new RegExp(`data-sprig-${base}="([^"]*)"`));
   return { handlers, marker: m ? m[1] : "" };
 }
@@ -33,7 +41,11 @@ Deno.test("BUG A: two same-base bindings — the matching modifier handler is re
     `<input (keyup.enter)="submit()" (keyup.escape)="cancel()">`,
     "keyup",
   );
-  assertEquals(marker, "0 1", "render.ts space-joins the two same-base indices");
+  assertEquals(
+    marker,
+    "0 1",
+    "render.ts space-joins the two same-base indices",
+  );
   assertEquals(handlers.length, 2);
 
   // pressing Enter must reach handler 0 (the .enter binding). Before the fix,
@@ -65,7 +77,10 @@ Deno.test("BUG A: two same-base unmodified bindings BOTH fire (addEventListener 
 });
 
 Deno.test("BUG A: single-handler marker path is unchanged", async () => {
-  const { handlers, marker } = await clientRender(`<button (click)="a()">go</button>`, "click");
+  const { handlers, marker } = await clientRender(
+    `<button (click)="a()">go</button>`,
+    "click",
+  );
   assertEquals(marker, "0");
   const fired = resolveHandlers(marker, handlers, {} as Event);
   assertEquals(fired.length, 1);

@@ -29,7 +29,10 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
   const tmp = await Deno.makeTempDir({ prefix: "sprig-version-race-" });
   // Each page instance, on construction, fires a global "started" hook with its index and
   // awaits a global "release" promise — so the test can interleave the two requests exactly.
-  const started: Array<(v: void) => void> = [deferred<void>().resolve, deferred<void>().resolve];
+  const started: Array<(v: void) => void> = [
+    deferred<void>().resolve,
+    deferred<void>().resolve,
+  ];
   const startedP: Array<Promise<void>> = [];
   const release: Array<Promise<void>> = [];
   const releaseR: Array<(v: void) => void> = [];
@@ -45,7 +48,9 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
   (globalThis as Record<string, unknown>).__bugM = {
     next: 0,
     hit(): Promise<void> {
-      const g = (globalThis as Record<string, unknown>).__bugM as { next: number };
+      const g = (globalThis as Record<string, unknown>).__bugM as {
+        next: number;
+      };
       const i = g.next++;
       started[i]();
       return release[i];
@@ -56,8 +61,7 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
       "static/app.css": "body{color:red}",
       "shell/template.html": `<div><router-outlet></router-outlet></div>`,
       "pages/home/template.html": `<p>{{ tag }}</p>`,
-      "pages/home/logic.ts":
-        `export default class Home {\n` +
+      "pages/home/logic.ts": `export default class Home {\n` +
         `  tag = "x";\n` +
         `  async onServerInit() {\n` +
         `    await (globalThis.__bugM).hit();\n` +
@@ -73,7 +77,10 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
     await startedP[0]; // A is now parked inside renderBody's await
 
     // Mutate the static dir so the NEXT readVersion yields a different hash (hashB).
-    await Deno.writeTextFile(joinPath(tmp, "static", "app.css"), "body{color:blue}");
+    await Deno.writeTextFile(
+      joinPath(tmp, "static", "app.css"),
+      "body{color:blue}",
+    );
 
     // Kick off request B. version = readVersion() (= hashB) runs now (during A's body await),
     // overwriting the module-level `version`. B parks at barrier 1.
@@ -88,7 +95,8 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
     releaseR[1]();
     const b = await docB;
 
-    const vOf = (html: string) => html.match(/app\.css\?v=([0-9a-f]+|dev)/)?.[1];
+    const vOf = (html: string) =>
+      html.match(/app\.css\?v=([0-9a-f]+|dev)/)?.[1];
     const va = vOf(a);
     const vb = vOf(b);
     assert(va && vb, `both documents must stamp a version (a=${va}, b=${vb})`);

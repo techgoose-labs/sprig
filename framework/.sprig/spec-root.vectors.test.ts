@@ -1,11 +1,16 @@
-// sprig's spec-root walk, run against the SHARED golden vectors (vendored from
-// the artifact format) — divergence between the toolchains' independent
-// implementations fails here the day it lands, never as a silent split-brain.
+// The artifact format's spec-root vectors, run in sprig's CI against the ONE
+// implementation sprig now imports (D-9).
+//
+// There used to be an independent sprig implementation here, and the point of
+// this file was to catch it drifting from rune's. There is nothing to drift:
+// both toolchains call the same function. What this file still earns is the
+// other half of the guarantee — that the version sprig RESOLVES is a conforming
+// one, so a bad bedrock upgrade fails in sprig's CI rather than in an app's
+// monorepo, where the two halves would quietly resolve different `spec/` dirs.
 
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { specRootOf } from "./spec-root.ts";
-import { SPEC_ROOT_VECTORS_JSON } from "./vendored-tests.ts";
+import { specRootOf, vendoredVector } from "@mrg-keystone/bedrock/artifact";
 
 interface TreeEntry {
   path: string;
@@ -19,7 +24,11 @@ interface Vector {
   expected: string;
 }
 
-const { vectors } = JSON.parse(SPEC_ROOT_VECTORS_JSON) as { vectors: Vector[] };
+const { vectors } = JSON.parse(
+  await vendoredVector("spec-root-vectors.json"),
+) as {
+  vectors: Vector[];
+};
 
 for (const v of vectors) {
   Deno.test(`spec-root vectors: ${v.name}`, async () => {

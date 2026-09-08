@@ -31,7 +31,14 @@ export interface Manifest {
 
 // ── workbench shell view-model (the stage bridge + dock) ─────────────────────
 
-export type DotStatus = "idle" | "running" | "pass" | "fail" | "island" | "page" | string;
+export type DotStatus =
+  | "idle"
+  | "running"
+  | "pass"
+  | "fail"
+  | "island"
+  | "page"
+  | string;
 
 export interface Toast {
   id: number;

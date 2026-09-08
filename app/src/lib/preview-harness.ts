@@ -48,13 +48,28 @@ interface CaseData {
 /** The currently-mounted bridge for this document — updated on every (soft-nav) case. */
 interface ActiveBridge {
   publish: () => void;
-  applySet: (d: { scope: string; key: string; value: unknown; instKey?: string }) => void;
+  applySet: (
+    d: { scope: string; key: string; value: unknown; instKey?: string },
+  ) => void;
 }
 
 const STAGE_EVENTS = [
-  "click", "dblclick", "auxclick", "contextmenu", "mousedown", "mouseup",
-  "pointerdown", "pointerup", "keydown", "keyup", "input", "change", "submit",
-  "reset", "focusin", "focusout",
+  "click",
+  "dblclick",
+  "auxclick",
+  "contextmenu",
+  "mousedown",
+  "mouseup",
+  "pointerdown",
+  "pointerup",
+  "keydown",
+  "keyup",
+  "input",
+  "change",
+  "submit",
+  "reset",
+  "focusin",
+  "focusout",
 ];
 const INTERACTIVE =
   "a, button, input, select, textarea, label, summary, [role], [tabindex], [contenteditable]";
@@ -64,7 +79,9 @@ let active: ActiveBridge | null = null;
 let bound = false;
 
 function describe(el: Element): string {
-  return el.id ? `${el.tagName.toLowerCase()}#${el.id}` : el.tagName.toLowerCase();
+  return el.id
+    ? `${el.tagName.toLowerCase()}#${el.id}`
+    : el.tagName.toLowerCase();
 }
 function detailOf(e: Event, el: Element): string {
   if (e instanceof KeyboardEvent) return `key=${e.key}`;
@@ -72,7 +89,9 @@ function detailOf(e: Event, el: Element): string {
   // check hijacks it into a useless `value=""`); its meaningful detail is its label, so
   // it falls through to textContent with everything else.
   if (el instanceof HTMLInputElement) {
-    return el.type === "checkbox" ? `checked=${el.checked}` : `value="${el.value}"`;
+    return el.type === "checkbox"
+      ? `checked=${el.checked}`
+      : `value="${el.value}"`;
   }
   if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
     return `value="${el.value}"`;
@@ -86,21 +105,32 @@ function bindOnce(): void {
   if (bound || !isClient) return;
   bound = true;
   const up = (msg: Record<string, unknown>) => {
-    if (parent !== window) parent.postMessage({ source: "isolate-stage", ...msg }, "*");
+    if (parent !== window) {
+      parent.postMessage({ source: "isolate-stage", ...msg }, "*");
+    }
   };
   for (const t of STAGE_EVENTS) {
     addEventListener(t, (e: Event) => {
       const el = (e.target as Element)?.closest?.(INTERACTIVE);
       // a disabled / aria-disabled control is inert — don't log its events
-      if (!el || (el as HTMLButtonElement).disabled || el.getAttribute("aria-disabled") === "true") return;
-      const payload = { time: new Date().toLocaleTimeString(), source: describe(el), type: e.type, detail: detailOf(e, el) };
+      if (
+        !el || (el as HTMLButtonElement).disabled ||
+        el.getAttribute("aria-disabled") === "true"
+      ) return;
+      const payload = {
+        time: new Date().toLocaleTimeString(),
+        source: describe(el),
+        type: e.type,
+        detail: detailOf(e, el),
+      };
       up({ type: "event", payload });
       // Direct `playwright test` navigation (no shell iframe): the isolate-events capture()
       // binding — when a spec installed it — is the event stream's only consumer, so feed it
       // here. Inside the shell the postMessage above reaches the shell, which forwards to
       // the binding itself (one producer per context, never both).
       if (parent === window) {
-        (globalThis as { __isolateEmit?: (e: unknown) => void }).__isolateEmit?.(payload);
+        (globalThis as { __isolateEmit?: (e: unknown) => void })
+          .__isolateEmit?.(payload);
       }
     }, { capture: true });
   }
@@ -124,7 +154,11 @@ function controlDefault(def: ControlDef): unknown {
 /** Read a targeted instance's current value, preferring the LIVE DOM property (.value,
  *  .checked, .disabled) over the attribute so non-reflected state (an input's value, a
  *  checkbox's checked) is read correctly; falls back to the attribute, then the default. */
-export function readDomControl(el: Element, key: string, def: ControlDef): unknown {
+export function readDomControl(
+  el: Element,
+  key: string,
+  def: ControlDef,
+): unknown {
   const e = el as unknown as Record<string, unknown>;
   const hasProp = key in el && typeof e[key] !== "function";
   if (def.type === "boolean") return hasProp ? !!e[key] : el.hasAttribute(key);
@@ -140,13 +174,19 @@ export function readDomControl(el: Element, key: string, def: ControlDef): unkno
 /** Apply a targeted control edit to a DOM element, preferring the LIVE property so the
  *  change shows immediately (.value on an input, .checked on a checkbox, .disabled on a
  *  button); a custom key with no matching property falls back to set/removeAttribute. */
-export function writeDomControl(el: Element, key: string, value: unknown): void {
+export function writeDomControl(
+  el: Element,
+  key: string,
+  value: unknown,
+): void {
   const e = el as unknown as Record<string, unknown>;
   if (key in el && typeof e[key] !== "function") {
     try {
       e[key] = value; // live property
       return;
-    } catch { /* read-only / getter-only property → best-effort attribute fallback below */ }
+    } catch {
+      /* read-only / getter-only property → best-effort attribute fallback below */
+    }
   }
   if (value === true) el.setAttribute(key, "");
   else if (value === false || value == null) el.removeAttribute(key);
@@ -156,8 +196,16 @@ export function writeDomControl(el: Element, key: string, value: unknown): void 
 export default defineComponent({
   inputs: ["meta", "caseData"],
   setup: (ctx) => {
-    const meta = ctx.input<Meta>("meta", { name: "", selector: "", controlDefs: {} })();
-    const cas = ctx.input<CaseData>("caseData", { props: {}, signals: {}, innerHtml: null })();
+    const meta = ctx.input<Meta>("meta", {
+      name: "",
+      selector: "",
+      controlDefs: {},
+    })();
+    const cas = ctx.input<CaseData>("caseData", {
+      props: {},
+      signals: {},
+      innerHtml: null,
+    })();
 
     const props: Record<string, unknown> = { ...cas.props };
     const hasHtml = typeof cas.innerHtml === "string";
@@ -168,36 +216,54 @@ export default defineComponent({
       const controls: ControlView[] = [];
       for (const [key, def] of Object.entries(meta.controlDefs)) {
         if (def.signal) {
-          const live = target && isSignal(target[key]) ? (target[key] as () => unknown)() : cas.signals[key];
+          const live = target && isSignal(target[key])
+            ? (target[key] as () => unknown)()
+            : cas.signals[key];
           controls.push({ scope: "signal", key, def, value: live });
         } else {
           controls.push({ scope: "prop", key, def, value: props[key] });
         }
       }
-      const instances = Object.entries(meta.subControlDefs ?? {}).map(([sel, defs]) => {
-        // a targeted instance (e.g. "#submit") reads its control values straight off the
-        // DOM node; an untargeted group reads them from the case's force-props mock.
-        const target = meta.subTargets?.[sel];
-        const el = (target && isClient) ? document.querySelector(target) : null;
-        const mock = cas.mocks?.[sel];
-        const forced = (typeof mock === "object" && mock.props) ? mock.props : {};
-        return {
-          key: sel,
-          name: sel,
-          controls: Object.entries(defs).map(([key, def]): ControlView => ({
-            scope: "sub",
-            key,
-            instKey: target ?? sel,
-            def,
-            value: el ? readDomControl(el, key, def) : (key in forced ? forced[key] : controlDefault(def)),
-          })),
-        };
-      });
-      return { name: meta.name, background: meta.background, html: hasHtml ? html : null, controls, instances };
+      const instances = Object.entries(meta.subControlDefs ?? {}).map(
+        ([sel, defs]) => {
+          // a targeted instance (e.g. "#submit") reads its control values straight off the
+          // DOM node; an untargeted group reads them from the case's force-props mock.
+          const target = meta.subTargets?.[sel];
+          const el = (target && isClient)
+            ? document.querySelector(target)
+            : null;
+          const mock = cas.mocks?.[sel];
+          const forced = (typeof mock === "object" && mock.props)
+            ? mock.props
+            : {};
+          return {
+            key: sel,
+            name: sel,
+            controls: Object.entries(defs).map(([key, def]): ControlView => ({
+              scope: "sub",
+              key,
+              instKey: target ?? sel,
+              def,
+              value: el
+                ? readDomControl(el, key, def)
+                : (key in forced ? forced[key] : controlDefault(def)),
+            })),
+          };
+        },
+      );
+      return {
+        name: meta.name,
+        background: meta.background,
+        html: hasHtml ? html : null,
+        controls,
+        instances,
+      };
     };
 
     const up = (msg: Record<string, unknown>) => {
-      if (isClient && parent !== window) parent.postMessage({ source: "isolate-stage", ...msg }, "*");
+      if (isClient && parent !== window) {
+        parent.postMessage({ source: "isolate-stage", ...msg }, "*");
+      }
     };
     // stageReady = the isolate-events waitHydrated() contract: the stage is interactive —
     // an island target's scope is captured and the case's _signals applied, or the target
@@ -209,7 +275,8 @@ export default defineComponent({
       stageReady = true;
       (globalThis as { __isolateReady?: boolean }).__isolateReady = true;
     };
-    const publish = () => up({ type: "ready", hydrated: stageReady, ...surface() });
+    const publish = () =>
+      up({ type: "ready", hydrated: stageReady, ...surface() });
 
     // edit a static prop / innerHtml / child-component prop by reloading the preview
     // with the value as a query override (the resolver merges it, the server re-renders).
@@ -218,7 +285,9 @@ export default defineComponent({
       u.searchParams.set(key, String(value));
       location.replace(u.href);
     };
-    const applySet = (d: { scope: string; key: string; value: unknown; instKey?: string }) => {
+    const applySet = (
+      d: { scope: string; key: string; value: unknown; instKey?: string },
+    ) => {
       if (d.scope === "signal" && target && isSignal(target[d.key])) {
         (target[d.key] as { set: (v: unknown) => void }).set(d.value); // live (island signal)
         publish();
@@ -231,7 +300,9 @@ export default defineComponent({
       } else if (d.scope === "sub" && d.instKey) {
         // a specific rendered element (e.g. "#submit") → set it directly, live, no reload;
         // an unmatched selector is a component instance → mock + server re-render.
-        const el = typeof document !== "undefined" ? document.querySelector(d.instKey) : null;
+        const el = typeof document !== "undefined"
+          ? document.querySelector(d.instKey)
+          : null;
         if (el) {
           writeDomControl(el, d.key, d.value);
           publish();
@@ -249,18 +320,26 @@ export default defineComponent({
       (globalThis as { __isolateReady?: boolean }).__isolateReady = false;
       // static target: no island scope to wait for — the server-rendered markup is final.
       // (kind fallback: a missing kind — an older manifest — infers from the island host.)
-      const islandTarget = meta.kind ? meta.kind === "island" : !!document.querySelector(`sprig-island[data-sel="${meta.selector}"]`);
+      const islandTarget = meta.kind
+        ? meta.kind === "island"
+        : !!document.querySelector(`sprig-island[data-sel="${meta.selector}"]`);
       if (!islandTarget) markReady();
       // grab the target island's scope off its DOM node (robust to chunk boundaries),
       // apply the case's initial _signals, then publish. Retry for hydration order.
       const tryAttach = (tries = 0) => {
         if (target) return;
-        const el = document.querySelector(`sprig-island[data-sel="${meta.selector}"]`);
-        const sc = el && (el as unknown as { __sprigScope?: Record<string, unknown> }).__sprigScope;
+        const el = document.querySelector(
+          `sprig-island[data-sel="${meta.selector}"]`,
+        );
+        const sc = el &&
+          (el as unknown as { __sprigScope?: Record<string, unknown> })
+            .__sprigScope;
         if (sc) {
           target = sc;
           for (const [k, v] of Object.entries(cas.signals)) {
-            if (isSignal(target[k])) (target[k] as { set: (x: unknown) => void }).set(v);
+            if (isSignal(target[k])) {
+              (target[k] as { set: (x: unknown) => void }).set(v);
+            }
           }
           markReady(); // scope captured + case signals applied → the island is interactive
           publish();

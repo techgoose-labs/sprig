@@ -53,7 +53,10 @@ Deno.test("StateService: reset restores defaults AND clears its localStorage ent
 
     a.reset();
     assertEquals(a.count, 0, "field reset to its constructed default");
-    assert(!store.has("sprig:state:S"), "saved copy in localStorage was removed on reset");
+    assert(
+      !store.has("sprig:state:S"),
+      "saved copy in localStorage was removed on reset",
+    );
   } finally {
     unmock();
   }
@@ -89,7 +92,10 @@ Deno.test("StateService: a `static key` gives a stable localStorage key (survive
     const a = new S();
     a.n = 4;
     a.persist();
-    assert(store.has("sprig:state:app"), "uses the static key, not the class name");
+    assert(
+      store.has("sprig:state:app"),
+      "uses the static key, not the class name",
+    );
   } finally {
     unmock();
   }
@@ -113,7 +119,11 @@ Deno.test("restoreState applies persisted values SYNCHRONOUSLY (no microtask), s
     // uses BEFORE the first effect render + onBrowserInit. It must overlay the
     // persisted value immediately, without waiting for the deferred microtask.
     restoreState();
-    assertEquals(t.mode, "dark", "persisted value applied synchronously, before any microtask drain");
+    assertEquals(
+      t.mode,
+      "dark",
+      "persisted value applied synchronously, before any microtask drain",
+    );
   } finally {
     unmock();
   }
@@ -141,7 +151,10 @@ Deno.test("StateService: restore() never lets a persisted key clobber a method o
     assertEquals(typeof s.persist, "function", "persist method not clobbered");
     assertEquals(typeof s.reset, "function", "reset method not clobbered");
     assertEquals(typeof s.restore, "function", "restore method not clobbered");
-    assert(!("polluted" in ({} as Record<string, unknown>)), "no prototype pollution");
+    assert(
+      !("polluted" in ({} as Record<string, unknown>)),
+      "no prototype pollution",
+    );
     // the methods still actually work after a malicious restore
     s.persist();
     assert(store.has("sprig:state:S"));

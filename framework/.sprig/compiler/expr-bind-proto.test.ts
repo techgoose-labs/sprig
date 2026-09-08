@@ -15,11 +15,23 @@ async function expr(src: string) {
 Deno.test("computed-member call obj[key]() binds `this` to the receiver", async () => {
   const scope: Scope = {
     key: "add",
-    obj: { total: 10, add() { return (this as { total: number }).total + 1; } },
+    obj: {
+      total: 10,
+      add() {
+        return (this as { total: number }).total + 1;
+      },
+    },
   };
   assertEquals(evalExpr(await expr("obj[key]()"), scope), 11);
   // dotted control behaves the same
-  const dotted: Scope = { obj: { total: 10, add() { return (this as { total: number }).total + 1; } } };
+  const dotted: Scope = {
+    obj: {
+      total: 10,
+      add() {
+        return (this as { total: number }).total + 1;
+      },
+    },
+  };
   assertEquals(evalExpr(await expr("obj.add()"), dotted), 11);
 });
 
@@ -30,8 +42,13 @@ Deno.test("computed-member call obj[key]() binds `this` to the receiver", async 
 Deno.test("arrow body resolves a class-instance scope's prototype method", async () => {
   class Logic {
     value = 41;
-    method() { return this.value + 1; }
+    method() {
+      return this.value + 1;
+    }
   }
-  const fn = evalExpr(await expr("(() => method())"), new Logic() as unknown as Scope) as () => unknown;
+  const fn = evalExpr(
+    await expr("(() => method())"),
+    new Logic() as unknown as Scope,
+  ) as () => unknown;
   assertEquals(fn(), 42);
 });

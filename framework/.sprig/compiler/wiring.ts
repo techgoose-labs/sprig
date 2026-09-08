@@ -74,7 +74,7 @@ function regionKeyFor(el: Element): Element | null {
 
 function regionOf(key: Element | null): Region {
   let r = regions.get(key);
-  if (!r) regions.set(key, (r = new Map()));
+  if (!r) regions.set(key, r = new Map());
   return r;
 }
 
@@ -105,7 +105,7 @@ function makeChannel(): Channel {
 function channelOf(region: Region, owner: string, name: string): Channel {
   const key = owner + "\u0000" + name;
   let ch = region.get(key);
-  if (!ch) region.set(key, (ch = makeChannel()));
+  if (!ch) region.set(key, ch = makeChannel());
   return ch;
 }
 
@@ -115,7 +115,11 @@ function channelOf(region: Region, owner: string, name: string): Channel {
  *  (.set / .update / .value=) throws — dev and production alike; dev names the
  *  component, the channel, and the declaring template line (spec §3 "Enforced
  *  direction"). */
-function readGuard(ch: Channel, sel: string, t: TetherSpec): WritableAccessor<unknown> {
+function readGuard(
+  ch: Channel,
+  sel: string,
+  t: TetherSpec,
+): WritableAccessor<unknown> {
   const deny = (): never => {
     throw new Error(
       dev
@@ -138,7 +142,12 @@ function readGuard(ch: Channel, sel: string, t: TetherSpec): WritableAccessor<un
  *  seed it iff this is the first `sets:` and nothing was explicitly written yet,
  *  then REPLACE the component's field with the channel accessor (write-guarded
  *  for `reads:`). */
-function applyTether(ch: Channel, scope: Record<string, unknown>, t: TetherSpec, sel: string): void {
+function applyTether(
+  ch: Channel,
+  scope: Record<string, unknown>,
+  t: TetherSpec,
+  sel: string,
+): void {
   if (t.v === "sets") {
     if (!ch.seeded && !ch.written) {
       // seed from the origin's CURRENT value (the field is normally a signal
@@ -156,7 +165,12 @@ function applyTether(ch: Channel, scope: Record<string, unknown>, t: TetherSpec,
 /** Tether a hydrating island's own declared verbs (its `__wiring` props-bridge
  *  entry, collected at compile time from the DECLARING template). Called by
  *  hydrateIsland before the first effect render. */
-export function tetherIsland(el: Element, scope: Record<string, unknown>, wiring: WiringSpec, sel: string): void {
+export function tetherIsland(
+  el: Element,
+  scope: Record<string, unknown>,
+  wiring: WiringSpec,
+  sel: string,
+): void {
   const region = regionOf(regionKeyFor(el));
   for (const t of wiring.t ?? []) {
     applyTether(channelOf(region, wiring.o ?? "", t.c), scope, t, sel);
@@ -164,7 +178,8 @@ export function tetherIsland(el: Element, scope: Record<string, unknown>, wiring
 }
 
 // a data-wire token: verb:localName=channelName (identifiers only — see render.ts)
-const WIRE_TOKEN = /^(sets|reads|edits):([A-Za-z_$][\w$-]*)=([A-Za-z_$][\w$]*)$/;
+const WIRE_TOKEN =
+  /^(sets|reads|edits):([A-Za-z_$][\w$-]*)=([A-Za-z_$][\w$]*)$/;
 
 /** OUTLET FORWARDING (spec §3): when the island hydrating is the PAGE mounted
  *  directly under a forwarding <sprig-outlet> (`<router-outlet reads:org>`), each
@@ -172,7 +187,11 @@ const WIRE_TOKEN = /^(sets|reads|edits):([A-Za-z_$][\w$-]*)=([A-Za-z_$][\w$]*)$/
  *  tethers that field to the channel the outlet's DECLARING template owns. A page
  *  without a matching signal is untouched; an island nested INSIDE the page (another
  *  island host between it and the outlet) is never forwarded. */
-export function forwardTethers(el: Element, scope: Record<string, unknown>, sel: string): void {
+export function forwardTethers(
+  el: Element,
+  scope: Record<string, unknown>,
+  sel: string,
+): void {
   const outlet = el.closest?.("sprig-outlet");
   if (!outlet) return;
   const spec = outlet.getAttribute("data-wire");
@@ -185,7 +204,9 @@ export function forwardTethers(el: Element, scope: Record<string, unknown>, sel:
   // the channel lives in the OUTLET's own region (the render tree that declared the
   // outlet — usually the shell/root), NOT in the outlet's content region: that is
   // what lets the value survive the page swap.
-  const region = regionOf(outlet.parentElement ? regionKeyFor(outlet.parentElement) : null);
+  const region = regionOf(
+    outlet.parentElement ? regionKeyFor(outlet.parentElement) : null,
+  );
   for (const token of spec.split(/\s+/)) {
     const m = WIRE_TOKEN.exec(token);
     if (!m) continue;
@@ -209,7 +230,11 @@ export function forwardTethers(el: Element, scope: Record<string, unknown>, sel:
 export function teardownWiringInside(root: ParentNode | null): void {
   for (const key of [...regions.keys()]) {
     if (key === null) continue; // the root region lives as long as the document
-    if (!key.isConnected || (root != null && (root === (key as unknown as ParentNode) || root.contains(key)))) {
+    if (
+      !key.isConnected ||
+      (root != null &&
+        (root === (key as unknown as ParentNode) || root.contains(key)))
+    ) {
       regions.delete(key);
     }
   }

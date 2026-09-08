@@ -46,7 +46,9 @@ export function perfConfig(env: EnvReader = Deno.env): PerfConfig | null {
   if (!url) {
     if (!warnedNoUrl) {
       warnedNoUrl = true;
-      console.warn("[sprig] INFRA_PERF is enabled but INFRA_PERF_URL is not set — perf reporting stays off.");
+      console.warn(
+        "[sprig] INFRA_PERF is enabled but INFRA_PERF_URL is not set — perf reporting stays off.",
+      );
     }
     return null;
   }

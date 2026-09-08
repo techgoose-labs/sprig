@@ -51,13 +51,19 @@ export function startHmr(base: string): void {
 }
 
 function swapCss(v: string): void {
-  document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach((link) => {
-    const u = new URL(link.href);
-    u.searchParams.set("v", v);
-    link.href = u.toString();
-  });
+  document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]').forEach(
+    (link) => {
+      const u = new URL(link.href);
+      u.searchParams.set("v", v);
+      link.href = u.toString();
+    },
+  );
 }
 
 function log(m: string): void {
-  console.info(`%c[sprig hmr]%c ${m}`, "color:#7c3aed;font-weight:bold", "color:inherit");
+  console.info(
+    `%c[sprig hmr]%c ${m}`,
+    "color:#7c3aed;font-weight:bold",
+    "color:inherit",
+  );
 }

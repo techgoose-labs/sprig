@@ -42,7 +42,9 @@
   }
 
   function cssEsc(s) {
-    return window.CSS && CSS.escape ? CSS.escape(s) : String(s).replace(/[^\w-]/g, "\\$&");
+    return window.CSS && CSS.escape
+      ? CSS.escape(s)
+      : String(s).replace(/[^\w-]/g, "\\$&");
   }
 
   function classListOf(el) {
@@ -120,8 +122,13 @@
     var parts = [];
     var node = el;
     var depth = 0;
-    while (node && node.nodeType === 1 && node !== document.documentElement && depth < 7) {
-      if (node.getAttribute(UI_ATTR) == null) parts.unshift(looseSelectorOf(node));
+    while (
+      node && node.nodeType === 1 && node !== document.documentElement &&
+      depth < 7
+    ) {
+      if (node.getAttribute(UI_ATTR) == null) {
+        parts.unshift(looseSelectorOf(node));
+      }
       node = node.parentElement;
       depth++;
     }
@@ -177,34 +184,59 @@
       if (node.getAttributeNames) {
         var names = node.getAttributeNames();
         for (var i = 0; i < names.length; i++) {
-          if (SCOPE_RE.test(names[i]) && COMPS[names[i]]) { id = names[i]; comp = COMPS[id]; break; }
+          if (SCOPE_RE.test(names[i]) && COMPS[names[i]]) {
+            id = names[i];
+            comp = COMPS[id];
+            break;
+          }
         }
       }
       if (comp) break;
       if (node.matches && node.matches("sprig-island[data-sel]")) {
         var sel = node.getAttribute("data-sel");
-        for (var k in COMPS) if (COMPS[k].selector === sel) { id = k; comp = COMPS[k]; break; }
+        for (var k in COMPS) {
+          if (COMPS[k].selector === sel) {
+            id = k;
+            comp = COMPS[k];
+            break;
+          }
+        }
         if (comp) break;
       }
       node = node.parentElement;
     }
     if (comp) {
       return {
-        key: comp.component, selector: comp.selector, label: comp.selector,
-        component: comp.component, kind: comp.kind, isolateUrl: comp.isolateUrl || "",
+        key: comp.component,
+        selector: comp.selector,
+        label: comp.selector,
+        component: comp.component,
+        kind: comp.kind,
+        isolateUrl: comp.isolateUrl || "",
         // the SPECIFIC element clicked (so the note says which element within the component,
         // and isolate can locate it) — distinct from the component selector.
         elSelector: looseSelectorOf(el),
-        scope: id, text: truncate(el.textContent, 140),
+        scope: id,
+        text: truncate(el.textContent, 140),
       };
     }
     var loose = looseSelectorOf(el);
     return {
-      key: "unresolved:" + loose, selector: loose, label: loose, component: "",
-      kind: "unresolved", isolateUrl: "", scope: null, elSelector: loose, text: truncate(el.textContent, 140), unresolved: true,
+      key: "unresolved:" + loose,
+      selector: loose,
+      label: loose,
+      component: "",
+      kind: "unresolved",
+      isolateUrl: "",
+      scope: null,
+      elSelector: loose,
+      text: truncate(el.textContent, 140),
+      unresolved: true,
     };
   }
-  function resolveCtx(el) { return BUILD ? buildContextOf(el) : contextOf(el); }
+  function resolveCtx(el) {
+    return BUILD ? buildContextOf(el) : contextOf(el);
+  }
 
   // Real annotation keys (the build store carries a leading `_howto` string we must skip).
   function storeKeys() {
@@ -275,11 +307,25 @@
     return fetch(API + "/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: ctx.scope, selector: ctx.selector, note: note }),
+      body: JSON.stringify({
+        id: ctx.scope,
+        selector: ctx.selector,
+        note: note,
+      }),
     })
-      .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-      .then(function (json) { store = json || store; saveLocal(); })
-      .catch(function () { serverOK = false; saveLocal(); renderToolbar(); });
+      .then(function (r) {
+        if (!r.ok) throw new Error("bad");
+        return r.json();
+      })
+      .then(function (json) {
+        store = json || store;
+        saveLocal();
+      })
+      .catch(function () {
+        serverOK = false;
+        saveLocal();
+        renderToolbar();
+      });
   }
   function buildRemove(key) {
     return fetch(API + "/save", {
@@ -287,22 +333,38 @@
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ _delete: key }),
     })
-      .then(function (r) { return r.json(); })
-      .then(function (json) { store = json || store; saveLocal(); })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        store = json || store;
+        saveLocal();
+      })
       .catch(function () {});
   }
   // Editing a component's notes from the list REPLACES them (one note per non-empty line),
   // vs a fresh ⌘-click which appends. Empty → the server drops the entry.
   function buildSetNotes(key, text) {
-    var notes = String(text).split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    var notes = String(text).split("\n").map(function (s) {
+      return s.trim();
+    }).filter(Boolean);
     return fetch(API + "/save", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ _set: key, notes: notes }),
     })
-      .then(function (r) { return r.json(); })
-      .then(function (json) { store = json || store; saveLocal(); })
-      .catch(function () { serverOK = false; saveLocal(); renderToolbar(); });
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (json) {
+        store = json || store;
+        saveLocal();
+      })
+      .catch(function () {
+        serverOK = false;
+        saveLocal();
+        renderToolbar();
+      });
   }
 
   /* ---------- UI (isolated in a shadow root) ---------- */
@@ -313,13 +375,23 @@
   var currentEl = null, currentCtx = null;
   // tree picker + css modal + freehand-draw state (created on demand)
   var treeEl = null, treeNodes = null;
-  var cssEl = null, cssView = null, cssTextarea = null, cssTarget = null, cssOrigStyle = null;
-  var drawCanvas = null, drawCtx = null, drawpopEl = null, drawing = false, drawStrokes = null, drawId = 0;
+  var cssEl = null,
+    cssView = null,
+    cssTextarea = null,
+    cssTarget = null,
+    cssOrigStyle = null;
+  var drawCanvas = null,
+    drawCtx = null,
+    drawpopEl = null,
+    drawing = false,
+    drawStrokes = null,
+    drawId = 0;
 
   function mountUI() {
     host = document.createElement("div");
     host.setAttribute(UI_ATTR, "");
-    host.style.cssText = "all:initial;position:fixed;z-index:2147483647;top:0;left:0;";
+    host.style.cssText =
+      "all:initial;position:fixed;z-index:2147483647;top:0;left:0;";
     document.documentElement.appendChild(host);
     root = host.attachShadow({ mode: "open" });
 
@@ -330,7 +402,9 @@
     // CodeMirror editor) and our document-level capture handlers have already
     // seen them, but before the prototype does.
     ["keydown", "keyup", "keypress"].forEach(function (type) {
-      root.addEventListener(type, function (e) { e.stopPropagation(); });
+      root.addEventListener(type, function (e) {
+        e.stopPropagation();
+      });
     });
 
     var style = document.createElement("style");
@@ -348,7 +422,7 @@
     root.appendChild(inspectBox);
     inspectLabel = document.createElement("div");
     inspectLabel.className = "inspect-lbl";
-    inspectLabel.innerHTML = '<b></b><span></span>';
+    inspectLabel.innerHTML = "<b></b><span></span>";
     root.appendChild(inspectLabel);
 
     // Persistent highlight on the element the popover currently targets — survives mouse-out
@@ -383,7 +457,8 @@
       : '<span class="warn" title="No annotate server reachable — feedback is kept in this browser. Use Export to download the JSON.">offline</span>';
     barEl.innerHTML =
       '<button class="dot" data-act="toggle" title="⌘/Ctrl+click an element to annotate · ⇧⌘ drag to draw">●</button>' +
-      '<span class="lbl" data-act="list" title="Click to list every note — then click a row to reopen & edit it">' + (BUILD ? "components" : "feedback") + ' <b>' + n + "</b></span>" +
+      '<span class="lbl" data-act="list" title="Click to list every note — then click a row to reopen & edit it">' +
+      (BUILD ? "components" : "feedback") + " <b>" + n + "</b></span>" +
       offline +
       '<button class="mini" data-act="list">list</button>' +
       '<button class="mini" data-act="export">export</button>' +
@@ -414,8 +489,8 @@
       if (r.width === 0 && r.height === 0) continue;
       var box = document.createElement("div");
       box.className = "outline";
-      box.style.cssText =
-        "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px;";
+      box.style.cssText = "left:" + r.left + "px;top:" + r.top + "px;width:" +
+        r.width + "px;height:" + r.height + "px;";
       var tag = document.createElement("div");
       tag.className = "badge";
       tag.textContent = i + 1;
@@ -430,8 +505,19 @@
     if (BUILD) {
       // map the component back to its scope-id marker → first element that carries it
       var sid = entry.scope;
-      if (!sid) for (var id in COMPS) if (COMPS[id].component === entry.component) { sid = id; break; }
-      if (sid) { try { return document.querySelector("[" + sid + "]"); } catch (_) {} }
+      if (!sid) {
+        for (var id in COMPS) {
+          if (COMPS[id].component === entry.component) {
+            sid = id;
+            break;
+          }
+        }
+      }
+      if (sid) {
+        try {
+          return document.querySelector("[" + sid + "]");
+        } catch (_) {}
+      }
       return null;
     }
     if (entry.selector) {
@@ -447,7 +533,7 @@
           document,
           null,
           XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
+          null,
         ).singleNodeValue;
         if (byX) return byX;
       } catch (_) {}
@@ -465,7 +551,9 @@
     currentEl = el;
     currentCtx = ctx;
     var existing = store[ctx.key];
-    if (!BUILD && existing && existing.css && ctx.css == null) ctx.css = existing.css;
+    if (!BUILD && existing && existing.css && ctx.css == null) {
+      ctx.css = existing.css;
+    }
     popEl = document.createElement("div");
     popEl.className = "pop";
     // The seam: in BUILD a single "save" writes a note to the component (no inline source
@@ -477,10 +565,10 @@
         '<button class="mini" data-act="save-json" title="Write to the sibling feedback.json">json</button>' +
         "</span>";
     var delBtn = existing
-      ? '<button class="mini danger" data-act="delete">' + (BUILD ? "remove all" : "delete") + "</button>"
+      ? '<button class="mini danger" data-act="delete">' +
+        (BUILD ? "remove all" : "delete") + "</button>"
       : "<span></span>";
-    popEl.innerHTML =
-      '<div class="pop-h">' +
+    popEl.innerHTML = '<div class="pop-h">' +
       '<span class="pop-sel"></span>' +
       '<button class="pop-x" data-act="cancel">×</button>' +
       "</div>" +
@@ -491,7 +579,10 @@
       '<button class="chip" data-act="css" title="Edit this element\'s CSS live, save as feedback">{ } css</button>' +
       "</div>" +
       '<textarea class="pop-ta" rows="3" placeholder="' +
-      (BUILD ? "What should change about this component?" : "What should change here?") + '"></textarea>' +
+      (BUILD
+        ? "What should change about this component?"
+        : "What should change here?") +
+      '"></textarea>' +
       '<div class="pop-msg"></div>' +
       '<div class="pop-b">' +
       delBtn +
@@ -510,16 +601,23 @@
       var sub = popEl.querySelector(".pop-sub");
       if (sub) {
         sub.innerHTML = '<span class="pop-comp"></span>' +
-          (ctx.isolateUrl ? ' <a class="pop-iso" target="_blank" rel="noopener">open in isolate ↗</a>' : "");
-        sub.querySelector(".pop-comp").textContent = (ctx.component || "(unmapped)") + " · " + ctx.kind +
-          (ctx.elSelector && ctx.elSelector !== ctx.selector ? " · on " + ctx.elSelector : "");
+          (ctx.isolateUrl
+            ? ' <a class="pop-iso" target="_blank" rel="noopener">open in isolate ↗</a>'
+            : "");
+        sub.querySelector(".pop-comp").textContent =
+          (ctx.component || "(unmapped)") + " · " + ctx.kind +
+          (ctx.elSelector && ctx.elSelector !== ctx.selector
+            ? " · on " + ctx.elSelector
+            : "");
         if (ctx.isolateUrl) sub.querySelector(".pop-iso").href = ctx.isolateUrl;
       }
     }
     popEl.querySelector(".pop-tgt").textContent = ctx.text || "(no text)";
     var ta = popEl.querySelector(".pop-ta");
     // build appends a NEW note each save (server keeps notes[]), so don't seed an "existing"
-    ta.value = seedText != null ? seedText : (!BUILD && existing ? existing.feedback : "");
+    ta.value = seedText != null
+      ? seedText
+      : (!BUILD && existing ? existing.feedback : "");
     updateCssDot();
 
     // position near the element (clamped to viewport); if there's no live element — e.g. editing
@@ -546,7 +644,10 @@
 
     function showMsg(t) {
       var el = popEl && popEl.querySelector(".pop-msg");
-      if (el) { el.textContent = t || ""; el.style.display = t ? "block" : "none"; }
+      if (el) {
+        el.textContent = t || "";
+        el.style.display = t ? "block" : "none";
+      }
     }
     // `json` → sibling feedback.json (selector-keyed). `inline` → a data-note attribute
     // written into the SOURCE html on the element itself.
@@ -560,13 +661,16 @@
           else dismissAll();
           return;
         }
-        var body = css ? (text ? text + "\n" : "") + "CSS: " + collapse(css) : text;
+        var body = css
+          ? (text ? text + "\n" : "") + "CSS: " + collapse(css)
+          : text;
         if (ctx._editNotes) {
           // editing from the list REPLACES the component's notes (lines already carry their element)
           buildSetNotes(ctx.key, body).then(after);
         } else {
           // a fresh click APPENDS, tagged with the SPECIFIC element so the note is precise in isolate
-          buildSave(ctx, ctx.elSelector ? ctx.elSelector + " — " + body : body).then(after);
+          buildSave(ctx, ctx.elSelector ? ctx.elSelector + " — " + body : body)
+            .then(after);
         }
         return;
       }
@@ -576,7 +680,9 @@
     function commitJson(text, css) {
       if (!text && !css) {
         delete store[ctx.key];
-        pushEntry(Object.assign({}, ctx, { feedback: "", css: "", _delete: true })).then(after);
+        pushEntry(
+          Object.assign({}, ctx, { feedback: "", css: "", _delete: true }),
+        ).then(after);
       } else {
         var entry = Object.assign({}, ctx, { feedback: text, css: css });
         store[ctx.key] = entry;
@@ -586,25 +692,41 @@
     function commitInline(text, css) {
       // inline patches the live element's source — needs a live element. When editing a note
       // from the list whose element isn't on this screen, there's nothing to patch → fall back to json.
-      if (!currentEl) { commitJson(text, css); return; }
+      if (!currentEl) {
+        commitJson(text, css);
+        return;
+      }
       // reflect on the live DOM at once (visual confirmation), then patch the source file
       if (text) currentEl.setAttribute("data-note", text);
       else currentEl.removeAttribute("data-note");
-      if (css) currentEl.setAttribute("data-note-css", css.replace(/\s*\n\s*/g, " "));
-      else currentEl.removeAttribute("data-note-css");
+      if (css) {
+        currentEl.setAttribute("data-note-css", css.replace(/\s*\n\s*/g, " "));
+      } else currentEl.removeAttribute("data-note-css");
       postInline(Object.assign({}, inlineDescriptor(currentEl), {
-        note: text, css: css, remove: !text && !css,
+        note: text,
+        css: css,
+        remove: !text && !css,
       })).then(function (res) {
-        if (res && res.ok) { after(); return; }
+        if (res && res.ok) {
+          after();
+          return;
+        }
         // JS-rendered element → not in the source HTML. Don't lose the note: save it to feedback.json.
         showMsg("Element is JS-rendered — saved to feedback.json instead.");
-        setTimeout(function () { commitJson(text, css); }, 900);
+        setTimeout(function () {
+          commitJson(text, css);
+        }, 900);
       });
     }
     function remove() {
-      if (BUILD) { buildRemove(ctx.key).then(after); return; }
+      if (BUILD) {
+        buildRemove(ctx.key).then(after);
+        return;
+      }
       delete store[ctx.key];
-      pushEntry(Object.assign({}, ctx, { feedback: "", _delete: true })).then(after);
+      pushEntry(Object.assign({}, ctx, { feedback: "", _delete: true })).then(
+        after,
+      );
     }
     function after() {
       dismissAll();
@@ -640,20 +762,33 @@
     var classes = (el.getAttribute("class") || "").trim();
     var id = el.id || "";
     var sel = tag + (id ? "#" + cssEscape(id) : "") +
-      classes.split(/\s+/).filter(Boolean).map(function (c) { return "." + cssEscape(c); }).join("");
-    var all = Array.prototype.filter.call(document.querySelectorAll(sel), function (n) { return !isOurs(n); });
+      classes.split(/\s+/).filter(Boolean).map(function (c) {
+        return "." + cssEscape(c);
+      }).join("");
+    var all = Array.prototype.filter.call(
+      document.querySelectorAll(sel),
+      function (n) {
+        return !isOurs(n);
+      },
+    );
     var idx = all.indexOf(el);
     return { tag: tag, classes: classes, id: id, idx: idx < 0 ? 0 : idx };
   }
   function cssEscape(s) {
-    return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+    return (window.CSS && CSS.escape)
+      ? CSS.escape(s)
+      : String(s).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
   }
   function postInline(payload) {
     return fetch("/__annotate/inline", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
-    }).then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+    }).then(function (r) {
+      return r.json();
+    }).catch(function () {
+      return { ok: false };
+    });
   }
 
   // Re-point the open popover at a different element (from the tree), keeping the
@@ -669,7 +804,12 @@
   function updateCssDot() {
     if (!popEl) return;
     var chip = popEl.querySelector('[data-act="css"]');
-    if (chip) chip.classList.toggle("has", !!(currentCtx && currentCtx.css && String(currentCtx.css).trim()));
+    if (chip) {
+      chip.classList.toggle(
+        "has",
+        !!(currentCtx && currentCtx.css && String(currentCtx.css).trim()),
+      );
+    }
   }
 
   function closePopover() {
@@ -691,7 +831,9 @@
   /* ---------- export / clear ---------- */
 
   function exportJSON() {
-    var blob = new Blob([JSON.stringify(store, null, 2)], { type: "application/json" });
+    var blob = new Blob([JSON.stringify(store, null, 2)], {
+      type: "application/json",
+    });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
@@ -721,49 +863,65 @@
       listEl.remove();
       listEl = null;
     }
-    if (!on) { updateBar(); return; }
+    if (!on) {
+      updateBar();
+      return;
+    }
     listEl = document.createElement("div");
     listEl.className = "list";
     var keys = storeKeys();
     var rows = keys
       .map(function (k, i) {
         return (
-          '<div class="row" data-i="' + i + '" title="Click to reopen and edit">' +
+          '<div class="row" data-i="' + i +
+          '" title="Click to reopen and edit">' +
           '<span class="n">' + (i + 1) + "</span>" +
           '<div class="rc"><div class="rk"></div><div class="rf"></div></div>' +
           "</div>"
         );
       })
       .join("");
-    listEl.innerHTML =
-      '<div class="list-h">annotations <b>' + keys.length + "</b>" +
+    listEl.innerHTML = '<div class="list-h">annotations <b>' + keys.length +
+      "</b>" +
       '<span class="list-hint">click a row to edit</span>' +
       '<button class="pop-x" data-act="closelist">×</button></div>' +
-      (rows || '<div class="empty">cmd/ctrl+click an element to add feedback</div>');
+      (rows ||
+        '<div class="empty">cmd/ctrl+click an element to add feedback</div>');
     root.appendChild(listEl);
     // fill text safely
     var rowEls = listEl.querySelectorAll(".row");
     keys.forEach(function (k, i) {
       var e = store[k];
       if (BUILD) {
-        rowEls[i].querySelector(".rk").textContent = e.selector + (e.component ? "  " + e.component : "");
-        rowEls[i].querySelector(".rf").textContent = (e.notes || []).join("  ·  ") || "(no note)";
+        rowEls[i].querySelector(".rk").textContent = e.selector +
+          (e.component ? "  " + e.component : "");
+        rowEls[i].querySelector(".rf").textContent =
+          (e.notes || []).join("  ·  ") || "(no note)";
         return;
       }
       var hasCss = e.css && String(e.css).trim();
       if (e.kind === "drawing") {
-        rowEls[i].querySelector(".rk").textContent = "✎ drawing" + (e.image ? " · " + e.image : "");
+        rowEls[i].querySelector(".rk").textContent = "✎ drawing" +
+          (e.image ? " · " + e.image : "");
       } else {
-        rowEls[i].querySelector(".rk").textContent = k + (hasCss ? "   { } css" : "");
+        rowEls[i].querySelector(".rk").textContent = k +
+          (hasCss ? "   { } css" : "");
       }
       var fb = e.feedback || "";
-      if (hasCss) fb = (fb ? fb + "  —  " : "") + collapse(e.css).replace(/\n/g, " ");
+      if (hasCss) {
+        fb = (fb ? fb + "  —  " : "") + collapse(e.css).replace(/\n/g, " ");
+      }
       rowEls[i].querySelector(".rf").textContent = fb || "(no note)";
     });
     listEl.addEventListener("click", function (e) {
-      if (e.target.getAttribute("data-act") === "closelist") { showList(false); return; }
+      if (e.target.getAttribute("data-act") === "closelist") {
+        showList(false);
+        return;
+      }
       var row = e.target.closest ? e.target.closest(".row") : null;
-      if (row && row.dataset.i != null) editEntry(keys[parseInt(row.dataset.i, 10)]);
+      if (row && row.dataset.i != null) {
+        editEntry(keys[parseInt(row.dataset.i, 10)]);
+      }
     });
     updateBar(); // list open → keep the bar expanded
   }
@@ -775,18 +933,30 @@
     if (!entry || typeof entry !== "object") return;
     showList(false); // focus on editing; the bar reopens the list later
     var el = locate(entry); // may be null (element not on the current screen/route) → detached edit
-    if (el && el.scrollIntoView) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
     if (BUILD) {
       var ctx = {
-        key: key, selector: entry.selector, label: entry.selector,
-        component: entry.component, kind: entry.kind, isolateUrl: entry.isolateUrl || "",
-        scope: scopeForComponent(entry.component), text: "", _editNotes: true,
+        key: key,
+        selector: entry.selector,
+        label: entry.selector,
+        component: entry.component,
+        kind: entry.kind,
+        isolateUrl: entry.isolateUrl || "",
+        scope: scopeForComponent(entry.component),
+        text: "",
+        _editNotes: true,
       };
       openPopover(el, ctx, (entry.notes || []).join("\n"));
     } else {
       // the stored entry has its `key` stripped (the server keys by it) — restore it so
       // existing-detection, delete, and the overwrite-on-save all resolve to this entry.
-      openPopover(el, Object.assign({}, entry, { key: key }), entry.feedback || "");
+      openPopover(
+        el,
+        Object.assign({}, entry, { key: key }),
+        entry.feedback || "",
+      );
     }
   }
   function scopeForComponent(comp) {
@@ -821,11 +991,11 @@
       hideInspect();
       return;
     }
-    inspectBox.style.cssText =
-      "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px;display:block";
+    inspectBox.style.cssText = "left:" + r.left + "px;top:" + r.top +
+      "px;width:" + r.width + "px;height:" + r.height + "px;display:block";
     inspectLabel.querySelector("b").textContent = looseSelectorOf(el);
-    inspectLabel.querySelector("span").textContent =
-      " " + Math.round(r.width) + "×" + Math.round(r.height);
+    inspectLabel.querySelector("span").textContent = " " + Math.round(r.width) +
+      "×" + Math.round(r.height);
     // place the label just above the box; flip below if there's no room
     var lh = 24;
     var top = r.top - lh - 2;
@@ -845,11 +1015,17 @@
   // hover inspector it is NOT cleared on mouse-out — it tracks `currentEl` until the popover
   // is dismissed, so you always see which element you're annotating / picked from the tree.
   function showSel(el) {
-    if (!selBox || !el || el.nodeType !== 1 || isOurs(el)) { hideSel(); return; }
+    if (!selBox || !el || el.nodeType !== 1 || isOurs(el)) {
+      hideSel();
+      return;
+    }
     var r = el.getBoundingClientRect();
-    if (r.width === 0 && r.height === 0) { hideSel(); return; }
-    selBox.style.cssText =
-      "left:" + r.left + "px;top:" + r.top + "px;width:" + r.width + "px;height:" + r.height + "px;display:block";
+    if (r.width === 0 && r.height === 0) {
+      hideSel();
+      return;
+    }
+    selBox.style.cssText = "left:" + r.left + "px;top:" + r.top + "px;width:" +
+      r.width + "px;height:" + r.height + "px;display:block";
   }
 
   function hideSel() {
@@ -858,7 +1034,9 @@
 
   // Keep the persistent box glued to its element when the page scrolls or resizes.
   function syncSel() {
-    if (selBox && selBox.style.display === "block" && currentEl) showSel(currentEl);
+    if (selBox && selBox.style.display === "block" && currentEl) {
+      showSel(currentEl);
+    }
   }
 
   function startInspect() {
@@ -895,12 +1073,15 @@
   var barHover = false, modHeld = false;
   function updateBar() {
     if (!barEl) return;
-    var expanded = barHover || modHeld || !!popEl || !!listEl || !!treeEl || !!cssEl || !!drawpopEl || drawing;
+    var expanded = barHover || modHeld || !!popEl || !!listEl || !!treeEl ||
+      !!cssEl || !!drawpopEl || drawing;
     barEl.classList.toggle("peek", !expanded);
   }
 
   function isOurs(el) {
-    return el && (el === host || (el.closest && el.getRootNode && el.getRootNode() === root));
+    return el &&
+      (el === host ||
+        (el.closest && el.getRootNode && el.getRootNode() === root));
   }
 
   // ⌘+Ctrl toggles a clean view: hide every annotate overlay (badges, boxes, bar, open
@@ -948,25 +1129,46 @@
     "keydown",
     function (e) {
       if (e.key === "Escape") {
-        if (cssEl) { revertLive(); closeCssModal(); return; }
-        if (drawpopEl || drawing) { clearDraw(); return; }
-        if (treeEl) { closeTree(); return; }
+        if (cssEl) {
+          revertLive();
+          closeCssModal();
+          return;
+        }
+        if (drawpopEl || drawing) {
+          clearDraw();
+          return;
+        }
+        if (treeEl) {
+          closeTree();
+          return;
+        }
       }
       // ⌘+Ctrl (no Shift) → toggle the clean view (hide/show all annotate UI). Checked before
       // the isOurs guard so it works with focus anywhere; debounced against key-repeat.
       if (e.metaKey && e.ctrlKey && !e.shiftKey) {
-        if (!chordUsed) { chordUsed = true; toggleUi(); }
+        if (!chordUsed) {
+          chordUsed = true;
+          toggleUi();
+        }
         return;
       }
       if (uiHidden) return; // clean view armed → no inspect/draw until ⌘+Ctrl restores the UI
       // keys typed inside our boxes must not arm draw/inspect (Escape above still closes)
       if (isOurs(e.target)) return;
       // ⇧⌘ / ⇧Ctrl → freehand draw mode; plain ⌘/Ctrl → hover inspector + reveal the bar
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey) { enterDraw(); return; }
-      if (e.key === "Meta" || e.key === "Control") { modHeld = true; updateBar(); }
-      if ((e.key === "Meta" || e.key === "Control") && !inspecting && !drawing) startInspect();
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
+        enterDraw();
+        return;
+      }
+      if (e.key === "Meta" || e.key === "Control") {
+        modHeld = true;
+        updateBar();
+      }
+      if (
+        (e.key === "Meta" || e.key === "Control") && !inspecting && !drawing
+      ) startInspect();
     },
-    true
+    true,
   );
   document.addEventListener(
     "keyup",
@@ -987,7 +1189,7 @@
         updateBar();
       }
     },
-    true
+    true,
   );
   window.addEventListener("blur", function () {
     stopInspect();
@@ -1006,7 +1208,9 @@
       var t = e.target;
       // Click outside any open feedback surface (popover / tree / css panel and their
       // children) → just close it. A plain click only; ⌘/Ctrl falls through to re-target.
-      if ((popEl || treeEl || cssEl) && !isOurs(t) && !(e.metaKey || e.ctrlKey)) {
+      if (
+        (popEl || treeEl || cssEl) && !isOurs(t) && !(e.metaKey || e.ctrlKey)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         if (cssEl) revertLive(); // unsaved live edits → undo, same as cancel
@@ -1022,7 +1226,7 @@
       closeCssModal();
       openPopover(t, resolveCtx(t));
     },
-    true
+    true,
   );
 
   // toolbar / list actions
@@ -1057,7 +1261,9 @@
   function childrenOf(el) {
     if (!el || !el.children) return [];
     return Array.prototype.filter.call(el.children, function (c) {
-      if (isOurs(c) || (c.getAttribute && c.getAttribute(UI_ATTR) != null)) return false;
+      if (isOurs(c) || (c.getAttribute && c.getAttribute(UI_ATTR) != null)) {
+        return false;
+      }
       var t = c.tagName;
       return t !== "SCRIPT" && t !== "STYLE" && t !== "LINK" && t !== "META" &&
         t !== "NOSCRIPT" && t !== "TEMPLATE";
@@ -1088,8 +1294,7 @@
     closeTree();
     treeEl = document.createElement("div");
     treeEl.className = "tree";
-    treeEl.innerHTML =
-      '<div class="tree-h">html tree' +
+    treeEl.innerHTML = '<div class="tree-h">html tree' +
       '<span class="tree-hint">hover = highlight · click = select</span>' +
       '<button class="pop-x" data-act="closetree">×</button></div>' +
       '<div class="tree-body"></div>';
@@ -1149,7 +1354,9 @@
   }
 
   function onTreeClick(e) {
-    if (e.target.getAttribute && e.target.getAttribute("data-act") === "closetree") {
+    if (
+      e.target.getAttribute && e.target.getAttribute("data-act") === "closetree"
+    ) {
       closeTree();
       return;
     }
@@ -1157,8 +1364,9 @@
     if (!row) return;
     if (e.target.classList && e.target.classList.contains("ttog")) {
       if (!childrenOf(row.__el).length) return;
-      if (row.__rendered && row.__kids.style.display !== "none") collapseNode(row);
-      else expandNode(row, ancestorsTo(currentEl || row.__el));
+      if (row.__rendered && row.__kids.style.display !== "none") {
+        collapseNode(row);
+      } else expandNode(row, ancestorsTo(currentEl || row.__el));
       return;
     }
     retarget(row.__el);
@@ -1177,7 +1385,10 @@
     var path = ancestorsTo(el);
     for (var i = 0; i < path.length; i++) {
       var row = treeNodes.get(path[i]);
-      if (row && childrenOf(path[i]).length && (!row.__rendered || row.__kids.style.display === "none")) {
+      if (
+        row && childrenOf(path[i]).length &&
+        (!row.__rendered || row.__kids.style.display === "none")
+      ) {
         expandNode(row, path);
       }
     }
@@ -1198,9 +1409,20 @@
   /* ---------- css editor (CodeMirror, live preview) ---------- */
 
   var REF_PROPS = [
-    "color", "background-color", "font-size", "font-weight", "line-height",
-    "letter-spacing", "padding", "margin", "border", "border-radius",
-    "width", "height", "display", "box-shadow",
+    "color",
+    "background-color",
+    "font-size",
+    "font-weight",
+    "line-height",
+    "letter-spacing",
+    "padding",
+    "margin",
+    "border",
+    "border-radius",
+    "width",
+    "height",
+    "display",
+    "box-shadow",
   ];
   var _cm = null;
 
@@ -1212,7 +1434,11 @@
       import("https://esm.sh/codemirror@6.0.1"),
       import("https://esm.sh/@codemirror/lang-css@6.3.1"),
     ]).then(function (m) {
-      _cm = { EditorView: m[0].EditorView, basicSetup: m[0].basicSetup, cssLang: m[1].css };
+      _cm = {
+        EditorView: m[0].EditorView,
+        basicSetup: m[0].basicSetup,
+        cssLang: m[1].css,
+      };
       return _cm;
     });
   }
@@ -1224,8 +1450,7 @@
     cssOrigStyle = cssTarget.getAttribute("style") || "";
     cssEl = document.createElement("div");
     cssEl.className = "cssmodal";
-    cssEl.innerHTML =
-      '<div class="csscard">' +
+    cssEl.innerHTML = '<div class="csscard">' +
       '<div class="cssh"><span class="csssel"></span>' +
       '<button class="pop-x" data-act="cancel">×</button></div>' +
       '<div class="cssref"></div>' +
@@ -1239,7 +1464,9 @@
     cssEl.querySelector(".csssel").textContent = currentCtx.selector;
     cssEl.querySelector(".csssel").title = currentCtx.selector;
     buildCssRef(cssEl.querySelector(".cssref"), cssTarget);
-    var initial = currentCtx.css != null ? currentCtx.css : declsFromStyle(cssOrigStyle);
+    var initial = currentCtx.css != null
+      ? currentCtx.css
+      : declsFromStyle(cssOrigStyle);
     mountEditor(cssEl.querySelector(".cssed"), initial, applyLive);
     if (initial) applyLive(initial);
 
@@ -1271,8 +1498,11 @@
       card.style.left = r.left + "px";
       card.style.top = r.top + "px";
       function move(ev) {
-        card.style.left = Math.max(4, Math.min(window.innerWidth - 40, ev.clientX - dx)) + "px";
-        card.style.top = Math.max(4, Math.min(window.innerHeight - 40, ev.clientY - dy)) + "px";
+        card.style.left =
+          Math.max(4, Math.min(window.innerWidth - 40, ev.clientX - dx)) + "px";
+        card.style.top =
+          Math.max(4, Math.min(window.innerHeight - 40, ev.clientY - dy)) +
+          "px";
       }
       function up() {
         document.removeEventListener("mousemove", move, true);
@@ -1290,7 +1520,9 @@
     ta.className = "cssfallback";
     ta.value = initial || "";
     ta.placeholder = "color: #c2410c;\nfont-size: 18px;\npadding: 12px 16px;";
-    ta.addEventListener("input", function () { onChange(ta.value); });
+    ta.addEventListener("input", function () {
+      onChange(ta.value);
+    });
     container.appendChild(ta);
     cssTextarea = ta;
 
@@ -1307,15 +1539,29 @@
           }),
           CM.EditorView.theme(
             {
-              "&": { fontSize: "12px", backgroundColor: "#0f0e0a", color: "#f3eee2", borderRadius: "6px" },
-              ".cm-content": { fontFamily: "ui-monospace,Menlo,monospace", caretColor: "#fb923c" },
-              ".cm-gutters": { backgroundColor: "#0f0e0a", color: "#6b6453", border: "none" },
+              "&": {
+                fontSize: "12px",
+                backgroundColor: "#0f0e0a",
+                color: "#f3eee2",
+                borderRadius: "6px",
+              },
+              ".cm-content": {
+                fontFamily: "ui-monospace,Menlo,monospace",
+                caretColor: "#fb923c",
+              },
+              ".cm-gutters": {
+                backgroundColor: "#0f0e0a",
+                color: "#6b6453",
+                border: "none",
+              },
               ".cm-activeLine": { backgroundColor: "rgba(255,255,255,.03)" },
-              ".cm-activeLineGutter": { backgroundColor: "rgba(255,255,255,.03)" },
+              ".cm-activeLineGutter": {
+                backgroundColor: "rgba(255,255,255,.03)",
+              },
               ".cm-scroller": { overflow: "auto", maxHeight: "240px" },
               "&.cm-focused": { outline: "none" },
             },
-            { dark: true }
+            { dark: true },
           ),
         ],
         parent: container,
@@ -1323,8 +1569,10 @@
       if (ta.parentNode) ta.parentNode.removeChild(ta);
       cssTextarea = null;
       cssView = view;
-      setTimeout(function () { view.focus(); }, 0);
-    }).catch(function () { /* keep the textarea fallback */ });
+      setTimeout(function () {
+        view.focus();
+      }, 0);
+    }).catch(function () {/* keep the textarea fallback */});
   }
 
   function getEditor() {
@@ -1333,8 +1581,11 @@
     return "";
   }
   function setEditor(text) {
-    if (cssView) cssView.dispatch({ changes: { from: 0, to: cssView.state.doc.length, insert: text } });
-    else if (cssTextarea) cssTextarea.value = text;
+    if (cssView) {
+      cssView.dispatch({
+        changes: { from: 0, to: cssView.state.doc.length, insert: text },
+      });
+    } else if (cssTextarea) cssTextarea.value = text;
   }
 
   // Reference chips of the element's current computed values; click to insert.
@@ -1343,7 +1594,10 @@
     container.innerHTML = '<span class="reflbl">computed — click to add</span>';
     REF_PROPS.forEach(function (p) {
       var v = collapse(cs.getPropertyValue(p));
-      if (!v || v === "none" || v === "normal" || v === "auto" || v === "0px" || v === "rgba(0, 0, 0, 0)") return;
+      if (
+        !v || v === "none" || v === "normal" || v === "auto" || v === "0px" ||
+        v === "rgba(0, 0, 0, 0)"
+      ) return;
       var chip = document.createElement("button");
       chip.type = "button";
       chip.className = "refchip";
@@ -1367,11 +1621,15 @@
 
   function declsFromStyle(s) {
     if (!s) return "";
-    var parts = s.split(";").map(function (d) { return d.trim(); }).filter(Boolean);
+    var parts = s.split(";").map(function (d) {
+      return d.trim();
+    }).filter(Boolean);
     return parts.length ? parts.join(";\n") + ";" : "";
   }
   function joinStyle(orig, css) {
-    return [orig, css].filter(function (x) { return x && x.trim(); }).join(";");
+    return [orig, css].filter(function (x) {
+      return x && x.trim();
+    }).join(";");
   }
   function applyLive(text) {
     if (!cssTarget) return;
@@ -1397,7 +1655,11 @@
   }
 
   function closeCssModal() {
-    if (cssView) { try { cssView.destroy(); } catch (_) {} }
+    if (cssView) {
+      try {
+        cssView.destroy();
+      } catch (_) {}
+    }
     cssView = null;
     cssTextarea = null;
     if (cssEl && cssEl.parentNode) cssEl.parentNode.removeChild(cssEl);
@@ -1481,7 +1743,9 @@
       drawCanvas.__active = null;
     }
     renderToolbar();
-    var hasInk = drawStrokes && drawStrokes.some(function (s) { return s.length > 0; });
+    var hasInk = drawStrokes && drawStrokes.some(function (s) {
+      return s.length > 0;
+    });
     if (hasInk) openDrawPop();
     else clearDraw();
   }
@@ -1499,7 +1763,9 @@
       '<div class="pop-rgt"><button class="mini primary" data-act="savedraw">save as feedback</button></div></div>';
     root.appendChild(drawpopEl);
     var ta = drawpopEl.querySelector(".pop-ta");
-    setTimeout(function () { ta.focus(); }, 0);
+    setTimeout(function () {
+      ta.focus();
+    }, 0);
     drawpopEl.addEventListener("click", function (e) {
       var act = e.target.getAttribute("data-act");
       if (act === "discard") clearDraw();
@@ -1521,7 +1787,9 @@
     });
   }
   function closeDrawPop() {
-    if (drawpopEl && drawpopEl.parentNode) drawpopEl.parentNode.removeChild(drawpopEl);
+    if (drawpopEl && drawpopEl.parentNode) {
+      drawpopEl.parentNode.removeChild(drawpopEl);
+    }
     drawpopEl = null;
   }
 
@@ -1569,7 +1837,8 @@
         useCORS: true,
         logging: false,
         ignoreElements: function (el) {
-          return el === host || (el.getAttribute && el.getAttribute(UI_ATTR) != null);
+          return el === host ||
+            (el.getAttribute && el.getAttribute(UI_ATTR) != null);
         },
       });
     }).then(function (base) {
@@ -1598,8 +1867,10 @@
       kind: "drawing",
       feedback: note || "",
       viewport: {
-        w: window.innerWidth, h: window.innerHeight,
-        scrollX: window.scrollX, scrollY: window.scrollY,
+        w: window.innerWidth,
+        h: window.innerHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
       },
     };
     if (serverOK && dataUrl) {
@@ -1608,9 +1879,19 @@
         headers: { "content-type": "application/json" },
         body: JSON.stringify(Object.assign({}, meta, { image: dataUrl })),
       })
-        .then(function (r) { if (!r.ok) throw new Error("bad"); return r.json(); })
-        .then(function (json) { store = json || store; saveLocal(); afterDraw(); })
-        .catch(function () { serverOK = false; offlineDraw(key, meta, dataUrl); });
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then(function (json) {
+          store = json || store;
+          saveLocal();
+          afterDraw();
+        })
+        .catch(function () {
+          serverOK = false;
+          offlineDraw(key, meta, dataUrl);
+        });
     } else {
       offlineDraw(key, meta, dataUrl);
     }
@@ -1618,17 +1899,30 @@
 
   function saveDrawing(note) {
     captureScreenshot()
-      .then(function (dataUrl) { persistDrawing(note, dataUrl); })
+      .then(function (dataUrl) {
+        persistDrawing(note, dataUrl);
+      })
       .catch(function () {
         // page raster failed (a style the rasterizer can't handle, or a CORS-tainted canvas).
         // Still save the SKETCH itself so the drawing is NEVER lost — the user did draw it.
         var url = "";
-        try { url = drawCanvas ? drawCanvas.toDataURL("image/png") : ""; } catch (_) { url = ""; }
+        try {
+          url = drawCanvas ? drawCanvas.toDataURL("image/png") : "";
+        } catch (_) {
+          url = "";
+        }
         if (url) {
-          persistDrawing((note || "") + "  (sketch only — page capture failed)", url);
+          persistDrawing(
+            (note || "") + "  (sketch only — page capture failed)",
+            url,
+          );
         } else {
           var key = "draw:" + nextDrawId();
-          var entry = { kind: "drawing", feedback: (note || "") + "  (screenshot unavailable)", image: "" };
+          var entry = {
+            kind: "drawing",
+            feedback: (note || "") + "  (screenshot unavailable)",
+            image: "",
+          };
           store[key] = entry;
           saveLocal();
           if (serverOK) pushEntry(Object.assign({ key: key }, entry));
@@ -1656,8 +1950,7 @@
 
   /* ---------- styles ---------- */
 
-  var CSS =
-    ".layer{position:fixed;inset:0;pointer-events:none}" +
+  var CSS = ".layer{position:fixed;inset:0;pointer-events:none}" +
     ".inspect{position:fixed;display:none;pointer-events:none;background:rgba(194,65,12,.12);border:1px solid rgba(194,65,12,.55);box-shadow:0 0 0 1px rgba(194,65,12,.2)}" +
     ".selbox{position:fixed;display:none;pointer-events:none;border:2px solid #c2410c;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.25),0 0 0 5px rgba(194,65,12,.18)}" +
     ".inspect-lbl{position:fixed;display:none;pointer-events:none;background:#17150f;color:#f3eee2;font:600 11px/1 ui-monospace,Menlo,monospace;padding:5px 7px;border-radius:5px;white-space:nowrap;box-shadow:0 4px 14px -4px rgba(0,0,0,.5)}" +
@@ -1760,8 +2053,14 @@
     barEl.addEventListener("click", onBarClick);
     // peek/expand: hovering the corner dot reveals the full toolbar; leaving collapses it
     // (unless ⌘/Ctrl is held or a feedback surface is open).
-    barEl.addEventListener("mouseenter", function () { barHover = true; updateBar(); });
-    barEl.addEventListener("mouseleave", function () { barHover = false; updateBar(); });
+    barEl.addEventListener("mouseenter", function () {
+      barHover = true;
+      updateBar();
+    });
+    barEl.addEventListener("mouseleave", function () {
+      barHover = false;
+      updateBar();
+    });
     updateBar(); // start collapsed → the app shows in full glory
     window.addEventListener("scroll", scheduleReflow, true);
     window.addEventListener("resize", scheduleReflow, true);

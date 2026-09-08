@@ -15,7 +15,6 @@
     "jsr:@danet/zod@0.0.7": "0.0.7",
     "jsr:@dx/reflect@0.2.14": "0.2.14",
     "jsr:@hono/hono@4.6.3": "4.6.3",
-    "jsr:@mrg-keystone/rune@6": "6.0.0",
     "jsr:@mrg-keystone/sprig@0.15.1": "0.15.1",
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@1": "1.0.19",
@@ -125,19 +124,6 @@
     "@hono/hono@4.6.3": {
       "integrity": "a1f5a18cd12a0db54755b0461dd5a4e2d93a6f85403073eb710103eacc42daf3"
     },
-    "@mrg-keystone/rune@6.0.0": {
-      "integrity": "4c420793ee492cfc5948c693cb683a9ee36e582ff4f6cfbe30e2e47c326ed78f",
-      "dependencies": [
-        "jsr:@danet/core@2",
-        "jsr:@danet/swagger",
-        "jsr:@hono/hono",
-        "npm:class-transformer",
-        "npm:class-validator",
-        "npm:playwright",
-        "npm:reflect-metadata@0.1.13",
-        "npm:zod@3"
-      ]
-    },
     "@mrg-keystone/sprig@0.15.1": {
       "integrity": "f5e646c699936b9a09ad7e446fbf417ba83109c6a072835cd112a1f4b6a68d20",
       "dependencies": [
@@ -225,8 +211,8 @@
       "os": ["darwin"],
       "scripts": true
     },
-    "libphonenumber-js@1.13.11": {
-      "integrity": "sha512-ETER2kMaIFTI/Nh1a8Gk03dUF/SL0VZqtI+CcVHZxp5WIHYwNS7S+uiYZDYCvLy3lOR4/DAD5jf0h5WkePPpqg=="
+    "libphonenumber-js@1.13.12": {
+      "integrity": "sha512-uLVeV1c9OTk6qkdqnj+mpMD+ZdnZ0szVyWu58HwMmpwkHA1gCEkyjd3veZQXDnuw9KEwSRjcc9B1pS9XKIN1fA=="
     },
     "openapi3-ts@4.6.1": {
       "integrity": "sha512-XW9MOldkhoICNeXVzzmXzmOW5G73ppOEGmh7fLCqHjgfdEYCGGN+00MlVCeUZgovjjfC56j9tvtDt1zGabNjjA==",
@@ -304,12 +290,33 @@
       "server": {
         "dependencies": [
           "jsr:@danet/swagger@^2.1.1",
-          "jsr:@mrg-keystone/rune@6",
           "jsr:@std/assert@*",
           "jsr:@std/path@*",
           "npm:class-transformer@0.5",
           "npm:class-validator@0.14",
           "npm:reflect-metadata@0.2"
+        ]
+      }
+    },
+    "links": {
+      "jsr:@mrg-keystone/bedrock@0.1.0": {
+        "dependencies": [
+          "jsr:@std/assert@1",
+          "jsr:@std/path@1"
+        ]
+      },
+      "jsr:@mrg-keystone/rune@7.0.0": {
+        "dependencies": [
+          "jsr:@danet/core@2",
+          "jsr:@danet/swagger@^2.1.1",
+          "jsr:@hono/hono@4.6.3",
+          "jsr:@std/assert@*",
+          "npm:class-transformer@0.5",
+          "npm:class-validator@0.14",
+          "npm:openapi3-ts@4.5.0",
+          "npm:playwright@^1.49.0",
+          "npm:reflect-metadata@0.1.13",
+          "npm:zod@3"
         ]
       }
     }

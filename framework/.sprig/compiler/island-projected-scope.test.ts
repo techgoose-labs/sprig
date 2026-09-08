@@ -16,7 +16,12 @@
 // static-component component branches.
 import { assert, assertStringIncludes } from "jsr:@std/assert";
 import { named, parseTemplate } from "./parse.ts";
-import { islandHost, renderNodes, resolveIslands, type ComponentDef } from "./render.ts";
+import {
+  type ComponentDef,
+  islandHost,
+  renderNodes,
+  resolveIslands,
+} from "./render.ts";
 import type { Scope } from "./expr.ts";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -50,7 +55,9 @@ Deno.test("BUG AF: an island PROJECTED into a static wrapper uses its awaited (r
   const aIsl = await makeIsland();
   const uCard: ComponentDef = {
     selector: "u-card",
-    template: await parseTemplate(`<div class="card"><ng-content></ng-content></div>`),
+    template: await parseTemplate(
+      `<div class="card"><ng-content></ng-content></div>`,
+    ),
     scope: "ucard",
   };
   const registry = registryWith(aIsl, uCard);
@@ -61,13 +68,28 @@ Deno.test("BUG AF: an island PROJECTED into a static wrapper uses its awaited (r
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">async:7<", "the projected island must render its awaited resolved scope");
-  assert(!html.includes(">sync:7<"), "the projected island must NOT fall back to the stale sync scope");
+  assertStringIncludes(
+    html,
+    ">async:7<",
+    "the projected island must render its awaited resolved scope",
+  );
+  assert(
+    !html.includes(">sync:7<"),
+    "the projected island must NOT fall back to the stale sync scope",
+  );
 
   // and its hydration __snapshot must carry the async state, not the stale sync one.
-  const expected = islandHost("aisl", "a-isl", "load", { n: 7, __snapshot: { label: "async:7" } }, "");
-  const snap = expected.match(/<script[^>]*class="sprig-props">(.*?)<\/script>/)![1];
-  assertStringIncludes(html, snap, "the projected island snapshot must be {label:async:7}");
+  const expected = islandHost("aisl", "a-isl", "load", {
+    n: 7,
+    __snapshot: { label: "async:7" },
+  }, "");
+  const snap =
+    expected.match(/<script[^>]*class="sprig-props">(.*?)<\/script>/)![1];
+  assertStringIncludes(
+    html,
+    snap,
+    "the projected island snapshot must be {label:async:7}",
+  );
 });
 
 Deno.test("BUG AF control: an island PROJECTED into an ISLAND wrapper also resolves", async () => {
@@ -75,7 +97,9 @@ Deno.test("BUG AF control: an island PROJECTED into an ISLAND wrapper also resol
   // wrapper is itself a class island (its own resolve), with <ng-content>
   const wIsl: ComponentDef = {
     selector: "w-isl",
-    template: await parseTemplate(`<div class="wrap"><ng-content></ng-content></div>`),
+    template: await parseTemplate(
+      `<div class="wrap"><ng-content></ng-content></div>`,
+    ),
     scope: "wisl",
     island: {
       scope: () => ({}),
@@ -95,6 +119,10 @@ Deno.test("BUG AF control: an island PROJECTED into an ISLAND wrapper also resol
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">async:9<", "a projected island under an island wrapper resolves too");
+  assertStringIncludes(
+    html,
+    ">async:9<",
+    "a projected island under an island wrapper resolves too",
+  );
   assert(!html.includes(">sync:9<"), "no fallback to the stale sync scope");
 });

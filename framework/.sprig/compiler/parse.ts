@@ -112,7 +112,8 @@ export function escapeLooseAt(html: string): string {
 // pass through untouched (same skip discipline as escapeLooseAt above; offsets
 // shift, but every consumer takes the source from the tree itself, so they stay
 // coherent).
-const WIRE_LONGHAND = /(\s(?:sets|reads|edits):[A-Za-z_$][\w$-]*)=\{\s*([A-Za-z_$][\w$]*)\s*\}(?=[\s>/]|$)/g;
+const WIRE_LONGHAND =
+  /(\s(?:sets|reads|edits):[A-Za-z_$][\w$-]*)=\{\s*([A-Za-z_$][\w$]*)\s*\}(?=[\s>/]|$)/g;
 
 /** Quote + entity-encode the wiring-longhand `={channel}` form inside start tags. */
 export function quoteWiringLonghand(html: string): string {
@@ -176,7 +177,10 @@ function firstErrorNode(node: Node): Node | null {
  *  shipping a tree-sitter ERROR AST. Pass `{ allowError: true }` to inspect a
  *  possibly-broken tree without throwing (the dev HMR reparse path uses this to
  *  suppress the live push instead of clobbering mounted islands). */
-export async function parseTemplate(html: string, opts: { allowError?: boolean } = {}): Promise<Node> {
+export async function parseTemplate(
+  html: string,
+  opts: { allowError?: boolean } = {},
+): Promise<Node> {
   const parser = await loadParser();
   // Prose-proof the text content first (a bare `@` would otherwise lex as a
   // control-flow opener and fail the whole parse), and quote the wiring-longhand
@@ -190,16 +194,25 @@ export async function parseTemplate(html: string, opts: { allowError?: boolean }
   if (!opts.allowError && hasParseError(root)) {
     const err = firstErrorNode(root);
     const at = err?.startPosition
-      ? `line ${err.startPosition.row + 1}, column ${err.startPosition.column + 1}`
+      ? `line ${err.startPosition.row + 1}, column ${
+        err.startPosition.column + 1
+      }`
       : "unknown position";
     const excerpt = err
-      ? source.slice(err.startIndex, Math.min(err.endIndex, err.startIndex + 80))
+      ? source.slice(
+        err.startIndex,
+        Math.min(err.endIndex, err.startIndex + 80),
+      )
       : "";
     throw new Error(
       `sprig: template failed to parse cleanly (syntax error at ${at}). ` +
         "Fix the template HTML — a malformed template must not ship.\n" +
         `  near: ${JSON.stringify(excerpt)}\n` +
-        `  source: ${JSON.stringify(source.length > 120 ? source.slice(0, 120) + "…" : source)}`,
+        `  source: ${
+          JSON.stringify(
+            source.length > 120 ? source.slice(0, 120) + "…" : source,
+          )
+        }`,
     );
   }
   return root;

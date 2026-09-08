@@ -10,13 +10,23 @@
 //      member accesses failed their brand check.
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { escapeLooseAt, field, named, parseTemplate } from "./parse.ts";
-import { evalExpr, evalStatement, type Scope, selfOf, tagSelf } from "./expr.ts";
+import {
+  evalExpr,
+  evalStatement,
+  type Scope,
+  selfOf,
+  tagSelf,
+} from "./expr.ts";
 import { templateHasEventBindings } from "./node.ts";
 import { isServerOnlyRouteLogic } from "./build.ts";
 import { renderNodes } from "./render.ts";
 
 // deno-lint-ignore no-explicit-any
-async function renderSrc(src: string, scope: Scope, registry: any = { get: () => undefined }): Promise<string> {
+async function renderSrc(
+  src: string,
+  scope: Scope,
+  registry: any = { get: () => undefined },
+): Promise<string> {
   const root = await parseTemplate(src);
   return renderNodes(named(root), { scope, registry, source: root.text });
 }
@@ -42,16 +52,27 @@ Deno.test("bare @ in text content parses and renders as @ (escaped to &#64;)", a
 
 Deno.test("escapeLooseAt leaves directives, tags, comments, interpolations, script/style alone", () => {
   // block keywords still open blocks
-  assertEquals(escapeLooseAt(`@if (x) {<b>y</b>} @else {n}`), `@if (x) {<b>y</b>} @else {n}`);
+  assertEquals(
+    escapeLooseAt(`@if (x) {<b>y</b>} @else {n}`),
+    `@if (x) {<b>y</b>} @else {n}`,
+  );
   // inside a tag (attributes) untouched
-  assertEquals(escapeLooseAt(`<a href="mailto:a@b.c">m</a>`), `<a href="mailto:a@b.c">m</a>`);
+  assertEquals(
+    escapeLooseAt(`<a href="mailto:a@b.c">m</a>`),
+    `<a href="mailto:a@b.c">m</a>`,
+  );
   // comments untouched
   assertEquals(escapeLooseAt(`<!-- a@b -->`), `<!-- a@b -->`);
   // interpolation untouched
-  assertEquals(escapeLooseAt(`{{ user.email }}@{{ host }}`), `{{ user.email }}&#64;{{ host }}`);
+  assertEquals(
+    escapeLooseAt(`{{ user.email }}@{{ host }}`),
+    `{{ user.email }}&#64;{{ host }}`,
+  );
   // raw script/style content untouched (@media / decorators are real syntax there)
   assertEquals(
-    escapeLooseAt(`<style>@media (min-width: 1px) { .x { color: red; } }</style>`),
+    escapeLooseAt(
+      `<style>@media (min-width: 1px) { .x { color: red; } }</style>`,
+    ),
     `<style>@media (min-width: 1px) { .x { color: red; } }</style>`,
   );
   assertEquals(
@@ -100,11 +121,18 @@ Deno.test("templateHasEventBindings truth table", () => {
 });
 
 Deno.test("server-only logic + event-bound template must hydrate (both deciders agree)", () => {
-  const logic = `export default class P { async onServerLoad(ctx) { this.x = 1; } }`;
-  assert(isServerOnlyRouteLogic(logic), "precondition: logic alone reads server-only");
+  const logic =
+    `export default class P { async onServerLoad(ctx) { this.x = 1; } }`;
+  assert(
+    isServerOnlyRouteLogic(logic),
+    "precondition: logic alone reads server-only",
+  );
   // the build and the SSR registry gate hydration on the SAME template check:
   const tpl = `<button (click)="go()">x</button>`;
-  assert(templateHasEventBindings(tpl), "an event binding must flip the page to hydrating");
+  assert(
+    templateHasEventBindings(tpl),
+    "an event binding must flip the page to hydrating",
+  );
 });
 
 // ── 4. #private members through derived scopes ───────────────────────────────
@@ -121,7 +149,10 @@ class Counter {
 
 /** the exact derivation cloneScope performs (same prototype, own descriptors copied) */
 function cloneLike(scope: object): Scope {
-  return Object.create(Object.getPrototypeOf(scope), Object.getOwnPropertyDescriptors(scope));
+  return Object.create(
+    Object.getPrototypeOf(scope),
+    Object.getOwnPropertyDescriptors(scope),
+  );
 }
 
 Deno.test("selfOf resolves the tagged instance through clone and proto chains", () => {
@@ -130,7 +161,10 @@ Deno.test("selfOf resolves the tagged instance through clone and proto chains", 
   const child = Object.create(clone);
   assert((selfOf(clone) as unknown) === inst);
   assert((selfOf(child) as unknown) === inst);
-  assert((selfOf({ plain: true }) as unknown) !== inst, "untagged objects resolve to themselves");
+  assert(
+    (selfOf({ plain: true }) as unknown) !== inst,
+    "untagged objects resolve to themselves",
+  );
 });
 
 Deno.test("a template call through a CLONED scope reaches #private members", async () => {

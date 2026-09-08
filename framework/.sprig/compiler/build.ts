@@ -11,7 +11,15 @@
 //   <out>/chunk-<hash>.js    the shared runtime, loaded once
 // The ?v= cache-bust is the content hash of <out>/ recomputed by the SSR on demand
 // (mod.ts readVersion) — no manifest file is written; the build is self-contained in <out>.
-import { basename, dirname, fromFileUrl, join, relative, resolve as resolvePath, toFileUrl } from "@std/path";
+import {
+  basename,
+  dirname,
+  fromFileUrl,
+  join,
+  relative,
+  resolve as resolvePath,
+  toFileUrl,
+} from "@std/path";
 import { walk } from "@std/fs/walk";
 import { parseTemplate } from "./parse.ts";
 import { templateHasEventBindings } from "./node.ts";
@@ -39,7 +47,9 @@ export async function appName(startDir: string): Promise<string | undefined> {
   let nearest: string | undefined;
   while (true) {
     try {
-      const cfg = JSON.parse(await Deno.readTextFile(join(dir, "deno.json"))) as { name?: unknown; workspace?: unknown };
+      const cfg = JSON.parse(
+        await Deno.readTextFile(join(dir, "deno.json")),
+      ) as { name?: unknown; workspace?: unknown };
       if (typeof cfg.name === "string" && cfg.name) {
         nearest ??= cfg.name;
         if (Array.isArray(cfg.workspace)) return strip(cfg.name); // the workspace root owns the identity
@@ -57,11 +67,18 @@ export async function appName(startDir: string): Promise<string | undefined> {
  *  STRIPPED first: a logic.ts that merely mentions onBrowserLoad in prose ("no onBrowserLoad →
  *  server-only") must not be misread as hydrating — the hook names are matched in code only. */
 export function isServerOnlyRouteLogic(source: string): boolean {
-  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  return /\bonServerLoad\b/.test(code) && !/\bonBrowserLoad\b/.test(code) && !/\bonBrowserInit\b/.test(code);
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(
+    /\/\/[^\n]*/g,
+    "",
+  );
+  return /\bonServerLoad\b/.test(code) && !/\bonBrowserLoad\b/.test(code) &&
+    !/\bonBrowserInit\b/.test(code);
 }
 
-export async function buildClient(srcDir: string, outDir: string): Promise<BuildResult> {
+export async function buildClient(
+  srcDir: string,
+  outDir: string,
+): Promise<BuildResult> {
   // ONE build — there is NO dev/prod variant. `sprig dev` serves the BYTE-IDENTICAL bundle
   // this produces for prod, so what you exercise in dev is exactly what ships. HMR is not a
   // build mode: the loader ALWAYS compiles the HMR client (dormant) and starts it only when
@@ -79,7 +96,9 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
   //    SELECTOR (the client matches <sprig-island data-sel="…">), so two islands
   //    that share a basename cannot both be wired up — that collapsed silently to a
   //    single isl.<sel>.ts before. Detect it and fail loudly (like assertStaticPage).
-  const islands: Array<{ sel: string; logic: string; tpl: string; scope: string }> = [];
+  const islands: Array<
+    { sel: string; logic: string; tpl: string; scope: string }
+  > = [];
   // Static (non-island) components shipped to the client so an island's in-browser
   // re-render can compose them. Collected by relDir (a component's unique identity) and
   // classified — by the SAME pageLocalOf rule the server uses (mod.ts) — into GLOBAL
@@ -95,13 +114,20 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
   // so the SSR renders prebuilt ASTs and never runs tree-sitter at runtime.
   const templates: Record<string, unknown> = {};
   const seen = new Map<string, string>(); // selector → relDir of the first island
-  for await (const entry of walk(srcDir, { includeDirs: false, match: [/template\.html$/] })) {
+  for await (
+    const entry of walk(srcDir, {
+      includeDirs: false,
+      match: [/template\.html$/],
+    })
+  ) {
     const dir = dirname(entry.path);
     await assertStaticPage(dir); // a pages/<name>/ folder cannot be an island
     const sel = basename(dir);
     const relDir = relative(srcDir, dir).replace(/\\/g, "/");
     // parse + serialize ONCE (the only place tree-sitter runs); record for the SSR registry.
-    const ast = serialize(await parseTemplate(await Deno.readTextFile(entry.path)));
+    const ast = serialize(
+      await parseTemplate(await Deno.readTextFile(entry.path)),
+    );
     templates[relDir] = ast;
     const tpl = JSON.stringify(ast);
     const logic = join(dir, "logic.ts");
@@ -116,7 +142,7 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
           // WITHIN this page only. Keyed by (page → selector), so two pages' same-basename
           // page-locals coexist (no clobber). A duplicate within ONE page is unshippable.
           let m = pageStatics.get(local.page);
-          if (!m) pageStatics.set(local.page, (m = new Map()));
+          if (!m) pageStatics.set(local.page, m = new Map());
           if (m.has(sel)) {
             throw new Error(
               `sprig build: duplicate static selector "${sel}" within page "${local.page}". ` +
@@ -173,7 +199,9 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
     join(genDir, "client.ts"),
     [
       `// GENERATED by sprig build — the eager loader.`,
-      `import { bootstrapIslands, registerComponent, registerIslandSelectors, registerPageComponent, setupSoftNav, type SprigConfig } from ${q(hydratePath)};`,
+      `import { bootstrapIslands, registerComponent, registerIslandSelectors, registerPageComponent, setupSoftNav, type SprigConfig } from ${
+        q(hydratePath)
+      };`,
       `import { startHmr } from ${q(hmrPath)};`,
       `const cfg = JSON.parse(document.getElementById("__sprig_config")?.textContent ?? "{}") as SprigConfig;`,
       // dormant in prod: startHmr (and enableHmr inside it) run ONLY when the dev server
@@ -184,16 +212,22 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
       // re-render can emit a proper <sprig-island> shell for a child island whose chunk
       // hasn't loaded yet (a data-driven child absent from the SSR HTML) — see
       // registerIslandSelectors/rescanIslands in hydrate.ts.
-      `registerIslandSelectors(${JSON.stringify(Object.fromEntries(islands.map((i) => [i.sel, i.scope])))});`,
+      `registerIslandSelectors(${
+        JSON.stringify(Object.fromEntries(islands.map((i) => [i.sel, i.scope])))
+      });`,
       // register GLOBAL static component templates (keyed by selector) so islands compose them
       ...[...globalStatics.values()].map((s) =>
-        `registerComponent(${JSON.stringify(s.sel)}, { template: ${s.tpl}, scope: ${JSON.stringify(s.scope)} });`
+        `registerComponent(${
+          JSON.stringify(s.sel)
+        }, { template: ${s.tpl}, scope: ${JSON.stringify(s.scope)} });`
       ),
       // register PAGE-LOCAL static templates (keyed by page → selector) — these shadow a
       // same-basename global WITHIN their page, mirroring the server's registryForPage.
       ...[...pageStatics.entries()].flatMap(([page, m]) =>
         [...m.values()].map((s) =>
-          `registerPageComponent(${JSON.stringify(page)}, ${JSON.stringify(s.sel)}, { template: ${s.tpl}, scope: ${JSON.stringify(s.scope)} });`
+          `registerPageComponent(${JSON.stringify(page)}, ${
+            JSON.stringify(s.sel)
+          }, { template: ${s.tpl}, scope: ${JSON.stringify(s.scope)} });`
         )
       ),
       `const run = () => { bootstrapIslands(cfg); setupSoftNav(cfg); };`,
@@ -211,10 +245,17 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
       `import logic from ${q(isl.logic)};`,
       // a class default-export has no .setup → adapt it; { setup } objects use .setup
       `const __setup = logic.setup ?? makeClassSetup(logic);`,
-      `registerIsland(${JSON.stringify(isl.sel)}, { setup: __setup, template: ${isl.tpl}, scope: ${JSON.stringify(isl.scope)} });`,
+      `registerIsland(${
+        JSON.stringify(isl.sel)
+      }, { setup: __setup, template: ${isl.tpl}, scope: ${
+        JSON.stringify(isl.scope)
+      } });`,
       ``,
     ];
-    await Deno.writeTextFile(join(genDir, `isl.${isl.sel}.ts`), lines.join("\n"));
+    await Deno.writeTextFile(
+      join(genDir, `isl.${isl.sel}.ts`),
+      lines.join("\n"),
+    );
   }
 
   // 3. clean stale JS, then bundle ALL entries with code-splitting
@@ -230,20 +271,39 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
   // ONE build() runs this per process, so its shared Tailwind scratch dir isn't contended here.
   const cssDone = buildCss(srcDir, outDir);
   cssDone.catch(() => {}); // real failure still surfaces at `await cssDone`; suppress pre-await window
-  const entries = [join(genDir, "client.ts"), ...islands.map((i) => join(genDir, `isl.${i.sel}.ts`))];
+  const entries = [
+    join(genDir, "client.ts"),
+    ...islands.map((i) => join(genDir, `isl.${i.sel}.ts`)),
+  ];
   // Run the bundle under the app's effective import map with ONE @mrg-keystone/sprig mapping
   // (see forcedImportMap — the app's pin wins, CLI core as fallback): one mapping per bundle is
   // what makes single-core structural rather than merely gated. The map lives in genDir, which
   // is removed right after the bundle.
   const mapPath = join(genDir, "import-map.json");
-  await Deno.writeTextFile(mapPath, JSON.stringify(await forcedImportMap(srcDir)));
+  await Deno.writeTextFile(
+    mapPath,
+    JSON.stringify(await forcedImportMap(srcDir)),
+  );
   const res = await new Deno.Command("deno", {
-    args: ["bundle", "--platform", "browser", "--minify", "--code-splitting", "--import-map", mapPath, "--outdir", outDir, ...entries],
+    args: [
+      "bundle",
+      "--platform",
+      "browser",
+      "--minify",
+      "--code-splitting",
+      "--import-map",
+      mapPath,
+      "--outdir",
+      outDir,
+      ...entries,
+    ],
     stdout: "piped",
     stderr: "piped",
   }).output();
   if (!res.success) {
-    throw new Error("client bundle failed:\n" + new TextDecoder().decode(res.stderr));
+    throw new Error(
+      "client bundle failed:\n" + new TextDecoder().decode(res.stderr),
+    );
   }
   await Deno.remove(genDir, { recursive: true }).catch(() => {});
 
@@ -271,7 +331,10 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
     const { body } = splitShellHtml(await Deno.readTextFile(shellTpl));
     templates["shell"] = serialize(await parseTemplate(body));
   }
-  await Deno.writeTextFile(join(outDir, "templates.json"), JSON.stringify(templates));
+  await Deno.writeTextFile(
+    join(outDir, "templates.json"),
+    JSON.stringify(templates),
+  );
 
   // 4b. copy the UI package's own static assets — assets/** (fonts, images, favicon: anything the app
   // serves verbatim) — into the served outDir, so they answer at <base>/_assets/** next to the bundle.
@@ -299,8 +362,16 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
   // The cache-bust version is the static dir's content hash — the SSR recomputes it on
   // demand (mod.ts readVersion), so the build leaves NO manifest file beside static/;
   // everything the build produces lives inside the one output folder.
-  const hash = await shortHash(files.slice().sort().map((f) => join(outDir, f)));
-  return { islands: islands.map((i) => i.sel), chunks, out: join(outDir, "client.js"), bytes: total, hash };
+  const hash = await shortHash(
+    files.slice().sort().map((f) => join(outDir, f)),
+  );
+  return {
+    islands: islands.map((i) => i.sel),
+    chunks,
+    out: join(outDir, "client.js"),
+    bytes: total,
+    hash,
+  };
 }
 
 // ── daisyUI class collisions ─────────────────────────────────────────────────────────────────
@@ -321,13 +392,67 @@ export async function buildClient(srcDir: string, outDir: string): Promise<Build
  *  box). Mirrors docs/sprig/styling.md → "Reserved class names" (a test keeps them in sync);
  *  regenerate both when the daisyUI pin moves — the recipe is in that doc. */
 export const DAISYUI_RESERVED_CLASSES: ReadonlySet<string> = new Set([
-  "alert", "aura", "avatar", "badge", "breadcrumbs", "btn", "cally", "card", "carousel", "chat",
-  "checkbox", "collapse", "countdown", "diff", "divider", "dock", "drawer", "dropdown", "fab",
-  "fieldset", "filter", "footer", "glass", "hero", "indicator", "input", "join", "kbd", "label",
-  "link", "list", "loading", "mask", "megamenu", "menu", "modal", "navbar", "otp", "progress",
-  "radio", "range", "rating", "select", "skeleton", "stack", "stat", "stats", "status", "step",
-  "steps", "swap", "tab", "table", "tabs", "textarea", "timeline", "toast", "toggle", "tooltip",
-  "validator", "vc",
+  "alert",
+  "aura",
+  "avatar",
+  "badge",
+  "breadcrumbs",
+  "btn",
+  "cally",
+  "card",
+  "carousel",
+  "chat",
+  "checkbox",
+  "collapse",
+  "countdown",
+  "diff",
+  "divider",
+  "dock",
+  "drawer",
+  "dropdown",
+  "fab",
+  "fieldset",
+  "filter",
+  "footer",
+  "glass",
+  "hero",
+  "indicator",
+  "input",
+  "join",
+  "kbd",
+  "label",
+  "link",
+  "list",
+  "loading",
+  "mask",
+  "megamenu",
+  "menu",
+  "modal",
+  "navbar",
+  "otp",
+  "progress",
+  "radio",
+  "range",
+  "rating",
+  "select",
+  "skeleton",
+  "stack",
+  "stat",
+  "stats",
+  "status",
+  "step",
+  "steps",
+  "swap",
+  "tab",
+  "table",
+  "tabs",
+  "textarea",
+  "timeline",
+  "toast",
+  "toggle",
+  "tooltip",
+  "validator",
+  "vc",
 ]);
 
 /** Every class name a stylesheet's SELECTORS target, deduped in first-seen order. Comments and
@@ -340,7 +465,8 @@ export function selectorClasses(css: string): string[] {
   let s = css.replace(/\/\*[\s\S]*?\*\//g, "");
   for (let prev = ""; prev !== s; s = s.replace(/\{[^{}]*\}/g, "")) {
     prev = s;
-    const level = s.replace(/\{[^{}]*\}/g, " ").replace(/@layer[^{;]*/g, "").replace(/\\./g, " ");
+    const level = s.replace(/\{[^{}]*\}/g, " ").replace(/@layer[^{;]*/g, "")
+      .replace(/\\./g, " ");
     for (const [, name] of level.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
       if (!out.includes(name)) out.push(name);
     }
@@ -355,20 +481,28 @@ const RESPONSIVE_PREFIXES = new Set(["sm", "md", "lg", "xl", "2xl"]);
  *  `components/*.css` + `utilities/*.css`, selectors only. Null when the package isn't readable
  *  there (a pre-first-build cache, a foreign layout); the caller then falls back to
  *  DAISYUI_RESERVED_CLASSES. Excludes the same qualifier-/variable-only names as the curated set. */
-export async function installedDaisyuiClasses(twDir: string): Promise<Set<string> | null> {
+export async function installedDaisyuiClasses(
+  twDir: string,
+): Promise<Set<string> | null> {
   const pkg = join(twDir, "node_modules", "daisyui");
   const classes = new Set<string>();
   try {
     for (const sub of ["components", "utilities"]) {
       for await (const e of Deno.readDir(join(pkg, sub))) {
         if (!e.isFile || !e.name.endsWith(".css")) continue;
-        for (const c of selectorClasses(await Deno.readTextFile(join(pkg, sub, e.name)))) classes.add(c);
+        for (
+          const c of selectorClasses(
+            await Deno.readTextFile(join(pkg, sub, e.name)),
+          )
+        ) classes.add(c);
       }
     }
   } catch {
     return null;
   }
-  for (const noise of [...RESPONSIVE_PREFIXES, "disabled", "prose"]) classes.delete(noise);
+  for (const noise of [...RESPONSIVE_PREFIXES, "disabled", "prose"]) {
+    classes.delete(noise);
+  }
   return classes.size ? classes : null;
 }
 
@@ -376,7 +510,10 @@ export async function installedDaisyuiClasses(twDir: string): Promise<Set<string
  *  daisyUI's rules and the component's scoped rules both land. Exact matches only (`stat`,
  *  `stat-title`): a name that merely starts like one (`statistic`, or the workbench's `dock-tab`,
  *  which daisyUI does not define) is not a collision. Pure; exported for tests. */
-export function daisyuiCollisions(css: string, reserved: ReadonlySet<string> = DAISYUI_RESERVED_CLASSES): string[] {
+export function daisyuiCollisions(
+  css: string,
+  reserved: ReadonlySet<string> = DAISYUI_RESERVED_CLASSES,
+): string[] {
   return selectorClasses(css).filter((name) => reserved.has(name));
 }
 
@@ -385,21 +522,29 @@ export function daisyuiCollisions(css: string, reserved: ReadonlySet<string> = D
 export async function buildCss(srcDir: string, outDir: string): Promise<void> {
   const parts: string[] = [];
   const sheets: { relDir: string; css: string }[] = [];
-  for await (const entry of walk(srcDir, { includeDirs: false, match: [/styles\.css$/] })) {
+  for await (
+    const entry of walk(srcDir, { includeDirs: false, match: [/styles\.css$/] })
+  ) {
     const dir = dirname(entry.path);
     const relDir = relative(srcDir, dir).replace(/\\/g, "/");
     const css = await Deno.readTextFile(entry.path);
     sheets.push({ relDir, css });
     // scope by the component's UNIQUE path (matches mod.ts's componentScopeId) so two
     // same-basename folders never share a scope attr → no cross-folder CSS leak.
-    parts.push(`/* ${relDir} (scoped) */\n${scopeCss(css, componentScopeId(relDir))}`);
+    parts.push(
+      `/* ${relDir} (scoped) */\n${scopeCss(css, componentScopeId(relDir))}`,
+    );
   }
   // The app shell in the sibling bootstrap/ entry folder contributes its global stylesheet
   // too (scoped under the shell selector to match the shell template's scope attr — its rules
   // are document-global :global(...), so the scoping is a no-op, but the id stays consistent).
   const shellCss = join(srcDir, "..", "bootstrap", "styles.css");
   if (await fileExists(shellCss)) {
-    parts.push(`/* bootstrap shell (scoped) */\n${scopeCss(await Deno.readTextFile(shellCss), componentScopeId("shell"))}`);
+    parts.push(
+      `/* bootstrap shell (scoped) */\n${
+        scopeCss(await Deno.readTextFile(shellCss), componentScopeId("shell"))
+      }`,
+    );
   }
   // Run the Tailwind CLI from a persistent cache dir OUTSIDE the repo: it needs its
   // own deno.json (nodeModulesDir:auto) to resolve `@import "tailwindcss"`, but a
@@ -410,7 +555,10 @@ export async function buildCss(srcDir: string, outDir: string): Promise<void> {
   await Deno.mkdir(twDir, { recursive: true });
   // Per-build input file, keyed by outDir, so a CONCURRENT app build + workbench build don't clobber
   // each other's input.css in this SHARED cache dir — node_modules stays shared (the speed win).
-  const twKey = ([...outDir].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0, 0) >>> 0).toString(36);
+  const twKey = ([...outDir].reduce(
+    (h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) | 0,
+    0,
+  ) >>> 0).toString(36);
   const inputPath = join(twDir, `input-${twKey}.css`);
   // deno.json is identical every build (fixed tailwind/daisyui pins) — write it ONLY when missing/
   // stale, so two concurrent builds don't race on it (a torn read would break Tailwind's npm resolve).
@@ -418,9 +566,16 @@ export async function buildCss(srcDir: string, outDir: string): Promise<void> {
     nodeModulesDir: "auto",
     // daisyUI is pinned HERE (sprig's cache), never the app's deno.json — so the CLI compiles
     // the daisyUI version SPRIG owns, regardless of what the app declares (declares = types only).
-    imports: { "@tailwindcss/cli": "npm:@tailwindcss/cli@^4", "tailwindcss": "npm:tailwindcss@^4", "daisyui": "npm:daisyui@^5" },
+    imports: {
+      "@tailwindcss/cli": "npm:@tailwindcss/cli@^4",
+      "tailwindcss": "npm:tailwindcss@^4",
+      "daisyui": "npm:daisyui@^5",
+    },
   });
-  if ((await Deno.readTextFile(join(twDir, "deno.json")).catch(() => "")) !== denoJson) {
+  if (
+    (await Deno.readTextFile(join(twDir, "deno.json")).catch(() => "")) !==
+      denoJson
+  ) {
     await Deno.writeTextFile(join(twDir, "deno.json"), denoJson);
   }
   // Design tokens: a src/css-variables.json (if present) compiles to a global @theme
@@ -458,34 +613,49 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display, inherit); letter-spaci
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }`;
-  const input = `@import "tailwindcss";\n@plugin "daisyui" { themes: false; }\n@source "${srcDir}/**/*.html";\n${shellSource}${globalReset}\n` +
+  const input =
+    `@import "tailwindcss";\n@plugin "daisyui" { themes: false; }\n@source "${srcDir}/**/*.html";\n${shellSource}${globalReset}\n` +
     `${tokenCss ? tokenCss + "\n" : ""}${parts.join("\n\n")}\n`;
   await Deno.writeTextFile(inputPath, input);
   const res = await new Deno.Command("deno", {
     args: [
-      "run", "-A", "--node-modules-dir=auto",
-      "npm:@tailwindcss/cli@^4", "-i", inputPath, "-o", join(outDir, "app.css"), "--minify",
+      "run",
+      "-A",
+      "--node-modules-dir=auto",
+      "npm:@tailwindcss/cli@^4",
+      "-i",
+      inputPath,
+      "-o",
+      join(outDir, "app.css"),
+      "--minify",
     ],
     cwd: twDir,
     stdout: "piped",
     stderr: "piped",
   }).output();
   if (!res.success) {
-    throw new Error("tailwind css build failed:\n" + new TextDecoder().decode(res.stderr));
+    throw new Error(
+      "tailwind css build failed:\n" + new TextDecoder().decode(res.stderr),
+    );
   }
   // After Tailwind, so the installed daisyUI is on disk even on a first-ever build. Warn, don't
   // fail: restyling `.card` on purpose to tweak the daisyUI card is legitimate — the warning tells
   // the author which of the two they're doing.
-  const reserved = (await installedDaisyuiClasses(twDir)) ?? DAISYUI_RESERVED_CLASSES;
+  const reserved = (await installedDaisyuiClasses(twDir)) ??
+    DAISYUI_RESERVED_CLASSES;
   for (const { relDir, css } of sheets) {
     const hits = daisyuiCollisions(css, reserved);
     if (!hits.length) continue;
     const prefix = (relDir.split("/").pop() || "my").slice(0, 2); // e.g. islands/coms-island → `.co-stat`
     console.warn(
-      `sprig: ${relDir}/styles.css styles ${hits.map((h) => "." + h).join(", ")} — daisyUI (bundled by ` +
+      `sprig: ${relDir}/styles.css styles ${
+        hits.map((h) => "." + h).join(", ")
+      } — daisyUI (bundled by ` +
         `the build) styles the same class name(s) globally, so these rules only override the properties ` +
         `they set on top of daisyUI's. Unless you mean the daisyUI component, rename with your own prefix ` +
-        `(e.g. .${prefix}-${hits[0]}). See docs/sprig/styling.md → "Reserved class names".`,
+        `(e.g. .${prefix}-${
+          hits[0]
+        }). See docs/sprig/styling.md → "Reserved class names".`,
     );
   }
 }
@@ -494,10 +664,25 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--font-display, inherit); letter-spaci
  *  with a STATIC value, belongs in @theme (so Tailwind emits both the :root var and
  *  the matching utilities, e.g. bg-primary / text-step-2 / rounded-box). */
 const TW_THEME_NAMESPACES = [
-  "--color-", "--font-", "--text-", "--font-weight-", "--tracking-", "--leading-",
-  "--spacing-", "--radius-", "--shadow-", "--inset-shadow-", "--drop-shadow-",
-  "--text-shadow-", "--blur-", "--perspective-", "--aspect-", "--ease-", "--animate-",
-  "--breakpoint-", "--container-",
+  "--color-",
+  "--font-",
+  "--text-",
+  "--font-weight-",
+  "--tracking-",
+  "--leading-",
+  "--spacing-",
+  "--radius-",
+  "--shadow-",
+  "--inset-shadow-",
+  "--drop-shadow-",
+  "--text-shadow-",
+  "--blur-",
+  "--perspective-",
+  "--aspect-",
+  "--ease-",
+  "--animate-",
+  "--breakpoint-",
+  "--container-",
 ];
 
 /** A token routes to @theme iff it sits in a utility-generating namespace AND its value
@@ -505,7 +690,8 @@ const TW_THEME_NAMESPACES = [
  *  tint) must stay a plain :root var so it re-resolves live when a [data-theme] swaps the
  *  property it depends on — exactly how the alfred shell hand-split its tokens. */
 function isUtilityToken(key: string, value: string): boolean {
-  return !value.includes("var(") && TW_THEME_NAMESPACES.some((ns) => key.startsWith(ns));
+  return !value.includes("var(") &&
+    TW_THEME_NAMESPACES.some((ns) => key.startsWith(ns));
 }
 
 export interface CssVariables {
@@ -524,29 +710,44 @@ export interface CssVariables {
  *  allowed — anything else throws, so the global token surface can never accrue stray
  *  rules. Resets come from Tailwind Preflight; non-token base styles live in a shell. */
 export function emitThemeCss(cfg: CssVariables): string {
-  if (!cfg || typeof cfg !== "object" || !cfg.themes || typeof cfg.themes !== "object") {
-    throw new Error(`css-variables.json: expected an object shaped { "themes": { … } }`);
+  if (
+    !cfg || typeof cfg !== "object" || !cfg.themes ||
+    typeof cfg.themes !== "object"
+  ) {
+    throw new Error(
+      `css-variables.json: expected an object shaped { "themes": { … } }`,
+    );
   }
   const names = Object.keys(cfg.themes);
-  if (names.length === 0) throw new Error(`css-variables.json: "themes" has no entries`);
+  if (names.length === 0) {
+    throw new Error(`css-variables.json: "themes" has no entries`);
+  }
   const def = cfg.default ?? (names.length === 1 ? names[0] : undefined);
   if (!def) {
     throw new Error(
-      `css-variables.json: ${names.length} themes (${names.join(", ")}) but no "default" — ` +
+      `css-variables.json: ${names.length} themes (${
+        names.join(", ")
+      }) but no "default" — ` +
         `set "default" to the theme that should be the document baseline.`,
     );
   }
   if (!cfg.themes[def]) {
-    throw new Error(`css-variables.json: "default" is "${def}", but no theme has that name`);
+    throw new Error(
+      `css-variables.json: "default" is "${def}", but no theme has that name`,
+    );
   }
   for (const name of names) {
     const t = cfg.themes[name];
     if (!t || typeof t !== "object") {
-      throw new Error(`css-variables.json: theme "${name}" must be an object of token → value`);
+      throw new Error(
+        `css-variables.json: theme "${name}" must be an object of token → value`,
+      );
     }
     for (const [k, v] of Object.entries(t)) {
       if (typeof v !== "string") {
-        throw new Error(`css-variables.json: ${name}["${k}"] must be a string, got ${typeof v}`);
+        throw new Error(
+          `css-variables.json: ${name}["${k}"] must be a string, got ${typeof v}`,
+        );
       }
       if (k !== "color-scheme" && !k.startsWith("--")) {
         throw new Error(
@@ -561,8 +762,9 @@ export function emitThemeCss(cfg: CssVariables): string {
   const themeDecls: string[] = [];
   const rootDecls: string[] = [];
   for (const [k, v] of Object.entries(cfg.themes[def])) {
-    if (k !== "color-scheme" && isUtilityToken(k, v)) themeDecls.push(decl(k, v));
-    else rootDecls.push(decl(k, v));
+    if (k !== "color-scheme" && isUtilityToken(k, v)) {
+      themeDecls.push(decl(k, v));
+    } else rootDecls.push(decl(k, v));
   }
   let out = "";
   if (themeDecls.length) out += `@theme {\n${themeDecls.join("\n")}\n}\n`;
@@ -579,7 +781,9 @@ export function emitThemeCss(cfg: CssVariables): string {
 async function cssFromVariables(srcDir: string): Promise<string> {
   // Prefer bootstrap/css-tokens.json (tokens live with the app shell); fall back to the legacy
   // src/css-variables.json so existing apps build byte-identically. Absent → unchanged build.
-  const raw = await Deno.readTextFile(join(srcDir, "..", "bootstrap", "css-tokens.json"))
+  const raw = await Deno.readTextFile(
+    join(srcDir, "..", "bootstrap", "css-tokens.json"),
+  )
     .catch(() => Deno.readTextFile(join(srcDir, "css-variables.json")))
     .catch(() => "");
   if (!raw) return "";
@@ -587,7 +791,11 @@ async function cssFromVariables(srcDir: string): Promise<string> {
   try {
     cfg = JSON.parse(raw);
   } catch (e) {
-    throw new Error(`css-variables.json: invalid JSON — ${e instanceof Error ? e.message : e}`);
+    throw new Error(
+      `css-variables.json: invalid JSON — ${
+        e instanceof Error ? e.message : e
+      }`,
+    );
   }
   return emitThemeCss(cfg);
 }
@@ -603,7 +811,9 @@ async function cssFromVariables(srcDir: string): Promise<string> {
  *  `--import-map` REPLACES the app's deno.json map (it does not merge), so we reconstruct the
  *  app's effective imports here — walking up from `srcDir`, nearest-wins, resolving relative
  *  values to absolute file URLs so the map is location-independent — then overlay the runtime. */
-export async function forcedImportMap(srcDir: string): Promise<{ imports: Record<string, string> }> {
+export async function forcedImportMap(
+  srcDir: string,
+): Promise<{ imports: Record<string, string> }> {
   const layers: Array<{ dir: string; imports: Record<string, string> }> = [];
   let dir = resolvePath(srcDir);
   for (;;) {
@@ -611,7 +821,9 @@ export async function forcedImportMap(srcDir: string): Promise<{ imports: Record
       const p = join(dir, name);
       if (await fileExists(p)) {
         try {
-          const cfg = JSON.parse(await Deno.readTextFile(p)) as { imports?: Record<string, string> };
+          const cfg = JSON.parse(await Deno.readTextFile(p)) as {
+            imports?: Record<string, string>;
+          };
           if (cfg.imports) layers.push({ dir, imports: cfg.imports });
         } catch { /* unreadable/!json config → skip this layer */ }
         break;
@@ -642,7 +854,8 @@ export async function forcedImportMap(srcDir: string): Promise<{ imports: Record
   // name) fails in dev the same way it fails in prod. Only when the app maps nothing do we fall
   // back to the CLI's own core (`new URL(..., import.meta.url)` resolves against THIS file
   // whether the CLI runs from a local checkout (file://) or JSR (https://)).
-  imports["@mrg-keystone/sprig"] ??= new URL("../core.ts", import.meta.url).href;
+  imports["@mrg-keystone/sprig"] ??=
+    new URL("../core.ts", import.meta.url).href;
   imports["@preact/signals-core"] = "npm:@preact/signals-core@^1.8.0";
   return { imports };
 }
@@ -659,11 +872,16 @@ const RUNTIME_SENTINEL = "__sprig_runtime";
  *  in the browser. Exported for direct testing. (Only >1 fails: a count of 0 would mean the
  *  sentinel moved, which is a framework change, not a user's dual-core — don't block builds on
  *  it.) */
-export async function assertSingleRuntime(outDir: string, srcDir?: string): Promise<void> {
+export async function assertSingleRuntime(
+  outDir: string,
+  srcDir?: string,
+): Promise<void> {
   const carriers: string[] = [];
   for await (const e of Deno.readDir(outDir)) {
     if (!e.isFile || !e.name.endsWith(".js")) continue;
-    if ((await Deno.readTextFile(join(outDir, e.name))).includes(RUNTIME_SENTINEL)) {
+    if (
+      (await Deno.readTextFile(join(outDir, e.name))).includes(RUNTIME_SENTINEL)
+    ) {
       carriers.push(e.name);
     }
   }
@@ -680,7 +898,9 @@ export async function assertSingleRuntime(outDir: string, srcDir?: string): Prom
       for (const name of ["deno.json", "deno.jsonc"]) {
         try {
           const text = await Deno.readTextFile(join(dir, name));
-          if (LEGACY.test(text)) suspects.add(`${join(dir, name)} maps a legacy @sprig/* package`);
+          if (LEGACY.test(text)) {
+            suspects.add(`${join(dir, name)} maps a legacy @sprig/* package`);
+          }
         } catch { /* no config here */ }
       }
       const parent = dirname(dir);
@@ -697,7 +917,9 @@ export async function assertSingleRuntime(outDir: string, srcDir?: string): Prom
         `to a second copy), or a direct jsr:/https: import of the runtime in island code.`;
     throw new Error(
       `sprig build: DUAL-CORE bundle — the sprig runtime was emitted into ${carriers.length} ` +
-        `chunks (${carriers.sort().join(", ")}), but it must be exactly one. Two copies means some ` +
+        `chunks (${
+          carriers.sort().join(", ")
+        }), but it must be exactly one. Two copies means some ` +
         `island code resolved the runtime to a DIFFERENT module than the loader/hydrate, so ` +
         `code-splitting could not dedup them. In the browser every island would fail to hydrate ` +
         `with "inject() must be called synchronously" — the DI context is module-global and cannot ` +
@@ -734,7 +956,11 @@ if (import.meta.main) {
   const outDir = join(Deno.cwd(), "static");
   const r = await buildClient(srcDir, outDir);
   console.log(
-    `sprig build: ${r.islands.length} island chunk(s) [${r.islands.join(", ")}] + ` +
-      `${r.chunks.length} shared chunk(s) → ${outDir} (${(r.bytes / 1024).toFixed(1)}kb total, v=${r.hash})`,
+    `sprig build: ${r.islands.length} island chunk(s) [${
+      r.islands.join(", ")
+    }] + ` +
+      `${r.chunks.length} shared chunk(s) → ${outDir} (${
+        (r.bytes / 1024).toFixed(1)
+      }kb total, v=${r.hash})`,
   );
 }

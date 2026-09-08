@@ -14,7 +14,12 @@
 // Templates read BOTH signals and computeds as `name()`. Raw @preact/signals are
 // not callable, so sprig wraps them in a callable accessor: `count()` reads,
 // `count.value = …` / `count.set(…)` write.
-import { computed as pcomputed, effect, signal as psignal, type Signal } from "@preact/signals-core";
+import {
+  computed as pcomputed,
+  effect,
+  type Signal,
+  signal as psignal,
+} from "@preact/signals-core";
 export { effect, type Signal };
 
 export interface Accessor<T> {
@@ -33,7 +38,10 @@ export interface WritableAccessor<T> {
 export function signal<T>(initial: T): WritableAccessor<T> {
   const s = psignal(initial);
   const acc = (() => s.value) as WritableAccessor<T>;
-  Object.defineProperty(acc, "value", { get: () => s.value, set: (v: T) => (s.value = v) });
+  Object.defineProperty(acc, "value", {
+    get: () => s.value,
+    set: (v: T) => (s.value = v),
+  });
   Object.defineProperty(acc, "signal", { get: () => s });
   acc.set = (v) => (s.value = v);
   acc.update = (fn) => (s.value = fn(s.value));
@@ -52,7 +60,8 @@ export function computed<T>(fn: () => T): Accessor<T> {
  *  is read-only (no .set) so it is excluded. */
 // deno-lint-ignore no-explicit-any
 export function isSignal(v: unknown): v is WritableAccessor<any> {
-  return typeof v === "function" && "set" in (v as object) && "signal" in (v as object);
+  return typeof v === "function" && "set" in (v as object) &&
+    "signal" in (v as object);
 }
 
 // ─────────────────────────── Dependency Injection ───────────────────────────
@@ -96,7 +105,11 @@ export function token<T>(
   config: InjectableConfig & { factory: () => T },
 ): Token<T> {
   const key = Symbol(name);
-  REGISTRY.set(key, { scope: config.scope ?? "both", providedIn: config.providedIn, factory: config.factory });
+  REGISTRY.set(key, {
+    scope: config.scope ?? "both",
+    providedIn: config.providedIn,
+    factory: config.factory,
+  });
   return { key, name };
 }
 
@@ -132,7 +145,8 @@ export class StateService {
   /** localStorage key. Prefers a stable `static key` (set one — class names are MANGLED by
    *  the production minifier, so `constructor.name` is not durable across builds). */
   protected storageKey(): string {
-    const k = (this.constructor as { key?: string }).key ?? this.constructor.name;
+    const k = (this.constructor as { key?: string }).key ??
+      this.constructor.name;
     return `sprig:state:${k}`;
   }
   /** Serialize this instance's own fields to localStorage (no-op on the server). */
@@ -159,7 +173,9 @@ export class StateService {
       // up the prototype chain) and never write through "__proto__".
       for (const k of Object.keys(data)) {
         if (k === "__proto__") continue;
-        if (typeof (this as Record<string, unknown>)[k] === "function") continue;
+        if (typeof (this as Record<string, unknown>)[k] === "function") {
+          continue;
+        }
         (this as Record<string, unknown>)[k] = data[k];
       }
     } catch { /* corrupt entry → keep current state */ }
@@ -168,12 +184,16 @@ export class StateService {
   reset(): void {
     const fresh = new (this.constructor as new () => this)();
     LIVE_STATES.delete(fresh); // the fresh probe must not stay tracked
-    for (const k of Object.keys(this)) delete (this as Record<string, unknown>)[k];
+    for (const k of Object.keys(this)) {
+      delete (this as Record<string, unknown>)[k];
+    }
     Object.assign(this, fresh);
     // A reset returns to constructed defaults + clears the saved copy; re-enable a future
     // restore so a subsequently-persisted session can be loaded again.
     this.#restored = false;
-    if (typeof localStorage !== "undefined") localStorage.removeItem(this.storageKey());
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(this.storageKey());
+    }
   }
 }
 
@@ -223,13 +243,19 @@ export class Injector {
     return new Injector(this.side, kind, this);
   }
 
-  #instantiate<T>(key: symbol, token: Ctor<T> | Token<T>, reg: Registration): T {
+  #instantiate<T>(
+    key: symbol,
+    token: Ctor<T> | Token<T>,
+    reg: Registration,
+  ): T {
     // Scope guard runs BEFORE the cache-hit short-circuit so an inherited/bound
     // value (e.g. a server-only Backend on a parent) cannot be handed to an
     // injector of the wrong side — "DI never crosses the wire" (bug #92).
     if (reg.scope !== "both" && reg.scope !== this.side) {
       throw new Error(
-        `Cannot inject ${nameOf(token)} (scope="${reg.scope}") on the ${this.side}. ` +
+        `Cannot inject ${
+          nameOf(token)
+        } (scope="${reg.scope}") on the ${this.side}. ` +
           `Pass its data in as an @input instead — DI does not cross the SSR/island boundary.`,
       );
     }
@@ -250,8 +276,12 @@ export class Injector {
   #findInstance(key: symbol): { has: boolean; value: unknown } {
     // walk the parent chain by recursion (no `this` aliasing), reporting presence
     // (not a bare value) so a cached `undefined` is not mistaken for "absent".
-    if (this.#instances.has(key)) return { has: true, value: this.#instances.get(key) };
-    return this.parent ? this.parent.#findInstance(key) : { has: false, value: undefined };
+    if (this.#instances.has(key)) {
+      return { has: true, value: this.#instances.get(key) };
+    }
+    return this.parent
+      ? this.parent.#findInstance(key)
+      : { has: false, value: undefined };
   }
 }
 
@@ -271,10 +301,12 @@ export function clientRoot(): Injector {
  *  strings; jsr + relative specifiers can coexist) and a reload is meaningless.
  *  Exported for direct testing; runs once at module init. */
 export function detectDualRuntime(
-  g: { __sprig_runtime?: true; __sprig_runtime_dual?: true } = globalThis as never,
+  g: { __sprig_runtime?: true; __sprig_runtime_dual?: true } =
+    globalThis as never,
   // via globalThis (not a bare `document`) so core.ts type-checks lib-agnostically —
   // it is imported by DOM-lib and deno-lib graphs alike
-  isBrowser: boolean = typeof (globalThis as { document?: unknown }).document !== "undefined",
+  isBrowser: boolean =
+    typeof (globalThis as { document?: unknown }).document !== "undefined",
 ): boolean {
   if (!isBrowser) return false;
   if (g.__sprig_runtime) {
@@ -296,7 +328,9 @@ let current: Injector | undefined;
  *  before any `await` (capture deps into vars first). */
 export function inject<T>(token: Ctor<T> | Token<T>): T {
   if (!current) {
-    throw new Error("inject() must be called synchronously within setup(), resolve(), a guard, or a service constructor");
+    throw new Error(
+      "inject() must be called synchronously within setup(), resolve(), a guard, or a service constructor",
+    );
   }
   return current.resolve(token);
 }
@@ -310,7 +344,10 @@ export function currentInjector(): Injector | undefined {
  *  route's resource was not found). Stored on the request root so bootstrap.fetch
  *  can vary the Response status. Call it synchronously inside resolve()/setup(),
  *  or via a request context captured at service construction. */
-export function setResponseStatus(injector: Injector | undefined, status: number): void {
+export function setResponseStatus(
+  injector: Injector | undefined,
+  status: number,
+): void {
   if (injector) injector.root.status = status;
 }
 /** Run `fn` with `injector` active. Returns whatever `fn` returns (incl. a Promise). */
@@ -343,29 +380,68 @@ function nameOf(t: Ctor | Token<unknown>): string {
  *  `get<T>` convenience that replaces hand-written ssr-fetch shims. */
 export interface BackendClient {
   fetch: typeof fetch;
-  get<T>(path: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data?: T }>;
+  get<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<{ ok: boolean; status: number; data?: T }>;
 }
 
-/** Built-in SERVER-scoped token. `serveSprig` binds it to keep's `backend.fetch`
- *  per request; `resolve.ts` reads it with `inject(Backend)`. Injecting it in
- *  island/client code throws (scope "server") — DI never crosses the wire. */
-export const Backend: Token<BackendClient> = token<BackendClient>("sprig:Backend", {
-  scope: "server",
-  providedIn: "root",
-  factory: () => {
-    throw new Error(
-      "Backend is not bound. It is only available during SSR (serveSprig binds it); " +
-        "an island cannot inject it — server data reaches islands as serialized @inputs.",
-    );
+/** Built-in SERVER-scoped token. The `ui` unit binds it to the bag's `fetch` —
+ *  the one in-process client, request-bound in scope — per request; `resolve.ts`
+ *  reads it with `inject(Backend)`. Injecting it in island/client code throws
+ *  (scope "server") — DI never crosses the wire. */
+export const Backend: Token<BackendClient> = token<BackendClient>(
+  "sprig:Backend",
+  {
+    scope: "server",
+    providedIn: "root",
+    factory: () => {
+      throw new Error(
+        "Backend is not bound: no backend was composed. Serve via " +
+          "`Bedrock({ ui: Frontend(), backend })` — or provide a test double — and it is " +
+          "bound per request. It is SSR-only: an island cannot inject it, because server " +
+          "data reaches islands as serialized @inputs.",
+      );
+    },
   },
-});
+);
 
 /** Wrap a bare `fetch` (keep's `backend.fetch`) into a BackendClient with `get`. */
+/** Paths a wire-path call can legitimately start with — the namespaces the
+ *  composition root mounts units at. Anything else is a route-space path from
+ *  before sprig 2.0, when the client had an implicit `/api` mount. */
+const WIRE_PREFIXES = ["/api", "/auth", "http:", "https:"];
+const wireWarned = new Set<string>();
+
+/** One-release migration shim (D-21). A path that is neither `/api…` nor
+ *  `/auth…` was written against the OLD client, which mounted `/api` for you;
+ *  prefix it and say so once, naming the call site. `sprig migrate wire-paths`
+ *  rewrites them; both this shim and the codemod retire in sprig 3. */
+function toWirePath(path: string): string {
+  if (WIRE_PREFIXES.some((p) => path.startsWith(p))) return path;
+  if (!wireWarned.has(path)) {
+    wireWarned.add(path);
+    const site = new Error().stack?.split("\n")[3]?.trim() ??
+      "unknown call site";
+    console.warn(
+      `sprig: backend.get(${
+        JSON.stringify(path)
+      }) uses a ROUTE-space path. There is one ` +
+        `client now and it takes WIRE paths — the same URLs a browser uses. Prefixing ` +
+        `"/api" for this release; run \`sprig migrate wire-paths\` to fix it. (${site})`,
+    );
+  }
+  return `/api${path}`;
+}
+
 export function backendClient(fetchImpl: typeof fetch): BackendClient {
   return {
+    // `fetch` passes the path through VERBATIM — it is exactly `fetch`, and a
+    // drop-in that rewrote its argument would not be one. The shim lives on
+    // `get`, sprig's own helper, where the old convention was sprig's to keep.
     fetch: fetchImpl,
     async get<T>(path: string, init?: RequestInit) {
-      const res = await fetchImpl(path, init);
+      const res = await fetchImpl(toWirePath(path), init);
       if (!res.ok) {
         await res.body?.cancel().catch(() => {});
         return { ok: false, status: res.status };
@@ -388,7 +464,9 @@ export interface ResolveCtx {
   params: Record<string, string>;
   url: URL;
 }
-export type Resolve = (ctx: ResolveCtx) => Record<string, unknown> | Promise<Record<string, unknown>>;
+export type Resolve = (
+  ctx: ResolveCtx,
+) => Record<string, unknown> | Promise<Record<string, unknown>>;
 
 /** The per-request context a route's logic.ts onServerLoad receives — the request URL, the matched
  *  route params, and the session profile (null when unauthenticated). The route-logic twin of a
@@ -431,8 +509,14 @@ type SetupOptions<T extends object> = {
 export function defineComponent<T extends object>(
   setupOrOptions: ((ctx: ComponentCtx) => T) | SetupOptions<T>,
 ): ComponentDef<T> {
-  if (typeof setupOrOptions === "function") return { inputs: [], trigger: "load", setup: setupOrOptions };
-  return { inputs: setupOrOptions.inputs ?? [], trigger: setupOrOptions.trigger ?? "load", setup: setupOrOptions.setup };
+  if (typeof setupOrOptions === "function") {
+    return { inputs: [], trigger: "load", setup: setupOrOptions };
+  }
+  return {
+    inputs: setupOrOptions.inputs ?? [],
+    trigger: setupOrOptions.trigger ?? "load",
+    setup: setupOrOptions.setup,
+  };
 }
 
 /** What the build's per-folder loader produces (or main.ts wires explicitly). */
@@ -451,13 +535,23 @@ export interface ComponentModule {
  *  Call `inject()` synchronously inside a guard (before any `await`) for DI —
  *  guards run on the request's route injector, so a service a guard instantiates
  *  is the SAME instance the page's resolve() later injects. */
-/** The authenticated session profile the framework resolves from the httpOnly session cookie and
- *  hands to guards as `ctx.session` (null = unauthenticated). serveSprig fills it in session mode;
- *  the guard reads it instead of re-verifying a bearer, since the session was validated at mint. */
+/** Who the caller is, handed to guards as `ctx.session` (null = reached openly).
+ *
+ *  It is bedrock's `Identity` — the auth unit's verdict for THIS dispatch, read
+ *  off the request envelope by the `ui` unit and threaded in. sprig no longer
+ *  resolves a session itself (it never could on the in-process channel), and
+ *  this type is no longer a shape sprig declares twice: `{ subject, claims, via }`
+ *  has exactly one definition, in bedrock.
+ *
+ *  Redeclared structurally rather than imported so `core.ts` — which the browser
+ *  bundle also loads — keeps its dependency-free surface. */
 export interface SessionProfile {
-  name?: string;
-  email?: string;
-  grants?: string[];
+  /** Who the credential belongs to. */
+  subject: string;
+  /** What it is entitled to — what a route's `requiredGrant` is checked against. */
+  claims: string[];
+  /** How it was established (the auth unit's own label). */
+  via: string;
 }
 export interface GuardCtx {
   path: string[];
@@ -527,7 +621,11 @@ export interface NavItem {
  *  becomes an item, its href built from the nested path segments (so the nav IS the router — no
  *  hand-maintained list). `activePath` is the current on-base path (post-base, e.g. "/queue").
  *  `base` is prefixed onto each href. Pure — usable server-side (SSR chrome) or on the client. */
-export function buildNav(routes: Route[], activePath: string, base = ""): NavItem[] {
+export function buildNav(
+  routes: Route[],
+  activePath: string,
+  base = "",
+): NavItem[] {
   const active = "/" + activePath.split("/").filter(Boolean).join("/"); // normalized, leading slash
   const items: NavItem[] = [];
   const walk = (rs: Route[], prefix: string): void => {
@@ -539,7 +637,8 @@ export function buildNav(routes: Route[], activePath: string, base = ""): NavIte
           href: `${base}${full === "/" ? "/" : full}`,
           label: r.meta.nav,
           icon: r.meta.icon,
-          active: active === full || (full !== "/" && active.startsWith(full + "/")),
+          active: active === full ||
+            (full !== "/" && active.startsWith(full + "/")),
         });
       }
       if (r.children) walk(r.children, full === "/" ? "" : full);
@@ -572,7 +671,10 @@ export interface MatchedRoute {
 /** Primary-path matcher: walks routes, supports ":param" segments, nested layouts
  *  (routers/*), and an index child (`path: ""`) for a layout's default page. Returns the
  *  full render CHAIN (outer layouts → leaf page) plus the parent-first guard + grant chains. */
-export function matchRoute(routes: Route[], pathname: string): MatchedRoute | null {
+export function matchRoute(
+  routes: Route[],
+  pathname: string,
+): MatchedRoute | null {
   const segs = pathname.split("/").filter((s) => s.length > 0);
   return walk(routes, segs, {});
 }
@@ -604,21 +706,32 @@ function walk(
       // path, slashes and all (e.g. embed/:target+ → "foo.com/a/b"). Terminal by construction.
       if (r.startsWith(":") && (r.endsWith("+") || r.endsWith("*"))) {
         const tail = segs.slice(i);
-        if (r.endsWith("+") && tail.length === 0) { ok = false; break; } // "+" needs ≥1 segment
+        if (r.endsWith("+") && tail.length === 0) {
+          ok = false;
+          break;
+        } // "+" needs ≥1 segment
         params[r.slice(1, -1)] = tail.map(decodeParam).join("/");
         consumed = segs.length;
         break;
       }
       const u = segs[i];
-      if (u === undefined) { ok = false; break; }
+      if (u === undefined) {
+        ok = false;
+        break;
+      }
       if (r.startsWith(":")) params[r.slice(1)] = decodeParam(u);
-      else if (r !== u) { ok = false; break; }
+      else if (r !== u) {
+        ok = false;
+        break;
+      }
     }
     if (!ok) continue;
     // fresh arrays per matched level (never mutate the caller's): a failed child descent
     // must not leak this route's guards/grants/wrapper onto a later sibling attempt.
     const gchain = route.guards?.length ? [...guards, ...route.guards] : guards;
-    const grchain = route.requiredGrant ? [...grants, route.requiredGrant] : grants;
+    const grchain = route.requiredGrant
+      ? [...grants, route.requiredGrant]
+      : grants;
     // a LAYOUT (routers/*) wraps its children in its own outlet; a plain page-parent does
     // NOT (it stays a mere index) — that's what preserves the pre-nesting behavior.
     const childWrappers = isLayoutLoad(route.load)
@@ -631,17 +744,39 @@ function walk(
       // also having to BE a page. A plain page-parent renders ITSELF (no index override), which
       // preserves the pre-nesting behavior exactly.
       if (route.children && (isLayoutLoad(route.load) || !route.load)) {
-        const idx = walk(route.children, [], params, gchain, childWrappers, grchain);
+        const idx = walk(
+          route.children,
+          [],
+          params,
+          gchain,
+          childWrappers,
+          grchain,
+        );
         if (idx) return idx;
       }
       // this route is the terminal: its own load (page OR router) ends the chain, nested
       // under the wrappers ABOVE it.
-      const chain: MatchedLevel[] = route.load ? [...wrappers, { load: route.load, meta: route.meta }] : wrappers;
+      const chain: MatchedLevel[] = route.load
+        ? [...wrappers, { load: route.load, meta: route.meta }]
+        : wrappers;
       if (!chain.length) return null; // a pure container with nothing renderable → no match
-      return { chain, load: chain[chain.length - 1].load, params, guards: gchain, grants: grchain };
+      return {
+        chain,
+        load: chain[chain.length - 1].load,
+        params,
+        guards: gchain,
+        grants: grchain,
+      };
     }
     if (route.children) {
-      const sub = walk(route.children, rest, params, gchain, childWrappers, grchain);
+      const sub = walk(
+        route.children,
+        rest,
+        params,
+        gchain,
+        childWrappers,
+        grchain,
+      );
       if (sub) return sub;
     }
   }
@@ -660,8 +795,18 @@ function normalizeRoute(out: string[]): string[] {
  *  ONLY wiring an app needs — render + stream + per-page resolve loading all come from
  *  it, so `routes` alone drive data loading (no `modules` map, no per-page imports). */
 export interface AppRenderer {
-  renderDocument(chain: string | readonly MatchedLevel[], inputs: Record<string, unknown>, ropts?: { assetsVersion?: string; reqCtx?: RouteCtx }, chrome?: Record<string, unknown>): Promise<string>;
-  renderStream?(chain: string | readonly MatchedLevel[], inputs: Record<string, unknown>, ropts?: { assetsVersion?: string; reqCtx?: RouteCtx }, chrome?: Record<string, unknown>): ReadableStream<Uint8Array>;
+  renderDocument(
+    chain: string | readonly MatchedLevel[],
+    inputs: Record<string, unknown>,
+    ropts?: { assetsVersion?: string; reqCtx?: RouteCtx },
+    chrome?: Record<string, unknown>,
+  ): Promise<string>;
+  renderStream?(
+    chain: string | readonly MatchedLevel[],
+    inputs: Record<string, unknown>,
+    ropts?: { assetsVersion?: string; reqCtx?: RouteCtx },
+    chrome?: Record<string, unknown>,
+  ): ReadableStream<Uint8Array>;
   loadResolve?(pageLoad: string): Promise<Resolve | undefined>;
 }
 
@@ -674,9 +819,17 @@ export interface AppConfig {
    *  by route `load`); this is only consulted as an override when present. */
   modules?: Record<string, ComponentModule>;
   /** LEGACY direct render callback; superseded by `renderer.renderDocument`. */
-  render?: (pageLoad: string, inputs: Record<string, unknown>, ropts?: { assetsVersion?: string; reqCtx?: RouteCtx }) => Promise<string>;
+  render?: (
+    pageLoad: string,
+    inputs: Record<string, unknown>,
+    ropts?: { assetsVersion?: string; reqCtx?: RouteCtx },
+  ) => Promise<string>;
   /** LEGACY direct stream callback; superseded by `renderer.renderStream`. */
-  renderStream?: (pageLoad: string, inputs: Record<string, unknown>, ropts?: { assetsVersion?: string; reqCtx?: RouteCtx }) => ReadableStream<Uint8Array>;
+  renderStream?: (
+    pageLoad: string,
+    inputs: Record<string, unknown>,
+    ropts?: { assetsVersion?: string; reqCtx?: RouteCtx },
+  ) => ReadableStream<Uint8Array>;
   /** Verify a route's `requiredGrant` server-side (runs after guards, before resolve — no data
    *  work for a denied page). Given the grant name + the request ctx (headers → the session
    *  cookie), return whether the caller holds it. The app wires this to its auth model (e.g. rune
@@ -690,7 +843,15 @@ export interface SprigApp {
    *  from (serveSprig/sprigUi compute it from their assetsDir). The renderer stamps it
    *  into `?v=` so the asset URLs are content-addressed — the renderer's own fallback
    *  (SPRIG_ASSETS_DIR/<cwd>/static) can't know the served dir and degrades on Deploy. */
-  fetch(req: Request, info?: Deno.ServeHandlerInfo, env?: { backend?: BackendClient; assetsVersion?: string; session?: SessionProfile | null }): Promise<Response>;
+  fetch(
+    req: Request,
+    info?: Deno.ServeHandlerInfo,
+    env?: {
+      backend?: BackendClient;
+      assetsVersion?: string;
+      session?: SessionProfile | null;
+    },
+  ): Promise<Response>;
 }
 
 /** Read-only methods the SSR document route honors. */
@@ -717,8 +878,9 @@ export function bootstrap(config: AppConfig): SprigApp {
     async fetch(req, _info, env): Promise<Response> {
       const url = new URL(req.url);
       let path = url.pathname;
-      if (base && (path === base || path.startsWith(base + "/"))) path = path.slice(base.length) || "/";
-      // Any path not under the configured base 404s — including bare "/" (the index
+      if (base && (path === base || path.startsWith(base + "/"))) {
+        path = path.slice(base.length) || "/";
+      } // Any path not under the configured base 404s — including bare "/" (the index
       // must only be reachable on-base, not dual-mounted off-base). When base is
       // empty this branch is skipped and the raw path is used as-is.
       else if (base) return new Response("Not Found", { status: 404 });
@@ -729,10 +891,16 @@ export function bootstrap(config: AppConfig): SprigApp {
       // SSR page routes are read-only resources: gate the HTTP method.
       const method = req.method;
       if (method === "OPTIONS") {
-        return new Response(null, { status: 204, headers: { "allow": SSR_ALLOW } });
+        return new Response(null, {
+          status: 204,
+          headers: { "allow": SSR_ALLOW },
+        });
       }
       if (method !== "GET" && method !== "HEAD") {
-        return new Response("Method Not Allowed", { status: 405, headers: { "allow": SSR_ALLOW } });
+        return new Response("Method Not Allowed", {
+          status: 405,
+          headers: { "allow": SSR_ALLOW },
+        });
       }
 
       // server request injector with the Backend value bound (no globalThis); the
@@ -748,50 +916,81 @@ export function bootstrap(config: AppConfig): SprigApp {
       // next one). The first guard whose returned route differs from the target
       // route wins → 302 there; all guards returning the target → proceed.
       const segs = path.split("/").filter((s) => s.length > 0);
-      const gctx: GuardCtx = { path: segs, params: matched.params, url, headers: req.headers, session: env?.session ?? null };
+      const gctx: GuardCtx = {
+        path: segs,
+        params: matched.params,
+        url,
+        headers: req.headers,
+        session: env?.session ?? null,
+      };
       if (matched.guards?.length) {
         const target = segs.join("/");
         try {
           for (const guard of matched.guards) {
-            const out = normalizeRoute(await runInInjector(routeInjector, () => guard(gctx)));
+            const out = normalizeRoute(
+              await runInInjector(routeInjector, () => guard(gctx)),
+            );
             if (out.join("/") !== target) {
               return new Response(null, {
                 status: 302,
-                headers: { "location": `${base}/${out.join("/")}`, "cache-control": "no-store" },
+                headers: {
+                  "location": `${base}/${out.join("/")}`,
+                  "cache-control": "no-store",
+                },
               });
             }
           }
         } catch {
           // a throwing guard fails CLOSED — same controlled 500 as a resolve failure
-          return new Response("Internal Server Error", { status: 500, headers: ssrHeaders() });
+          return new Response("Internal Server Error", {
+            status: 500,
+            headers: ssrHeaders(),
+          });
         }
       }
-      // GRANTS: declarative per-route requirement (collected parent-first along the chain),
-      // verified via the app's grant verifier — which checks the cookie-borne session against its
-      // grant model (deny-by-default). A grant the caller lacks redirects like a denied guard. This
-      // MUST live here (not in resolve): ResolveCtx has no headers, so the session is unreadable
-      // there — the documented SSR-data-leak surface.
-      if (matched.grants?.length && config.verifyGrant) {
+      // GRANTS: declarative per-route requirement (collected parent-first along
+      // the chain). The DEFAULT verifier is the identity's own claims — the auth
+      // unit already established who the caller is and what they hold, so the
+      // ordinary case needs no app wiring at all; `verifyGrant` remains for a
+      // model the claim list cannot express. A grant the caller lacks redirects
+      // like a denied guard. This MUST live here (not in resolve): ResolveCtx has
+      // no headers, so the session is unreadable there — the documented
+      // SSR-data-leak surface.
+      if (matched.grants?.length) {
+        const verify = config.verifyGrant ??
+          ((grant: string, ctx: GuardCtx) =>
+            ctx.session?.claims?.includes(grant) ?? false);
         try {
           for (const grant of matched.grants) {
-            const ok = await runInInjector(routeInjector, () => config.verifyGrant!(grant, gctx));
+            const ok = await runInInjector(
+              routeInjector,
+              () => verify(grant, gctx),
+            );
             if (!ok) {
               const to = normalizeRoute(config.grantDenied ?? ["login"]);
               return new Response(null, {
                 status: 302,
-                headers: { "location": `${base}/${to.join("/")}`, "cache-control": "no-store" },
+                headers: {
+                  "location": `${base}/${to.join("/")}`,
+                  "cache-control": "no-store",
+                },
               });
             }
           }
         } catch {
-          return new Response("Internal Server Error", { status: 500, headers: ssrHeaders() });
+          return new Response("Internal Server Error", {
+            status: 500,
+            headers: ssrHeaders(),
+          });
         }
       }
 
       // resolve(): an explicit modules[load] override wins; otherwise auto-load the
       // page's resolve.ts by its route `load` path (the renderer knows the src root).
       // This is what makes `routes` alone enough — no `modules` map in the app config.
-      let resolveFn: Resolve | undefined = matched.load ? config.modules?.[matched.load]?.resolve : undefined;
+      let resolveFn: Resolve | undefined = matched.load
+        ? config.modules?.[matched.load]?.resolve
+        : undefined;
 
       // resolve() runs BEFORE headers go out, so its failure (or a not-found status it
       // sets) is honored on the response line; a render failure after this is a 500 in
@@ -805,10 +1004,16 @@ export function bootstrap(config: AppConfig): SprigApp {
           resolveFn = await config.renderer.loadResolve(matched.load);
         }
         if (resolveFn) {
-          inputs = await runInInjector(routeInjector, () => resolveFn!({ params: matched.params, url }));
+          inputs = await runInInjector(
+            routeInjector,
+            () => resolveFn!({ params: matched.params, url }),
+          );
         }
       } catch {
-        return new Response("Internal Server Error", { status: 500, headers: ssrHeaders() });
+        return new Response("Internal Server Error", {
+          status: 500,
+          headers: ssrHeaders(),
+        });
       }
       // A resolve/service may have signalled a not-found (matched route, missing
       // resource) by setting the request status; honor it on the response line.
@@ -828,17 +1033,25 @@ export function bootstrap(config: AppConfig): SprigApp {
       const renderer = config.renderer;
       // the generated-nav model (from route metadata + the current path) handed to layouts/shell
       // as chrome — so the nav IS the route tree, no hand-maintained list. Cheap + pure.
-      const chrome: Record<string, unknown> = { nav: buildNav(config.routes, path, base) };
+      const chrome: Record<string, unknown> = {
+        nav: buildNav(config.routes, path, base),
+      };
 
       // Streaming SSR (preferred): flush the head now, stream the body after its fetches. A
       // LEGACY config.renderStream callback (single page) keeps priority; otherwise the modern
       // renderer streams the whole matched CHAIN (nested layouts → leaf).
       if (method !== "HEAD" && matched.chain.length) {
         if (config.renderStream) {
-          return new Response(config.renderStream(matched.load!, inputs, ropts), { status, headers: ssrHeaders() });
+          return new Response(
+            config.renderStream(matched.load!, inputs, ropts),
+            { status, headers: ssrHeaders() },
+          );
         }
         if (renderer?.renderStream) {
-          return new Response(renderer.renderStream(matched.chain, inputs, ropts, chrome), { status, headers: ssrHeaders() });
+          return new Response(
+            renderer.renderStream(matched.chain, inputs, ropts, chrome),
+            { status, headers: ssrHeaders() },
+          );
         }
       }
 
@@ -847,14 +1060,25 @@ export function bootstrap(config: AppConfig): SprigApp {
         if (config.render && matched.load) {
           html = await config.render(matched.load, inputs, ropts); // LEGACY single-page callback
         } else if (renderer?.renderDocument && matched.chain.length) {
-          html = await renderer.renderDocument(matched.chain, inputs, ropts, chrome);
+          html = await renderer.renderDocument(
+            matched.chain,
+            inputs,
+            ropts,
+            chrome,
+          );
         } else {
           html = renderDocument(matched, inputs, base); // legacy <pre>-dump placeholder
         }
       } catch {
-        return new Response("Internal Server Error", { status: 500, headers: ssrHeaders() });
+        return new Response("Internal Server Error", {
+          status: 500,
+          headers: ssrHeaders(),
+        });
       }
-      return new Response(method === "HEAD" ? null : html, { status, headers: ssrHeaders() });
+      return new Response(method === "HEAD" ? null : html, {
+        status,
+        headers: ssrHeaders(),
+      });
     },
   };
 }
@@ -862,7 +1086,11 @@ export function bootstrap(config: AppConfig): SprigApp {
 /** Placeholder SSR: a real document that embeds the resolved @inputs as the
  *  island prop bridge. The template→Preact compiler (next milestone) replaces
  *  the <pre> dump with the rendered folder-component tree. */
-function renderDocument(matched: MatchedRoute, inputs: Record<string, unknown>, base: string): string {
+function renderDocument(
+  matched: MatchedRoute,
+  inputs: Record<string, unknown>,
+  base: string,
+): string {
   const json = JSON.stringify(inputs);
   const safe = json.replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
@@ -875,7 +1103,9 @@ function renderDocument(matched: MatchedRoute, inputs: Record<string, unknown>, 
 <body>
   <main id="outlet" data-route="${matched.load ?? ""}" data-base="${base}">
     <script type="application/json" id="__sprig_inputs">${safe}</script>
-    <pre id="__sprig_ssr_preview">${escapeHtml(JSON.stringify(inputs, null, 2))}</pre>
+    <pre id="__sprig_ssr_preview">${
+    escapeHtml(JSON.stringify(inputs, null, 2))
+  }</pre>
   </main>
 </body>
 </html>`;
@@ -884,21 +1114,14 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Single-path sign-in — sprig OWNS the auth flow so apps don't hand-roll (and misbuild) it. Auth is
-// a server-managed httpOnly cookie: `login(token?)` (magic-link exchange or Google popup), an async
-// `getUserData()` reading `/auth/me`, and `logout()`. The browser holds NO credential; `authFetch`/
-// `apiPost` are credential-free convenience helpers. Pairs with the /auth gateway serveSprig mounts
-// (@mrg-keystone/sprig/keep), backed by keep's Deno-KV session store (silent refresh, off-client).
-// Re-exported here so an island simply does `import { login } from "@mrg-keystone/sprig"`.
-// (auth.ts is SSR-safe — its on-load side effect is typeof-guarded, so this is inert server-side.)
-export {
-  apiPost,
-  authFetch,
-  AuthError,
-  getUserData,
-  login,
-  loginWithGoogle,
-  logout,
-  SESSION_COOKIE,
-  warmAuth,
-} from "./auth.ts";
+// Sign-in used to be re-exported here, backed by a `/auth/*` gateway sprig's
+// own serving layer mounted. Both are gone (sprig 2.0). The gateway lived
+// inside the UI half, so it guarded nothing — it only proxied — and an app that
+// composed no sprig UI had no `/auth` at all. Auth is a UNIT now, in the
+// composition root's third slot, and it owns `/auth/*`:
+//
+//   Bedrock({ ui: Frontend(), backend: api, auth: Infra() })
+//
+// An island signs in by calling `/auth/login` over the wire, like any other
+// route; SSR reads who the caller is from `ctx.session`, which the root stamped
+// on the request after the auth unit verified it.

@@ -34,7 +34,12 @@
   },
   "favicon_404": "GET http://localhost:8099/favicon.ico => 404 (console error on every page)",
   "performance_home_and_widget": {
-    "ttfb_ms": 2, "domContentLoaded_ms": 26, "load_ms": 26, "cls": 0,
-    "longtasks": [], "loaf": [], "verdict": "no perf findings"
+    "ttfb_ms": 2,
+    "domContentLoaded_ms": 26,
+    "load_ms": 26,
+    "cls": 0,
+    "longtasks": [],
+    "loaf": [],
+    "verdict": "no perf findings"
   }
 }

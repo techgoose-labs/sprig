@@ -12,7 +12,9 @@ Deno.test({
   name: "discovery/http — endpoints run and chain",
   ignore: !Deno.env.get("RUNE_E2E"),
   fn: async () => {
-    const api = await bootstrapServer("discovery", httpModule, { swagger: true });
+    const api = await bootstrapServer("discovery", httpModule, {
+      swagger: true,
+    });
     try {
       const report = await exerciseEndpoints({ api });
       assertEquals(report.failed.map((r) => r.id), []);

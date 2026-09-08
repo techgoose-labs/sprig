@@ -18,11 +18,24 @@ Deno.test("BUG AC: author entity in a component-tag attribute → single-escaped
   clearStaticCache();
   const card = await staticDef("my-card", `<span>{{ title }}</span>`);
   const registry = { get: (s: string) => (s === "my-card" ? card : undefined) };
-  const root = await parseTemplate(`<my-card title="Tom &amp; Jerry"></my-card>`);
-  const html = renderNodes(named(root), { scope: {}, registry, source: root.text });
+  const root = await parseTemplate(
+    `<my-card title="Tom &amp; Jerry"></my-card>`,
+  );
+  const html = renderNodes(named(root), {
+    scope: {},
+    registry,
+    source: root.text,
+  });
 
-  assertStringIncludes(html, ">Tom &amp; Jerry<", "single-escaped: author '&amp;' decoded then escaped once");
-  assert(!html.includes("&amp;amp;"), "must NOT double-escape into '&amp;amp;'");
+  assertStringIncludes(
+    html,
+    ">Tom &amp; Jerry<",
+    "single-escaped: author '&amp;' decoded then escaped once",
+  );
+  assert(
+    !html.includes("&amp;amp;"),
+    "must NOT double-escape into '&amp;amp;'",
+  );
 });
 
 Deno.test("BUG AC: author entity re-emitted via [title] → single-escaped attribute", async () => {
@@ -30,10 +43,21 @@ Deno.test("BUG AC: author entity re-emitted via [title] → single-escaped attri
   const card = await staticDef("my-card", `<div [title]="title"></div>`);
   const registry = { get: (s: string) => (s === "my-card" ? card : undefined) };
   const root = await parseTemplate(`<my-card title="a &amp; b"></my-card>`);
-  const html = renderNodes(named(root), { scope: {}, registry, source: root.text });
+  const html = renderNodes(named(root), {
+    scope: {},
+    registry,
+    source: root.text,
+  });
 
-  assertStringIncludes(html, `title="a &amp; b"`, "child re-emits the decoded value, escaped once");
-  assert(!html.includes("&amp;amp;"), "must NOT double-escape into '&amp;amp;'");
+  assertStringIncludes(
+    html,
+    `title="a &amp; b"`,
+    "child re-emits the decoded value, escaped once",
+  );
+  assert(
+    !html.includes("&amp;amp;"),
+    "must NOT double-escape into '&amp;amp;'",
+  );
 });
 
 Deno.test("BUG AC SECURITY: an INTERPOLATED component-tag attribute is still escaped by the child", async () => {
@@ -41,9 +65,20 @@ Deno.test("BUG AC SECURITY: an INTERPOLATED component-tag attribute is still esc
   const card = await staticDef("my-card", `<div [title]="title"></div>`);
   const registry = { get: (s: string) => (s === "my-card" ? card : undefined) };
   const root = await parseTemplate(`<my-card title="{{ x }}"></my-card>`);
-  const html = renderNodes(named(root), { scope: { x: `"><script>` }, registry, source: root.text });
+  const html = renderNodes(named(root), {
+    scope: { x: `"><script>` },
+    registry,
+    source: root.text,
+  });
 
   // interpolation stays RAW data → child escapes once → no breakout
-  assert(!html.includes(`"><script>`), "interpolated value must be escaped — no attribute breakout");
-  assertStringIncludes(html, `title="&quot;&gt;&lt;script&gt;"`, "runtime data is escaped exactly once by the child");
+  assert(
+    !html.includes(`"><script>`),
+    "interpolated value must be escaped — no attribute breakout",
+  );
+  assertStringIncludes(
+    html,
+    `title="&quot;&gt;&lt;script&gt;"`,
+    "runtime data is escaped exactly once by the child",
+  );
 });

@@ -10,11 +10,33 @@
 // Hydration itself reuses the SAME interpreter as SSR (renderNodes over the
 // serialized JSON AST — no wasm): re-render the island body inside an effect (so any
 // signal write re-paints) and wire (event) bindings via delegation on the island root.
-import { type Accessor, clientRoot, type ComponentCtx, effect, persistState, restoreState, runInInjector, signal, type WritableAccessor } from "@mrg-keystone/sprig";
+import {
+  type Accessor,
+  clientRoot,
+  type ComponentCtx,
+  effect,
+  persistState,
+  restoreState,
+  runInInjector,
+  signal,
+  type WritableAccessor,
+} from "@mrg-keystone/sprig";
 import { fromSerialized, type SerializedTemplate } from "./serialize.ts";
 import { evalStatement, type Scope, tagSelf } from "./expr.ts";
-import { type ComponentDef, type Handler, type MockSpec, type Registry, renderNodes, type WiringSpec } from "./render.ts";
-import { forwardTethers, setWiringDev, teardownWiringInside, tetherIsland } from "./wiring.ts";
+import {
+  type ComponentDef,
+  type Handler,
+  type MockSpec,
+  type Registry,
+  renderNodes,
+  type WiringSpec,
+} from "./render.ts";
+import {
+  forwardTethers,
+  setWiringDev,
+  teardownWiringInside,
+  tetherIsland,
+} from "./wiring.ts";
 import { named } from "./node.ts";
 import { scopeId } from "./scope.ts";
 import { restore } from "./lifecycle.ts";
@@ -25,7 +47,8 @@ import { restore } from "./lifecycle.ts";
 export function makeClassSetup(Cls: new (ctx: any) => Record<string, unknown>) {
   // construct inside the client root injector so inject() resolves in the constructor /
   // field initializers (mirrors the server's withServerInjector), e.g. inject(StateService).
-  return (ctx: ComponentCtx) => runInInjector(clientRoot(), () => tagSelf(new Cls(ctx)));
+  return (ctx: ComponentCtx) =>
+    runInInjector(clientRoot(), () => tagSelf(new Cls(ctx)));
 }
 
 export interface IslandEntry {
@@ -40,7 +63,7 @@ export interface IslandEntry {
 export interface SprigConfig {
   base: string;
   v: string;
-  /** Off-app route prefixes (keep-owned, e.g. ["/api", "/docs"]) the soft-nav handler
+  /** Off-app route prefixes — the other units' namespaces, e.g. ["/api", "/auth"] — that the soft-nav handler
    *  must leave to the browser. Without this, at base "" the base-containment test is
    *  true for every same-origin path, so soft-nav would needlessly fetch these. */
   reserved?: string[];
@@ -73,7 +96,9 @@ export interface PerfEndpoint {
  *  secure-context-only, hence the fallback.) */
 export function perfNavId(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  return c?.randomUUID ? c.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return c?.randomUUID
+    ? c.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 /** Fire-and-forget one perf report. `post` is injectable for tests; the default posts
@@ -88,11 +113,23 @@ export function perfSend(
   post?: (url: string, body: string) => void,
 ): void {
   try {
-    const body = JSON.stringify({ timestamp: timestamp.toISOString(), navId, route, "infra-app-id": perf.app });
+    const body = JSON.stringify({
+      timestamp: timestamp.toISOString(),
+      navId,
+      route,
+      "infra-app-id": perf.app,
+    });
     if (post) return post(perf.url, body);
-    const nav = (globalThis as { navigator?: { sendBeacon?: (url: string, data?: string) => boolean } }).navigator;
+    const nav = (globalThis as {
+      navigator?: { sendBeacon?: (url: string, data?: string) => boolean };
+    }).navigator;
     if (nav?.sendBeacon) nav.sendBeacon(perf.url, body);
-    else fetch(perf.url, { method: "POST", body, keepalive: true, mode: "no-cors" }).catch(() => {});
+    else {fetch(perf.url, {
+        method: "POST",
+        body,
+        keepalive: true,
+        mode: "no-cors",
+      }).catch(() => {});}
   } catch { /* fire-and-forget */ }
 }
 
@@ -106,14 +143,29 @@ export function perfSend(
 // (globals) + registerPageComponent() (page-locals) are called from the eager loader.
 const componentRegistry = new Map<string, ComponentDef>();
 const pageComponentRegistry = new Map<string, Map<string, ComponentDef>>(); // page → (selector → def)
-export function registerComponent(sel: string, def: { template: SerializedTemplate; scope: string }): void {
-  componentRegistry.set(sel, { selector: sel, template: fromSerialized(def.template), scope: def.scope });
+export function registerComponent(
+  sel: string,
+  def: { template: SerializedTemplate; scope: string },
+): void {
+  componentRegistry.set(sel, {
+    selector: sel,
+    template: fromSerialized(def.template),
+    scope: def.scope,
+  });
 }
 /** Register a page-local static component (shadows a same-basename global within `page`). */
-export function registerPageComponent(page: string, sel: string, def: { template: SerializedTemplate; scope: string }): void {
+export function registerPageComponent(
+  page: string,
+  sel: string,
+  def: { template: SerializedTemplate; scope: string },
+): void {
   let m = pageComponentRegistry.get(page);
-  if (!m) pageComponentRegistry.set(page, (m = new Map()));
-  m.set(sel, { selector: sel, template: fromSerialized(def.template), scope: def.scope });
+  if (!m) pageComponentRegistry.set(page, m = new Map());
+  m.set(sel, {
+    selector: sel,
+    template: fromSerialized(def.template),
+    scope: def.scope,
+  });
 }
 /** A page-aware components registry mirroring the server's registryForPage: resolve a
  *  child by (page, selector) → page-local static ?? global static ?? ISLAND. `null`/unknown
@@ -171,7 +223,10 @@ export function componentsForPage(page: string | null): Registry {
 // An empty template for the not-yet-loaded-island ComponentDef above: renderComponent's
 // client island branch returns the shell before ever walking the child's template, so an
 // empty root (no children, no fields) is sufficient and inert.
-const STUB_TEMPLATE: SerializedTemplate = { source: "", root: { t: "document", s: 0, e: 0, c: [], n: [], f: {} } };
+const STUB_TEMPLATE: SerializedTemplate = {
+  source: "",
+  root: { t: "document", s: 0, e: 0, c: [], n: [], f: {} },
+};
 
 /** The trigger a child-island host should advertise during a parent re-render. We don't have
  *  the original SSR trigger in the island entry, so fall back to the live host's data-trigger
@@ -179,7 +234,9 @@ const STUB_TEMPLATE: SerializedTemplate = { source: "", root: { t: "document", s
  *  this only matters for a child that has NOT yet loaded, where bootstrapIslands re-arms it.) */
 function islandTrigger(sel: string): string {
   try {
-    const live = document.querySelector(`sprig-island[data-sel="${cssEscape(sel)}"]`) as HTMLElement | null;
+    const live = document.querySelector(
+      `sprig-island[data-sel="${cssEscape(sel)}"]`,
+    ) as HTMLElement | null;
     return live?.dataset.trigger ?? "load";
   } catch {
     return "load";
@@ -208,7 +265,9 @@ export const loading = new Set<string>();
 // resolve to undefined and fall through to a bare, inert custom element.
 const islandSelectorScopes = new Map<string, string>();
 export function registerIslandSelectors(map: Record<string, string>): void {
-  for (const [sel, scope] of Object.entries(map)) islandSelectorScopes.set(sel, scope);
+  for (const [sel, scope] of Object.entries(map)) {
+    islandSelectorScopes.set(sel, scope);
+  }
 }
 
 /** Fired right after an island's setup() runs, handing external tooling a live
@@ -259,7 +318,8 @@ const armed: Armed[] = [];
 /** Tear down every island/armed-trigger whose host element is inside `root` (or already
  *  detached). Called right before an outlet swap discards the subtree. */
 export function teardownInside(root: ParentNode | null): void {
-  const gone = (el: HTMLElement) => !el.isConnected || (root != null && (root === el || root.contains(el)));
+  const gone = (el: HTMLElement) =>
+    !el.isConnected || (root != null && (root === el || root.contains(el)));
   for (let i = armed.length - 1; i >= 0; i--) {
     if (gone(armed[i].el)) {
       try {
@@ -347,9 +407,14 @@ export function hotTemplate(sel: string, template: SerializedTemplate): void {
  *  template edit is fresh (the dev server serves the current parse). The selector is
  *  URL-encoded so it round-trips through the server's decodeURIComponent, and a non-OK
  *  response fails loudly (instead of letting r.json() throw an opaque SyntaxError). */
-export async function fetchAst(base: string, sel: string): Promise<SerializedTemplate> {
+export async function fetchAst(
+  base: string,
+  sel: string,
+): Promise<SerializedTemplate> {
   const r = await fetch(`${base}/_sprig/ast/${encodeURIComponent(sel)}`);
-  if (!r.ok) throw new Error(`[sprig] failed to load island AST "${sel}": ${r.status}`);
+  if (!r.ok) {
+    throw new Error(`[sprig] failed to load island AST "${sel}": ${r.status}`);
+  }
   return await r.json();
 }
 
@@ -386,7 +451,9 @@ export function registerIsland(sel: string, entry: IslandEntry): void {
 function hydratePending(sel: string): void {
   const entry = registry.get(sel)!;
   document
-    .querySelectorAll(`sprig-island[data-sel="${cssEscape(sel)}"]:not([data-sprig-hydrated])`)
+    .querySelectorAll(
+      `sprig-island[data-sel="${cssEscape(sel)}"]:not([data-sprig-hydrated])`,
+    )
     .forEach((el) => {
       // isolate each island: one instance's failure (e.g. a malformed props bridge)
       // must not abort hydration of its siblings.
@@ -414,7 +481,9 @@ function maybeRecoverDualRuntime(): void {
   } catch {
     return; // no sessionStorage (privacy mode) → never risk a reload loop
   }
-  console.error("[sprig] reloading once to recover from the dual-runtime state…");
+  console.error(
+    "[sprig] reloading once to recover from the dual-runtime state…",
+  );
   location.reload();
 }
 
@@ -425,7 +494,10 @@ function maybeRecoverDualRuntime(): void {
 let bootCfg: SprigConfig | null = null;
 
 /** Scan `root` for <sprig-island> and schedule each one's chunk to load on its trigger. */
-export function bootstrapIslands(cfg: SprigConfig, root: ParentNode = document): void {
+export function bootstrapIslands(
+  cfg: SprigConfig,
+  root: ParentNode = document,
+): void {
   bootCfg = cfg;
   // dev-only diagnostics (spec §1 dispatch misses + spec §3 wiring error detail):
   // cfg.hmr is emitted ONLY under `sprig dev`, so gating on it keeps production
@@ -440,7 +512,9 @@ export function bootstrapIslands(cfg: SprigConfig, root: ParentNode = document):
   // Guarding with `if (cfg.base)` treated "" as absent and left hmrBase at the "/ui" default,
   // so islands fetched /ui/_sprig/ast/* (404). `??` keeps the default ONLY for a missing base.
   hmrBase = cfg.base ?? hmrBase;
-  root.querySelectorAll("sprig-island").forEach((el) => scheduleLoad(el as HTMLElement, cfg));
+  root.querySelectorAll("sprig-island").forEach((el) =>
+    scheduleLoad(el as HTMLElement, cfg)
+  );
 }
 
 /** Arm + lazy-load any not-yet-armed <sprig-island> under `root`. Called after each island
@@ -452,7 +526,9 @@ export function bootstrapIslands(cfg: SprigConfig, root: ParentNode = document):
 export function rescanIslands(root: ParentNode): void {
   if (!bootCfg) return; // pre-bootstrap render (SSR/tests): nothing to arm against yet
   const cfg = bootCfg;
-  root.querySelectorAll("sprig-island").forEach((el) => scheduleLoad(el as HTMLElement, cfg));
+  root.querySelectorAll("sprig-island").forEach((el) =>
+    scheduleLoad(el as HTMLElement, cfg)
+  );
 }
 
 function scheduleLoad(el: HTMLElement, cfg: SprigConfig): void {
@@ -475,10 +551,16 @@ function scheduleLoad(el: HTMLElement, cfg: SprigConfig): void {
   } else if (trigger === "idle") {
     // deno-lint-ignore no-explicit-any
     const g = globalThis as any;
-    const ric = g.requestIdleCallback as ((cb: () => void) => number) | undefined;
+    const ric = g.requestIdleCallback as
+      | ((cb: () => void) => number)
+      | undefined;
     const cic = g.cancelIdleCallback as ((id: number) => void) | undefined;
     const id = ric ? ric(go) : setTimeout(go, 200);
-    armed.push({ el, cancel: () => (ric && cic ? cic(id as number) : clearTimeout(id as number)) });
+    armed.push({
+      el,
+      cancel:
+        () => (ric && cic ? cic(id as number) : clearTimeout(id as number)),
+    });
   } else if (trigger === "interaction") {
     const fire = () => {
       el.removeEventListener("pointerover", fire);
@@ -557,8 +639,14 @@ export function outletChain(root: ParentNode): Element[] {
  *  Skips: non-interceptable, hash-only, downloads, form posts, cross-origin, out-of-base,
  *  reloads (must re-run the full lifecycle), and same-URL / query-only navigations to the
  *  current path (an outlet wipe would needlessly discard in-outlet island state). */
-export function softNavShouldSkip(e: NavEvent, cfg: SprigConfig, currentUrl: string): boolean {
-  if (!e.canIntercept || e.hashChange || e.downloadRequest || e.formData) return true;
+export function softNavShouldSkip(
+  e: NavEvent,
+  cfg: SprigConfig,
+  currentUrl: string,
+): boolean {
+  if (!e.canIntercept || e.hashChange || e.downloadRequest || e.formData) {
+    return true;
+  }
   if (e.navigationType === "reload") return true; // a reload must reload the document
   let url: URL, cur: URL;
   try {
@@ -568,7 +656,9 @@ export function softNavShouldSkip(e: NavEvent, cfg: SprigConfig, currentUrl: str
     return true;
   }
   if (url.origin !== location.origin) return true;
-  if (!(url.pathname === cfg.base || url.pathname.startsWith(cfg.base + "/"))) return true;
+  if (!(url.pathname === cfg.base || url.pathname.startsWith(cfg.base + "/"))) {
+    return true;
+  }
   // off-app (keep-owned) prefixes: at base "" the containment test above matches every
   // same-origin path, so without this a click on /api or /docs would soft-fetch them
   // before the outlet fallback (a wasted XHR). Leave reserved destinations to the browser.
@@ -611,7 +701,11 @@ export type SoftNavOutcome = "swapped" | "fallback" | "aborted";
 
 /** The full soft-nav flow for one intercepted navigation, with all environment access
  *  injected so it is unit-testable. Returns when the swap (or fallback) is done. */
-export async function runSoftNav(e: NavEvent, cfg: SprigConfig, deps: SoftNavDeps): Promise<SoftNavOutcome> {
+export async function runSoftNav(
+  e: NavEvent,
+  cfg: SprigConfig,
+  deps: SoftNavDeps,
+): Promise<SoftNavOutcome> {
   let html: string;
   try {
     const r = await deps.fetch(e.destination.url, { signal: e.signal });
@@ -648,9 +742,12 @@ export async function runSoftNav(e: NavEvent, cfg: SprigConfig, deps: SoftNavDep
   let i = 0;
   while (
     i < curChain.length && i < nextChain.length &&
-    curChain[i].getAttribute("data-level") === nextChain[i].getAttribute("data-level")
+    curChain[i].getAttribute("data-level") ===
+      nextChain[i].getAttribute("data-level")
   ) i++;
-  const idx = i < curChain.length && i < nextChain.length ? i : Math.min(curChain.length, nextChain.length) - 1;
+  const idx = i < curChain.length && i < nextChain.length
+    ? i
+    : Math.min(curChain.length, nextChain.length) - 1;
   const cur = curChain[idx];
   const next = nextChain[idx];
   const hash = (() => {
@@ -668,7 +765,8 @@ export async function runSoftNav(e: NavEvent, cfg: SprigConfig, deps: SoftNavDep
     (cur as HTMLElement).innerHTML = (next as HTMLElement).innerHTML;
     // keep THIS outlet's own data-level accurate for the NEXT diff — its inner content came
     // from `next` (already correct); only this boundary's attribute would otherwise go stale.
-    const setAttr = (cur as { setAttribute?: (n: string, v: string) => void }).setAttribute;
+    const setAttr =
+      (cur as { setAttribute?: (n: string, v: string) => void }).setAttribute;
     if (typeof setAttr === "function") {
       const lvl = (next as Element).getAttribute?.("data-level");
       if (lvl != null) (cur as Element).setAttribute("data-level", lvl);
@@ -708,7 +806,9 @@ export function setupSoftNav(cfg: SprigConfig): void {
           return hash.slice(1);
         }
       })();
-      const t = (root.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null) ?? document.getElementById(id);
+      const t =
+        (root.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null) ??
+          document.getElementById(id);
       if (t) {
         t.scrollIntoView();
         return true;
@@ -718,7 +818,9 @@ export function setupSoftNav(cfg: SprigConfig): void {
     bootstrap: (root) => bootstrapIslands(cfg, root),
     teardown: (root) => teardownInside(root),
     pageOf: (doc) => pageFromConfig(doc),
-    viewTransition: d.startViewTransition ? (cb: () => void) => d.startViewTransition(cb) : undefined,
+    viewTransition: d.startViewTransition
+      ? (cb: () => void) => d.startViewTransition(cb)
+      : undefined,
   };
   nav.addEventListener("navigate", (e: NavEvent) => {
     if (softNavShouldSkip(e, cfg, location.href)) return;
@@ -743,7 +845,9 @@ export function setupSoftNav(cfg: SprigConfig): void {
       scroll: "manual",
       handler: () =>
         runSoftNav(e, cfg, deps).then((outcome) => {
-          if (perf && outcome === "swapped") perfSend(perf, route, navId, new Date());
+          if (perf && outcome === "swapped") {
+            perfSend(perf, route, navId, new Date());
+          }
         }),
     });
   });
@@ -780,7 +884,12 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
   const scope = entry.setup(clientCtx(inputs)); // the signals here ARE the island's state
   // class component: re-seed the instance from the server snapshot BEFORE the first
   // render + onBrowserInit, so the client's first paint matches the server's.
-  if (inputs.__snapshot) restore(scope as Record<string, unknown>, inputs.__snapshot as Record<string, unknown>);
+  if (inputs.__snapshot) {
+    restore(
+      scope as Record<string, unknown>,
+      inputs.__snapshot as Record<string, unknown>,
+    );
+  }
   // overlay localStorage-persisted state synchronously NOW — every StateService
   // injected during setup() has already run its field initializers, so this applies
   // the persisted values before the first effect render + onBrowserInit read them.
@@ -802,7 +911,12 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
   // the scope on the element itself — the DOM is shared even if a tool's chunk got a
   // separate copy of this module, so a harness can always read it off the node.
   (el as unknown as { __sprigScope?: unknown }).__sprigScope = scope;
-  const mount: IslandMount = { el, sel, inputs, scope: scope as Record<string, unknown> };
+  const mount: IslandMount = {
+    el,
+    sel,
+    inputs,
+    scope: scope as Record<string, unknown>,
+  };
   islandMounts.push(mount);
   for (const cb of islandMountSubs) {
     try {
@@ -839,7 +953,15 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
       if (wired.has(base)) continue;
       wired.add(base);
       el.addEventListener(base, (ev: Event) => {
-        for (const h of scopedHandlersFor(el, ev.target as Element | null, base, handlers, ev)) {
+        for (
+          const h of scopedHandlersFor(
+            el,
+            ev.target as Element | null,
+            base,
+            handlers,
+            ev,
+          )
+        ) {
           if (h.base === "submit") ev.preventDefault();
           evalStatement(h.body, h.scope, ev);
         }
@@ -850,7 +972,14 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
   const dispose = effect(() => {
     tick?.(); // tracked only in HMR mode, so hotTemplate() can force a re-render
     const hs: Handler[] = [];
-    const html = renderNodes(nodes, { scope, registry: components, source, handlers: hs, scopeAttr, mocks });
+    const html = renderNodes(nodes, {
+      scope,
+      registry: components,
+      source,
+      handlers: hs,
+      scopeAttr,
+      mocks,
+    });
     patchInnerHtml(el, html); // morph (preserves focus/caret/scroll) instead of wholesale replace
     handlers = hs;
     wire(); // (re)attach delegated listeners for any event base this render introduced
@@ -866,7 +995,11 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
   // scope; onBrowserDestroy folds into teardown so a component can release its own
   // resources (timers/sockets/listeners) on unmount — the cleanup channel whose absence
   // bit us before.
-  const life = scope as { onBrowserInit?: () => void; onBrowserLoad?: () => void; onBrowserDestroy?: () => void };
+  const life = scope as {
+    onBrowserInit?: () => void;
+    onBrowserLoad?: () => void;
+    onBrowserDestroy?: () => void;
+  };
   // A route names its client hook onBrowserLoad (the twin of onServerLoad); a component/island
   // uses onBrowserInit. Prefer Load, fall back to Init so islands are unchanged.
   (life.onBrowserLoad ?? life.onBrowserInit)?.call(life);
@@ -902,7 +1035,9 @@ function hydrateIsland(el: HTMLElement, entry: IslandEntry): void {
  *  away). A lightweight position-keyed morph — no vdom, just node reuse + attr/text sync. */
 export function patchInnerHtml(el: HTMLElement, html: string): void {
   // deno-lint-ignore no-explicit-any
-  const tmpl = (document as any).createElement("template") as HTMLTemplateElement;
+  const tmpl = (document as any).createElement(
+    "template",
+  ) as HTMLTemplateElement;
   tmpl.innerHTML = html;
   morphChildren(el, tmpl.content, /* hostLevel */ true);
 }
@@ -942,7 +1077,9 @@ function correspondsToIslandHost(o: Node, n: Node): boolean {
 
 function sameNode(a: Node, b: Node): boolean {
   if (a.nodeType !== b.nodeType) return false;
-  if (a.nodeType === 1) return (a as Element).tagName === (b as Element).tagName;
+  if (a.nodeType === 1) {
+    return (a as Element).tagName === (b as Element).tagName;
+  }
   return true; // text/comment: reuse and sync value
 }
 
@@ -952,7 +1089,9 @@ function sameNode(a: Node, b: Node): boolean {
  *  alignment (see morphChildren `hostLevel`). */
 function isPropsBridge(n: Node): boolean {
   return n.nodeType === 1 && (n as Element).tagName === "SCRIPT" &&
-    ((n as Element).getAttribute("class") ?? "").split(/\s+/).includes("sprig-props");
+    ((n as Element).getAttribute("class") ?? "").split(/\s+/).includes(
+      "sprig-props",
+    );
 }
 /** A whitespace-only text node (insignificant formatting — e.g. the separator the SSR host
  *  emits between its props-script and the body). Dropped from both sides of the host-level
@@ -997,7 +1136,8 @@ function morphChildren(parent: Node, source: Node, hostLevel = false): void {
     const consumed = new Set<Node>();
     for (const host of liveHosts) {
       const match = news.find((n) =>
-        !consumed.has(n) && (isOutlet(host) ? isOutlet(n) : correspondsToIslandHost(host, n))
+        !consumed.has(n) &&
+        (isOutlet(host) ? isOutlet(n) : correspondsToIslandHost(host, n))
       );
       if (match) consumed.add(match); // host stays as-is; its re-render counterpart is absorbed
     }
@@ -1063,17 +1203,24 @@ function clientCtx(inputs: Scope): ComponentCtx {
 
 // chord modifier tokens are tested against the event's modifier-key booleans, NOT
 // against e.key (which holds the single main key). Everything else is a key token.
-const KEY_ALIAS: Record<string, string> = { enter: "enter", escape: "escape", space: " ", tab: "tab", esc: "escape" };
-const MOD_FLAG: Record<string, "ctrlKey" | "shiftKey" | "altKey" | "metaKey"> = {
-  control: "ctrlKey",
-  ctrl: "ctrlKey",
-  shift: "shiftKey",
-  alt: "altKey",
-  option: "altKey",
-  meta: "metaKey",
-  cmd: "metaKey",
-  command: "metaKey",
+const KEY_ALIAS: Record<string, string> = {
+  enter: "enter",
+  escape: "escape",
+  space: " ",
+  tab: "tab",
+  esc: "escape",
 };
+const MOD_FLAG: Record<string, "ctrlKey" | "shiftKey" | "altKey" | "metaKey"> =
+  {
+    control: "ctrlKey",
+    ctrl: "ctrlKey",
+    shift: "shiftKey",
+    alt: "altKey",
+    option: "altKey",
+    meta: "metaKey",
+    cmd: "metaKey",
+    command: "metaKey",
+  };
 /** Resolve a `data-sprig-<base>` marker (a space-joined token list, one token per
  *  binding sharing that DOM base) into the handlers that should fire for `ev` — every
  *  listed handler whose chord modifiers match the event, in order (mirroring
@@ -1083,7 +1230,12 @@ const MOD_FLAG: Record<string, "ctrlKey" | "shiftKey" | "altKey" | "metaKey"> = 
  *  owner check). A stamped token whose index is unfilled OR whose owner stamp doesn't
  *  match the table entry's is a MISS: no handler runs for it (`onMiss` is told, for the
  *  dev diagnostic) — a modifier non-match is normal chord filtering, NOT a miss. */
-export function resolveHandlers(marker: string, handlers: Handler[], ev: Event, onMiss?: (token: string) => void): Handler[] {
+export function resolveHandlers(
+  marker: string,
+  handlers: Handler[],
+  ev: Event,
+  onMiss?: (token: string) => void,
+): Handler[] {
   const out: Handler[] = [];
   for (const token of marker.split(/\s+/)) {
     if (token === "") continue;

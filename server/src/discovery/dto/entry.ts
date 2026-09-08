@@ -3,7 +3,13 @@
 
 import "reflect-metadata";
 import { Type } from "class-transformer";
-import { Allow, IsArray, IsOptional, IsString, ValidateNested } from "class-validator";
+import {
+  Allow,
+  IsArray,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 import { CaseDto } from "@/src/discovery/dto/case.ts";
 
 // a discovered component, island, or page composition

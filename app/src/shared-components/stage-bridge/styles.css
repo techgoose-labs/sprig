@@ -2,7 +2,10 @@
    like the original isolate stage. The stage-bridge ships on every preview page,
    so its (unscoped) :global rules land in app.css for the preview routes. */
 :global(html),
-:global(body) { height: 100%; margin: 0; }
+:global(body) {
+  height: 100%;
+  margin: 0;
+}
 :global(.iso-stage-page) {
   min-height: 100vh;
   display: grid;
@@ -13,8 +16,13 @@
 
 /* a stubbed child component placeholder (a _mocks "stub") */
 :global(.iso-stub) {
-  display: inline-flex; align-items: center; padding: 4px 10px;
-  font: 12px ui-monospace, monospace; color: #9a6b00;
-  background: repeating-linear-gradient(45deg, #fdf6e3, #fdf6e3 6px, #faedcc 6px, #faedcc 12px);
-  border: 1px dashed #d9b441; border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font: 12px ui-monospace, monospace;
+  color: #9a6b00;
+  background: repeating-linear-gradient(45deg, #fdf6e3, #fdf6e3 6px, #faedcc
+    6px, #faedcc 12px);
+  border: 1px dashed #d9b441;
+  border-radius: 4px;
 }

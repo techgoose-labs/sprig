@@ -13,7 +13,11 @@ export async function ensure(input: RootDto): Promise<RunnerStatusDto> {
   const runnerData = new RunnerData();
 
   // reads — load inputs through the data adapters (validated at the seam)
-  const runnerProvision = assert(RunnerStatusDto, await runnerData.provision(validInput.projectRoot), "runner.provision");
+  const runnerProvision = assert(
+    RunnerStatusDto,
+    await runnerData.provision(validInput.projectRoot),
+    "runner.provision",
+  );
 
   // core — pure business logic, no I/O
   const out = ensureCore(validInput, runnerProvision);
@@ -23,7 +27,10 @@ export async function ensure(input: RootDto): Promise<RunnerStatusDto> {
 
 // Pure business logic for runner.ensure — no I/O. Takes the
 // request input and the dtos the reads loaded; returns the result.
-function ensureCore(input: RootDto, runnerProvision: RunnerStatusDto): { result: RunnerStatusDto } {
+function ensureCore(
+  input: RootDto,
+  runnerProvision: RunnerStatusDto,
+): { result: RunnerStatusDto } {
   const runner = new Runner();
   return { result: runner.collect(runnerProvision) };
 }

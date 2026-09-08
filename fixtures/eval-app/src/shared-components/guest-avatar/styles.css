@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 3rem;          /* w-12 → 48px */
+  width: 3rem; /* w-12 → 48px */
   height: 3rem;
   border-radius: 9999px;
   overflow: hidden;
@@ -25,11 +25,20 @@
 }
 
 /* initials placeholder: tint = [neutral, secondary, accent][id % 3] (AVATAR_TINTS) */
-.avatar-ph[data-tint="0"] { background: var(--color-neutral);   color: var(--color-neutral-content); }
-.avatar-ph[data-tint="1"] { background: var(--color-secondary); color: var(--color-secondary-content); }
-.avatar-ph[data-tint="2"] { background: var(--color-accent);    color: var(--color-accent-content); }
+.avatar-ph[data-tint="0"] {
+  background: var(--color-neutral);
+  color: var(--color-neutral-content);
+}
+.avatar-ph[data-tint="1"] {
+  background: var(--color-secondary);
+  color: var(--color-secondary-content);
+}
+.avatar-ph[data-tint="2"] {
+  background: var(--color-accent);
+  color: var(--color-accent-content);
+}
 .avatar-initials {
-  font-size: 1rem;       /* text-base */
-  font-weight: 600;      /* font-semibold */
+  font-size: 1rem; /* text-base */
+  font-weight: 600; /* font-semibold */
   line-height: 1;
 }

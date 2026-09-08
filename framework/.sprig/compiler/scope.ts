@@ -35,7 +35,8 @@ export function componentScopeId(relDir: string): string {
 // Every OTHER at-rule (@media, @supports, @container, @layer, @scope, @document,
 // and rule-bearing newcomers like @starting-style) wraps ordinary style rules and
 // must be recursed into so its inner rules get the scope marker too.
-const SKIP = /^@(-?\w+-)?(keyframes|font-face|page|property|charset|import|namespace|counter-style)\b/i;
+const SKIP =
+  /^@(-?\w+-)?(keyframes|font-face|page|property|charset|import|namespace|counter-style)\b/i;
 
 /** Rewrite every rule in `css` so its key compound is scoped to `[attr]`. */
 export function scopeCss(css: string, attr: string): string {
@@ -57,8 +58,18 @@ function stripComments(s: string): string {
       i++;
       while (i < n) {
         out += s[i];
-        if (s[i] === "\\") { i++; if (i < n) { out += s[i]; i++; } continue; }
-        if (s[i] === q) { i++; break; }
+        if (s[i] === "\\") {
+          i++;
+          if (i < n) {
+            out += s[i];
+            i++;
+          }
+          continue;
+        }
+        if (s[i] === q) {
+          i++;
+          break;
+        }
         i++;
       }
       continue;
@@ -80,8 +91,18 @@ function stripComments(s: string): string {
           i++;
           while (i < n) {
             out += s[i];
-            if (s[i] === "\\") { i++; if (i < n) { out += s[i]; i++; } continue; }
-            if (s[i] === q) { i++; break; }
+            if (s[i] === "\\") {
+              i++;
+              if (i < n) {
+                out += s[i];
+                i++;
+              }
+              continue;
+            }
+            if (s[i] === q) {
+              i++;
+              break;
+            }
             i++;
           }
           continue;
@@ -111,19 +132,25 @@ function processBlock(css: string, token: string): string {
     let j = i, dp = 0, db = 0;
     while (j < n) {
       const c = css[j];
-      if (c === '"' || c === "'") { j = skipString(css, j); continue; }
+      if (c === '"' || c === "'") {
+        j = skipString(css, j);
+        continue;
+      }
       if (c === "(") dp++;
       else if (c === ")") dp--;
       else if (c === "[") db++;
       else if (c === "]") db--;
-      else if (dp === 0 && db === 0 && (c === "{" || c === ";" || c === "}")) break;
+      else if (dp === 0 && db === 0 && (c === "{" || c === ";" || c === "}")) {
+        break;
+      }
       j++;
     }
     const prelude = css.slice(i, j);
     const term = css[j];
 
     if (j >= n || term === ";" || term === "}") {
-      out += prelude + (j < n && term !== "}" ? css[j] : term === "}" ? "}" : "");
+      out += prelude +
+        (j < n && term !== "}" ? css[j] : term === "}" ? "}" : "");
       i = j + 1;
       continue;
     }
@@ -131,7 +158,10 @@ function processBlock(css: string, token: string): string {
     let depth = 0, k = j;
     for (; k < n; k++) {
       const c = css[k];
-      if (c === '"' || c === "'") { k = skipString(css, k) - 1; continue; }
+      if (c === '"' || c === "'") {
+        k = skipString(css, k) - 1;
+        continue;
+      }
       if (c === "{") depth++;
       else if (c === "}" && --depth === 0) break;
     }
@@ -146,7 +176,8 @@ function processBlock(css: string, token: string): string {
     } else {
       // recurse into the body too, so nested style rules (native CSS nesting)
       // get their key compound scoped; plain declarations pass through unchanged.
-      out += scopeSelectorList(prelude, token) + " {" + processBlock(inner, token) + "}";
+      out += scopeSelectorList(prelude, token) + " {" +
+        processBlock(inner, token) + "}";
     }
     i = k + 1;
   }
@@ -161,7 +192,10 @@ function skipString(s: string, i: number): number {
   i++;
   const n = s.length;
   while (i < n) {
-    if (s[i] === "\\") { i += 2; continue; }
+    if (s[i] === "\\") {
+      i += 2;
+      continue;
+    }
     if (s[i] === q) return i + 1;
     i++;
   }
@@ -169,7 +203,9 @@ function skipString(s: string, i: number): number {
 }
 
 function scopeSelectorList(list: string, token: string): string {
-  return splitTop(list, ",").map((s) => scopeSelector(s.trim(), token)).join(", ");
+  return splitTop(list, ",").map((s) => scopeSelector(s.trim(), token)).join(
+    ", ",
+  );
 }
 
 function scopeSelector(sel: string, token: string): string {
@@ -212,13 +248,23 @@ function scopeKeyCompound(sel: string, token: string): string {
   let dp = 0, db = 0, keyStart = 0;
   for (let i = 0; i < sel.length; i++) {
     const c = sel[i];
-    if (c === "\\") { i++; continue; }
-    if (c === '"' || c === "'") { i = skipString(sel, i) - 1; continue; }
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      i = skipString(sel, i) - 1;
+      continue;
+    }
     if (c === "(") dp++;
     else if (c === ")") dp--;
     else if (c === "[") db++;
     else if (c === "]") db--;
-    else if (dp === 0 && db === 0 && (c === " " || c === ">" || c === "+" || c === "~" || c === "\t" || c === "\n")) {
+    else if (
+      dp === 0 && db === 0 &&
+      (c === " " || c === ">" || c === "+" || c === "~" || c === "\t" ||
+        c === "\n")
+    ) {
       keyStart = i + 1;
     }
   }
@@ -258,7 +304,9 @@ function parseHostHead(sel: string, token: string): HostHead | null {
       const close = matchParen(sel, p + ":host-context".length);
       if (close < 0) break;
       const inner = sel.slice(p + ":host-context(".length, close);
-      guards.push(splitTop(inner, ",").map((m) => m.trim()).filter((m) => m.length));
+      guards.push(
+        splitTop(inner, ",").map((m) => m.trim()).filter((m) => m.length),
+      );
       i = close + 1;
       consumedAny = true;
       continue;
@@ -267,7 +315,9 @@ function parseHostHead(sel: string, token: string): HostHead | null {
       const close = matchParen(sel, p + ":host".length);
       if (close < 0) break;
       const inner = sel.slice(p + ":host(".length, close);
-      hostInners.push(splitTop(inner, ",").map((m) => m.trim()).filter((m) => m.length));
+      hostInners.push(
+        splitTop(inner, ",").map((m) => m.trim()).filter((m) => m.length),
+      );
       i = close + 1;
       consumedAny = true;
       continue;
@@ -287,7 +337,9 @@ function parseHostHead(sel: string, token: string): HostHead | null {
   // :host(...) groups, take the cartesian product and concatenate members.
   let hostCompounds: string[];
   if (hostInners.length) {
-    hostCompounds = cartesian(hostInners).map((combo) => token + combo.join(""));
+    hostCompounds = cartesian(hostInners).map((combo) =>
+      token + combo.join("")
+    );
   } else {
     // bare :host, or only :host-context (implicit host) → just the marker.
     hostCompounds = [token];
@@ -305,8 +357,14 @@ function matchParen(sel: string, open: number): number {
   let depth = 0;
   for (let i = open; i < sel.length; i++) {
     const c = sel[i];
-    if (c === "\\") { i++; continue; }
-    if (c === '"' || c === "'") { i = skipString(sel, i) - 1; continue; }
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      i = skipString(sel, i) - 1;
+      continue;
+    }
     if (c === "(") depth++;
     else if (c === ")" && --depth === 0) return i;
   }
@@ -329,10 +387,14 @@ function cartesian(lists: string[][]): string[][] {
 function insertToken(compound: string, token: string): string {
   if (!compound) return token;
   // :global(x) escape hatch → unscoped
-  if (compound.includes(":global(")) return compound.replace(/:global\(([^)]*)\)/g, "$1");
+  if (compound.includes(":global(")) {
+    return compound.replace(/:global\(([^)]*)\)/g, "$1");
+  }
   // already scoped (came from :host / :host-context): the token may sit at the
   // head (`[token].active`), the tail, or be the whole compound — never re-add it.
-  if (compound === token || compound.startsWith(token) || compound.endsWith(token)) return compound;
+  if (
+    compound === token || compound.startsWith(token) || compound.endsWith(token)
+  ) return compound;
   // insert the attribute before the first REAL pseudo (so `.a:hover` →
   // `.a[token]:hover`). Skip backslash-escaped colons (`.foo\:bar` is a class
   // literally named `foo:bar`, not a pseudo) and quoted strings.
@@ -349,10 +411,22 @@ function firstPseudo(compound: string): number {
   let db = 0;
   for (let i = 0; i < compound.length; i++) {
     const c = compound[i];
-    if (c === "\\") { i++; continue; }
-    if (c === '"' || c === "'") { i = skipString(compound, i) - 1; continue; }
-    if (c === "[") { db++; continue; }
-    if (c === "]") { db--; continue; }
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      i = skipString(compound, i) - 1;
+      continue;
+    }
+    if (c === "[") {
+      db++;
+      continue;
+    }
+    if (c === "]") {
+      db--;
+      continue;
+    }
     // a ":" inside an attribute selector ([xlink:href]) is a namespaced attr
     // name, NOT a pseudo introducer — only the bracket-depth-0 colon counts.
     if (c === ":" && db === 0) return i;
@@ -365,8 +439,14 @@ function splitTop(s: string, sep: string): string[] {
   let dp = 0, db = 0, last = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s[i];
-    if (c === "\\") { i++; continue; }
-    if (c === '"' || c === "'") { i = skipString(s, i) - 1; continue; }
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      i = skipString(s, i) - 1;
+      continue;
+    }
     if (c === "(") dp++;
     else if (c === ")") dp--;
     else if (c === "[") db++;

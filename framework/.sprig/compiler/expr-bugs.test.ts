@@ -30,7 +30,12 @@ Deno.test("BUG G: `this` binds to the same receiver the method was read from", a
   const scope: Scope = {
     factory: () => {
       calls++;
-      const obj = { id: calls, who(this: { id: number }) { return this.id; } };
+      const obj = {
+        id: calls,
+        who(this: { id: number }) {
+          return this.id;
+        },
+      };
       return obj;
     },
   };
@@ -42,7 +47,10 @@ Deno.test("BUG G: `this` binds to the same receiver the method was read from", a
 
 Deno.test("BUG G: existing member-call behavior (items.reduce) still works", async () => {
   const scope: Scope = { items: [1, 2, 3] };
-  assertEquals(evalExpr(await expr("items.reduce((s, i) => s + i, 0)"), scope), 6);
+  assertEquals(
+    evalExpr(await expr("items.reduce((s, i) => s + i, 0)"), scope),
+    6,
+  );
 });
 
 // ───────────────────────── BUG B: i18nPlural NaN leak ──────────────────────
@@ -71,7 +79,8 @@ Deno.test("BUG F: titlecase uppercases an astral-plane initial", async () => {
 });
 
 Deno.test("BUG F: titlecase keeps BMP cases working", async () => {
-  const tc = async (v: string) => evalExpr(await expr("w | titlecase"), { w: v });
+  const tc = async (v: string) =>
+    evalExpr(await expr("w | titlecase"), { w: v });
   assertEquals(await tc("éric"), "Éric");
   assertEquals(await tc("hello world"), "Hello World");
 });

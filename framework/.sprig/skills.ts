@@ -13,7 +13,9 @@ import { basename, join } from "@std/path";
 import { copy } from "@std/fs";
 
 const REPO = "mrg-keystone/sprig";
-const UA = { "user-agent": "sprig-skills; https://github.com/mrg-keystone/sprig" };
+const UA = {
+  "user-agent": "sprig-skills; https://github.com/mrg-keystone/sprig",
+};
 
 function home(): string {
   return Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE") ?? "";
@@ -44,7 +46,9 @@ export function agentsDest(): string {
  *  skills override made installAgents silently skip on any machine without ~/.claude
  *  even when told exactly where to install (the CI agents test failed exactly so). */
 async function claudeAbsent(): Promise<boolean> {
-  if (Deno.env.get("CLAUDE_SKILLS_DIR") || Deno.env.get("CLAUDE_AGENTS_DIR")) return false;
+  if (Deno.env.get("CLAUDE_SKILLS_DIR") || Deno.env.get("CLAUDE_AGENTS_DIR")) {
+    return false;
+  }
   return !(await pathExists(join(home(), ".claude")));
 }
 
@@ -65,7 +69,10 @@ async function replaceEntry(src: string, dst: string): Promise<void> {
  * `../interfaces/<artifact>.md`, so it is carried wholesale like a skill.
  * Never clobbers a dev git checkout living at the destination.
  */
-export async function installSkill(src: string, destRoot: string): Promise<void> {
+export async function installSkill(
+  src: string,
+  destRoot: string,
+): Promise<void> {
   const name = basename(src);
   if (name !== "interfaces" && !(await pathExists(join(src, "SKILL.md")))) {
     console.warn(`sprig: skip '${name}' (no SKILL.md).`);
@@ -73,7 +80,9 @@ export async function installSkill(src: string, destRoot: string): Promise<void>
   }
   const dst = join(destRoot, name);
   if (await pathExists(join(dst, ".git"))) {
-    console.warn(`sprig: skip '${name}' — ${dst} holds a git checkout (use a dev symlink).`);
+    console.warn(
+      `sprig: skip '${name}' — ${dst} holds a git checkout (use a dev symlink).`,
+    );
     return;
   }
   await replaceEntry(src, dst);
@@ -85,11 +94,16 @@ export async function installSkill(src: string, destRoot: string): Promise<void>
  * (Claude Code discovers `~/.claude/agents/<name>.md`), so there is no `SKILL.md`
  * manifest to guard on — the `.md` file IS the agent. Never clobbers a dev git checkout.
  */
-export async function installAgent(src: string, destRoot: string): Promise<void> {
+export async function installAgent(
+  src: string,
+  destRoot: string,
+): Promise<void> {
   const name = basename(src);
   const dst = join(destRoot, name);
   if (await pathExists(join(dst, ".git"))) {
-    console.warn(`sprig: skip '${name}' — ${dst} holds a git checkout (use a dev symlink).`);
+    console.warn(
+      `sprig: skip '${name}' — ${dst} holds a git checkout (use a dev symlink).`,
+    );
     return;
   }
   await replaceEntry(src, dst);
@@ -103,7 +117,9 @@ export async function installSkills(skillsDir: string): Promise<void> {
     return;
   }
   if (!(await pathExists(skillsDir))) {
-    console.warn(`sprig: no skills dir at ${skillsDir} — skipping skill install.`);
+    console.warn(
+      `sprig: no skills dir at ${skillsDir} — skipping skill install.`,
+    );
     return;
   }
   const dest = skillsDest();
@@ -122,7 +138,9 @@ export async function installAgents(agentsDir: string): Promise<void> {
     return;
   }
   if (!(await pathExists(agentsDir))) {
-    console.warn(`sprig: no agents dir at ${agentsDir} — skipping agent install.`);
+    console.warn(
+      `sprig: no agents dir at ${agentsDir} — skipping agent install.`,
+    );
     return;
   }
   const dest = agentsDest();
@@ -142,19 +160,27 @@ async function skillsTarball(): Promise<{ url: string; strip: number }> {
   try {
     // The dedicated, deterministic skills release (not /releases/latest, which a JSR
     // version release could shadow) — its `sprig-skills.tar.gz` asset packs skills/.
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${SKILLS_TAG}`, {
-      headers: { ...UA, accept: "application/vnd.github+json" },
-    });
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/releases/tags/${SKILLS_TAG}`,
+      {
+        headers: { ...UA, accept: "application/vnd.github+json" },
+      },
+    );
     if (res.ok) {
       // deno-lint-ignore no-explicit-any
       const j: any = await res.json();
       // deno-lint-ignore no-explicit-any
-      const asset = (j.assets ?? []).find((a: any) => /^sprig-skills.*\.tar\.gz$/.test(a.name));
+      const asset = (j.assets ?? []).find((a: any) =>
+        /^sprig-skills.*\.tar\.gz$/.test(a.name)
+      );
       if (asset) return { url: asset.browser_download_url, strip: 0 };
     }
   } catch { /* offline / no release → fall back to the default branch */ }
   // Fallback: the default-branch source archive wraps everything in <repo>-<sha>/.
-  return { url: `https://github.com/${REPO}/archive/refs/heads/main.tar.gz`, strip: 1 };
+  return {
+    url: `https://github.com/${REPO}/archive/refs/heads/main.tar.gz`,
+    strip: 1,
+  };
 }
 
 /** Fetch the skills from the DEPLOYMENT (release asset, else default branch) and install
@@ -170,7 +196,9 @@ export async function installSkillsFromDeployment(): Promise<void> {
   try {
     const res = await fetch(url, { headers: UA });
     if (!res.ok) {
-      console.warn(`sprig: could not download skills (${res.status} ${res.statusText}) — skipping.`);
+      console.warn(
+        `sprig: could not download skills (${res.status} ${res.statusText}) — skipping.`,
+      );
       return;
     }
     const tgz = join(tmp, "skills.tar.gz");
@@ -178,12 +206,21 @@ export async function installSkillsFromDeployment(): Promise<void> {
     const ex = join(tmp, "x");
     await Deno.mkdir(ex, { recursive: true });
     const { success, stderr } = await new Deno.Command("tar", {
-      args: ["-xzf", tgz, "-C", ex, ...(strip ? [`--strip-components=${strip}`] : [])],
+      args: [
+        "-xzf",
+        tgz,
+        "-C",
+        ex,
+        ...(strip ? [`--strip-components=${strip}`] : []),
+      ],
       stdout: "null",
       stderr: "piped",
     }).output();
     if (!success) {
-      console.warn("sprig: could not extract skills — " + new TextDecoder().decode(stderr).trim());
+      console.warn(
+        "sprig: could not extract skills — " +
+          new TextDecoder().decode(stderr).trim(),
+      );
       return;
     }
     await installSkills(join(ex, "skills"));

@@ -10,7 +10,11 @@ import type { Node } from "./node.ts";
 
 const render = async (src: string, scope: Scope): Promise<string> => {
   const root = await parseTemplate(src);
-  return renderNodes(named(root), { scope, registry: { get: () => undefined }, source: root.text });
+  return renderNodes(named(root), {
+    scope,
+    registry: { get: () => undefined },
+    source: root.text,
+  });
 };
 
 function findEventBinding(node: Node): Node | null {
@@ -25,8 +29,12 @@ function findEventBinding(node: Node): Node | null {
 Deno.test("class method using `this` works in interpolation", async () => {
   class Greeter {
     constructor(public name: string) {}
-    greet() { return `Hi ${this.name}`; }     // regular method → needs `this`
-    shout() { return `${this.greet()}!`; }     // method → method (this.greet)
+    greet() {
+      return `Hi ${this.name}`;
+    } // regular method → needs `this`
+    shout() {
+      return `${this.greet()}!`;
+    } // method → method (this.greet)
   }
   const g = () => new Greeter("Ada") as unknown as Scope;
   assertEquals(await render(`<p>{{ greet() }}</p>`, g()), "<p>Hi Ada</p>");
@@ -36,7 +44,9 @@ Deno.test("class method using `this` works in interpolation", async () => {
 Deno.test("prototype method resolves + `this` binds inside an event handler", async () => {
   class Counter {
     count = signal(0);
-    inc() { this.count.set(this.count() + 1); } // both: method on proto, this.count signal
+    inc() {
+      this.count.set(this.count() + 1);
+    } // both: method on proto, this.count signal
   }
   const inst = new Counter();
   const root = await parseTemplate(`<button (click)="inc()">+</button>`);
@@ -45,7 +55,11 @@ Deno.test("prototype method resolves + `this` binds inside an event handler", as
 
   evalStatement(ev, inst as unknown as Scope, new Event("click"));
   evalStatement(ev, inst as unknown as Scope, new Event("click"));
-  assertEquals(inst.count(), 2, "the prototype method ran twice with `this` bound to the instance");
+  assertEquals(
+    inst.count(),
+    2,
+    "the prototype method ran twice with `this` bound to the instance",
+  );
 });
 
 Deno.test("backward-compatible: plain-object arrow scopes still work", async () => {
@@ -55,7 +69,11 @@ Deno.test("backward-compatible: plain-object arrow scopes still work", async () 
   assertEquals(await render(`<p>{{ count() }}</p>`, scope), "<p>5</p>");
   const root = await parseTemplate(`<button (click)="inc()">+</button>`);
   evalStatement(findEventBinding(root)!, scope, new Event("click"));
-  assertEquals(count(), 6, "arrow-closure handler still fires (this-binding is harmless to it)");
+  assertEquals(
+    count(),
+    6,
+    "arrow-closure handler still fires (this-binding is harmless to it)",
+  );
 });
 
 Deno.test("$event is available and does not leak into the scope", async () => {
@@ -66,5 +84,8 @@ Deno.test("$event is available and does not leak into the scope", async () => {
   const realEvent = new Event("click");
   evalStatement(ev, scope, realEvent);
   assertEquals(seen[0], realEvent, "$event passed through");
-  assert(!("$event" in scope), "$event must not be written onto the real scope");
+  assert(
+    !("$event" in scope),
+    "$event must not be written onto the real scope",
+  );
 });

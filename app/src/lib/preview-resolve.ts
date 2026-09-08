@@ -52,5 +52,9 @@ export function previewResolve(meta: Meta, base: CaseData, ctx: ResolveCtx) {
   }
   // __mocks is read by the renderer (renderDocument → renderComponent) and threaded to
   // the client so the island re-render applies them; caseData.mocks feeds the panel.
-  return { meta, caseData: { props, signals: base.signals, innerHtml, mocks }, __mocks: mocks };
+  return {
+    meta,
+    caseData: { props, signals: base.signals, innerHtml, mocks },
+    __mocks: mocks,
+  };
 }

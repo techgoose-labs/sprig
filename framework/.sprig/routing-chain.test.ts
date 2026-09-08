@@ -3,7 +3,15 @@
 // a routers/* load WRAPS its children; a plain page-parent stays a mere index (back-compat);
 // login is a bare sibling with no wrapper.
 import { assert, assertEquals } from "jsr:@std/assert";
-import { type AppRenderer, bootstrap, buildNav, defineRoutes, type Guard, isLayoutLoad, matchRoute } from "./core.ts";
+import {
+  type AppRenderer,
+  bootstrap,
+  buildNav,
+  defineRoutes,
+  type Guard,
+  isLayoutLoad,
+  matchRoute,
+} from "./core.ts";
 
 const reqLogin: Guard = (ctx) => ctx.path; // proceed
 
@@ -65,38 +73,70 @@ Deno.test("catch-all rest param: :name+ captures the tail (slashes); :name* allo
   ]);
   // :target+ captures everything after embed/, slashes and all
   assertEquals(matchRoute(rr, "/embed/foo.com/a/b")?.load, "pages/embed");
-  assertEquals(matchRoute(rr, "/embed/foo.com/a/b")?.params.target, "foo.com/a/b");
+  assertEquals(
+    matchRoute(rr, "/embed/foo.com/a/b")?.params.target,
+    "foo.com/a/b",
+  );
   // per-segment percent-decode
-  assertEquals(matchRoute(rr, "/embed/foo.com/x%20y")?.params.target, "foo.com/x y");
+  assertEquals(
+    matchRoute(rr, "/embed/foo.com/x%20y")?.params.target,
+    "foo.com/x y",
+  );
   // "+" needs ≥1 segment → bare /embed does not match
   assertEquals(matchRoute(rr, "/embed")?.load ?? null, null);
   // "*" allows zero → /files matches with an empty capture
   assertEquals(matchRoute(rr, "/files")?.load, "pages/files");
   assertEquals(matchRoute(rr, "/files")?.params.path, "");
-  assertEquals(matchRoute(rr, "/files/deep/nested/x.txt")?.params.path, "deep/nested/x.txt");
+  assertEquals(
+    matchRoute(rr, "/files/deep/nested/x.txt")?.params.path,
+    "deep/nested/x.txt",
+  );
 });
 
 Deno.test("bootstrap threads env.session into GuardCtx.session (present → profile, absent → null)", async () => {
   let seen: unknown = "unset";
   const routes = defineRoutes([
-    { path: "x", load: "pages/x", guards: [(ctx) => { seen = ctx.session; return ctx.path; }] },
+    {
+      path: "x",
+      load: "pages/x",
+      guards: [(ctx) => {
+        seen = ctx.session;
+        return ctx.path;
+      }],
+    },
   ]);
-  const renderer = { renderDocument: () => Promise.resolve("<html></html>") } as unknown as AppRenderer;
+  const renderer = {
+    renderDocument: () => Promise.resolve("<html></html>"),
+  } as unknown as AppRenderer;
   const app = bootstrap({ routes, renderer });
-  await app.fetch(new Request("http://h/x"), undefined, { session: { email: "a@b.com", grants: ["*"] } });
-  assertEquals((seen as { email?: string } | null)?.email, "a@b.com", "env.session not threaded into ctx.session");
+  await app.fetch(new Request("http://h/x"), undefined, {
+    session: { email: "a@b.com", grants: ["*"] },
+  });
+  assertEquals(
+    (seen as { email?: string } | null)?.email,
+    "a@b.com",
+    "env.session not threaded into ctx.session",
+  );
   await app.fetch(new Request("http://h/x"), undefined, {});
   assertEquals(seen, null, "no env.session → ctx.session is null");
 });
 
 Deno.test("BACK-COMPAT: a page-parent stays an INDEX — it does NOT wrap its children", () => {
   const legacy = defineRoutes([
-    { path: "", load: "pages/home", children: [{ path: "about", load: "pages/about" }] },
+    {
+      path: "",
+      load: "pages/home",
+      children: [{ path: "about", load: "pages/about" }],
+    },
   ]);
   // at "/", the parent page renders itself (index) — chain is just the page.
-  assertEquals(matchRoute(legacy, "/")?.chain.map((c) => c.load), ["pages/home"]);
+  assertEquals(matchRoute(legacy, "/")?.chain.map((c) => c.load), [
+    "pages/home",
+  ]);
   // at "/about", ONLY the child renders — the page-parent is NOT a layer (pre-nesting behavior).
-  assertEquals(matchRoute(legacy, "/about")?.chain.map((c) => c.load), ["pages/about"]);
+  assertEquals(matchRoute(legacy, "/about")?.chain.map((c) => c.load), [
+    "pages/about",
+  ]);
 });
 
 Deno.test("buildNav: the nav IS the route tree — derived from meta.nav, with hrefs + active-link", () => {
@@ -115,7 +155,11 @@ Deno.test("buildNav: icons + active-link across a richer tree", () => {
       path: "",
       load: "routers/main",
       children: [
-        { path: "", load: "pages/overview", meta: { nav: "Overview", icon: "home" } },
+        {
+          path: "",
+          load: "pages/overview",
+          meta: { nav: "Overview", icon: "home" },
+        },
         { path: "calls", load: "pages/calls", meta: { nav: "Calls" } },
         { path: "settings", load: "pages/settings" }, // no nav → excluded
       ],

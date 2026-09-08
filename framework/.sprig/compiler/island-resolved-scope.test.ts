@@ -5,7 +5,7 @@
 // scope and falls back to comp.island.scope(inputs) — the STALE pre-fetch value.
 import { assert, assertStringIncludes } from "jsr:@std/assert";
 import { named, parseTemplate } from "./parse.ts";
-import { renderNodes, resolveIslands, type ComponentDef } from "./render.ts";
+import { type ComponentDef, renderNodes, resolveIslands } from "./render.ts";
 import type { Scope } from "./expr.ts";
 import type { Node } from "./node.ts";
 
@@ -38,7 +38,11 @@ async function registryWith(...defs: ComponentDef[]) {
 
 Deno.test("BUG H: an island nested in a STATIC component uses its awaited (resolved) scope", async () => {
   const aIsl = await makeIsland();
-  const uCard: ComponentDef = { selector: "u-card", template: await parseTemplate(`<div><a-isl [n]="n"></a-isl></div>`), scope: "ucard" };
+  const uCard: ComponentDef = {
+    selector: "u-card",
+    template: await parseTemplate(`<div><a-isl [n]="n"></a-isl></div>`),
+    scope: "ucard",
+  };
   const registry = await registryWith(aIsl, uCard);
   const page = await parseTemplate(`<u-card [n]="1"></u-card>`);
   const base = { scope: {} as Scope, registry, source: page.text };
@@ -47,8 +51,15 @@ Deno.test("BUG H: an island nested in a STATIC component uses its awaited (resol
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">async:1<", "nested island must render the awaited resolved scope");
-  assert(!html.includes(">sync:1<"), "nested island must NOT fall back to the stale sync scope");
+  assertStringIncludes(
+    html,
+    ">async:1<",
+    "nested island must render the awaited resolved scope",
+  );
+  assert(
+    !html.includes(">sync:1<"),
+    "nested island must NOT fall back to the stale sync scope",
+  );
 });
 
 Deno.test("BUG H control: an island embedded DIRECTLY (no static wrapper) already resolves", async () => {
@@ -61,5 +72,9 @@ Deno.test("BUG H control: an island embedded DIRECTLY (no static wrapper) alread
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">async:2<", "directly-embedded island resolves (control)");
+  assertStringIncludes(
+    html,
+    ">async:2<",
+    "directly-embedded island resolves (control)",
+  );
 });

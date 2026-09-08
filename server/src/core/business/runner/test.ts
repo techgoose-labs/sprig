@@ -1,10 +1,5 @@
 import { assert, assertEquals, assertRejects } from "#std/assert";
-import {
-  parseReport,
-  runSpec,
-  runTests,
-  specReason,
-} from "./mod.ts";
+import { parseReport, runSpec, runTests, specReason } from "./mod.ts";
 
 const enc = (s: string) => new TextEncoder().encode(s);
 
@@ -39,9 +34,10 @@ Deno.test("runTests — no selector + no specs => empty green report", async () 
 
 Deno.test("runTests — selector matches zero => no-match", async () => {
   await assertRejects(
-    () => runTests({ projectRoot: "/root", filter: "zzz" }, {
-      discover: () => Promise.resolve(withSpec("/root/a.spec.ts")),
-    }),
+    () =>
+      runTests({ projectRoot: "/root", filter: "zzz" }, {
+        discover: () => Promise.resolve(withSpec("/root/a.spec.ts")),
+      }),
     Error,
     "no-match",
   );
@@ -65,10 +61,13 @@ Deno.test("runTests — parses a Playwright JSON report", async () => {
       specs: [{ title: "adds", line: 3, ok: true, tests: [{ results: [{}] }] }],
     }],
   });
-  const r = await runTests({ projectRoot: "/root", files: ["/root/a.spec.ts"] }, {
-    runnerPresent: () => Promise.resolve(true),
-    runSpec: () => Promise.resolve({ stdout: enc(json), stderr: enc("") }),
-  });
+  const r = await runTests(
+    { projectRoot: "/root", files: ["/root/a.spec.ts"] },
+    {
+      runnerPresent: () => Promise.resolve(true),
+      runSpec: () => Promise.resolve({ stdout: enc(json), stderr: enc("") }),
+    },
+  );
   assertEquals(r.total, 1);
   assertEquals(r.passed, 1);
   assertEquals(r.ok, true);
@@ -96,11 +95,17 @@ Deno.test("parseReport — surfaces top-level load errors", () => {
 });
 
 Deno.test("runTests — parsed-but-empty report carries the didn't-load hint", async () => {
-  const r = await runTests({ projectRoot: "/root", files: ["/root/a.spec.ts"] }, {
-    runnerPresent: () => Promise.resolve(true),
-    runSpec: () =>
-      Promise.resolve({ stdout: enc(JSON.stringify({ suites: [] })), stderr: enc("") }),
-  });
+  const r = await runTests(
+    { projectRoot: "/root", files: ["/root/a.spec.ts"] },
+    {
+      runnerPresent: () => Promise.resolve(true),
+      runSpec: () =>
+        Promise.resolve({
+          stdout: enc(JSON.stringify({ suites: [] })),
+          stderr: enc(""),
+        }),
+    },
+  );
   assertEquals(r.ran, false);
   assert(r.error?.includes("@playwright/test"));
   assert(r.error?.includes("1 spec file(s)"));

@@ -66,10 +66,18 @@ Deno.test("discover scans ALL top-level folders but requires an isolate/ folder 
   try {
     // a shared-component WITHOUT isolate/ — must NOT show (no synthesized default case)
     await Deno.mkdir(`${dir}/src/shared-components/plain`, { recursive: true });
-    await Deno.writeTextFile(`${dir}/src/shared-components/plain/template.html`, "<button>x</button>");
+    await Deno.writeTextFile(
+      `${dir}/src/shared-components/plain/template.html`,
+      "<button>x</button>",
+    );
     // a component in a NON-standard top-level folder WITH isolate/ + a case — must show ("all folders")
-    await Deno.mkdir(`${dir}/src/widgets/ui-button/isolate/cases/primary`, { recursive: true });
-    await Deno.writeTextFile(`${dir}/src/widgets/ui-button/template.html`, "<button>x</button>");
+    await Deno.mkdir(`${dir}/src/widgets/ui-button/isolate/cases/primary`, {
+      recursive: true,
+    });
+    await Deno.writeTextFile(
+      `${dir}/src/widgets/ui-button/template.html`,
+      "<button>x</button>",
+    );
     await Deno.writeTextFile(
       `${dir}/src/widgets/ui-button/isolate/cases/primary/primary.json`,
       JSON.stringify({ _name: "Primary" }),

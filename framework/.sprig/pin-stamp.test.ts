@@ -3,7 +3,11 @@
 // and silently DOWNGRADED the pin to 0.21.1 (via the legacy-name migration path,
 // which restamped EVERY entry's version) — resurrecting a fixed SSR bug.
 import { assert, assertEquals } from "@std/assert";
-import { migrateImports, pinnedSprigVersion, stampImports } from "./pin-stamp.ts";
+import {
+  migrateImports,
+  pinnedSprigVersion,
+  stampImports,
+} from "./pin-stamp.ts";
 
 Deno.test("stampImports upgrades an older pin to the CLI version", () => {
   const res = stampImports(
@@ -11,7 +15,10 @@ Deno.test("stampImports upgrades an older pin to the CLI version", () => {
     "1.0.0",
   );
   assert(res.changed);
-  assertEquals(res.imports["@mrg-keystone/sprig"], "jsr:@mrg-keystone/sprig@1.0.0");
+  assertEquals(
+    res.imports["@mrg-keystone/sprig"],
+    "jsr:@mrg-keystone/sprig@1.0.0",
+  );
   assertEquals(res.aheadPin, null);
 });
 
@@ -28,11 +35,15 @@ Deno.test("stampImports NEVER downgrades a pin ahead of the CLI", () => {
 
 Deno.test("stampImports handles range pins (^/~) and local overrides", () => {
   // range ahead of the CLI → kept
-  const ahead = stampImports({ "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@^2" }, "1.0.0");
+  const ahead = stampImports({
+    "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@^2",
+  }, "1.0.0");
   assert(!ahead.changed);
   assertEquals(ahead.aheadPin, "2");
   // local override → never touched
-  const local = stampImports({ "@mrg-keystone/sprig": "../sprig/main/framework/mod.ts" }, "1.0.0");
+  const local = stampImports({
+    "@mrg-keystone/sprig": "../sprig/main/framework/mod.ts",
+  }, "1.0.0");
   assert(!local.changed);
   // absent key → never added
   const absent = stampImports({ "@std/path": "jsr:@std/path@^1" }, "1.0.0");
@@ -77,11 +88,16 @@ Deno.test("migrateImports lets a local override on the modern key win over a leg
     "1.0.0",
   );
   assert(res.changed, "the legacy key is dropped");
-  assertEquals(res.imports, { "@mrg-keystone/sprig": "../sprig/main/framework/mod.ts" });
+  assertEquals(res.imports, {
+    "@mrg-keystone/sprig": "../sprig/main/framework/mod.ts",
+  });
 });
 
 Deno.test("pinnedSprigVersion reads exact, range, and subpath pins", () => {
   assertEquals(pinnedSprigVersion("jsr:@mrg-keystone/sprig@1.0.0"), "1.0.0");
-  assertEquals(pinnedSprigVersion("jsr:@mrg-keystone/sprig@^1.2.3/keep"), "1.2.3");
+  assertEquals(
+    pinnedSprigVersion("jsr:@mrg-keystone/sprig@^1.2.3/keep"),
+    "1.2.3",
+  );
   assertEquals(pinnedSprigVersion("jsr:@std/path@^1"), null);
 });

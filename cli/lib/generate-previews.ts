@@ -9,17 +9,28 @@
 // code-split) and serves under one serveSprig origin — no Vite, no Fresh.
 import { basename, dirname, join, resolve, toFileUrl } from "#std/path";
 import { ensureDir, exists, walk } from "#std/fs";
-import type { CaseDef, ComponentEntry } from "../../server/src/core/business/discover/mod.ts";
+import type {
+  CaseDef,
+  ComponentEntry,
+} from "../../server/src/core/business/discover/mod.ts";
 
-const sanitize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const sanitize = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 // framework tags that are never project components
-const RESERVED = new Set(["router-outlet", "content", "ng-content", "ng-container", "stage-bridge"]);
+const RESERVED = new Set([
+  "router-outlet",
+  "content",
+  "ng-content",
+  "ng-container",
+  "stage-bridge",
+]);
 const DASH_TAG = /<([a-z][a-z0-9]*(?:-[a-z0-9]+)+)[\s/>]/g;
 
 // import specifiers to rewrite: a relative path in `… from "x"`, a bare `import "x"`, or a
 // dynamic `import("x")`. Only `./` and `../` specifiers match; `$.*`/jsr/npm/bare are left alone.
-const REL_IMPORT = /(\bfrom\s*|\bimport\s*|\bimport\(\s*)(["'])(\.\.?\/[^"']*)(["'])/g;
+const REL_IMPORT =
+  /(\bfrom\s*|\bimport\s*|\bimport\(\s*)(["'])(\.\.?\/[^"']*)(["'])/g;
 
 /** Copy a component's `logic.ts` into the workbench, rewriting its RELATIVE import specifiers
  *  (`./`, `../`) to absolute file:// URLs resolved against the component's ORIGINAL dir. The
@@ -28,32 +39,63 @@ const REL_IMPORT = /(\bfrom\s*|\bimport\s*|\bimport\(\s*)(["'])(\.\.?\/[^"']*)([
  *  workbench — an import map can't fix a relative specifier. Pinning it to the real project
  *  file makes it resolve to the SAME module the typecheck/LSP saw. `$.*` aliases and bare
  *  specifiers are untouched: the workbench import map (serve) + forcedImportMap (bundle) own those. */
-export async function copyLogic(srcFile: string, destFile: string): Promise<void> {
+export async function copyLogic(
+  srcFile: string,
+  destFile: string,
+): Promise<void> {
   const srcDir = dirname(srcFile);
   const code = await Deno.readTextFile(srcFile);
-  const rewritten = code.replace(REL_IMPORT, (_m, pre, q, spec, qq) => `${pre}${q}${toFileUrl(resolve(srcDir, spec)).href}${qq}`);
+  const rewritten = code.replace(
+    REL_IMPORT,
+    (_m, pre, q, spec, qq) =>
+      `${pre}${q}${toFileUrl(resolve(srcDir, spec)).href}${qq}`,
+  );
   await Deno.writeTextFile(destFile, rewritten);
 }
 
 /** Copy a folder-component (template + styles + logic) into <targetsDir>/<name>. */
-async function copyComponent(srcDir: string, name: string, targetsDir: string): Promise<void> {
+async function copyComponent(
+  srcDir: string,
+  name: string,
+  targetsDir: string,
+): Promise<void> {
   const dest = join(targetsDir, name);
   await ensureDir(dest);
-  await Deno.copyFile(join(srcDir, "template.html"), join(dest, "template.html"));
-  if (await exists(join(srcDir, "styles.css"))) await Deno.copyFile(join(srcDir, "styles.css"), join(dest, "styles.css"));
-  if (await exists(join(srcDir, "logic.ts"))) await copyLogic(join(srcDir, "logic.ts"), join(dest, "logic.ts"));
+  await Deno.copyFile(
+    join(srcDir, "template.html"),
+    join(dest, "template.html"),
+  );
+  if (await exists(join(srcDir, "styles.css"))) {
+    await Deno.copyFile(join(srcDir, "styles.css"), join(dest, "styles.css"));
+  }
+  if (await exists(join(srcDir, "logic.ts"))) {
+    await copyLogic(join(srcDir, "logic.ts"), join(dest, "logic.ts"));
+  }
 }
 
 /** Find a folder-component by selector (folder basename) anywhere under projectSrc. */
-async function findComponentDir(sel: string, projectSrc: string): Promise<string | null> {
-  for await (const e of walk(projectSrc, { includeDirs: false, match: [/template\.html$/] })) {
+async function findComponentDir(
+  sel: string,
+  projectSrc: string,
+): Promise<string | null> {
+  for await (
+    const e of walk(projectSrc, {
+      includeDirs: false,
+      match: [/template\.html$/],
+    })
+  ) {
     if (basename(dirname(e.path)) === sel) return dirname(e.path);
   }
   return null;
 }
 
 /** Copy every component a target's template references (custom dash-tags), recursively. */
-async function copyDeps(compDir: string, projectSrc: string, targetsDir: string, done: Set<string>): Promise<void> {
+async function copyDeps(
+  compDir: string,
+  projectSrc: string,
+  targetsDir: string,
+  done: Set<string>,
+): Promise<void> {
   const src = await Deno.readTextFile(join(compDir, "template.html"));
   for (const m of src.matchAll(DASH_TAG)) {
     const tag = m[1];
@@ -73,13 +115,21 @@ async function copyDeps(compDir: string, projectSrc: string, targetsDir: string,
 function targetTag(alias: string, e: ComponentEntry, c: CaseDef): string {
   const attrs: string[] = [];
   if (e.kind !== "island") {
-    for (const k of Object.keys(c.props)) attrs.push(`[${k}]="caseData.props.${k}"`);
-    if (typeof c.innerHtml === "string") attrs.push(`[content]="caseData.innerHtml"`);
+    for (const k of Object.keys(c.props)) {
+      attrs.push(`[${k}]="caseData.props.${k}"`);
+    }
+    if (typeof c.innerHtml === "string") {
+      attrs.push(`[content]="caseData.innerHtml"`);
+    }
   }
   return `<${alias} ${attrs.join(" ")}></${alias}>`.replace(/\s+>/, ">");
 }
 
-export async function generatePreviews(entries: ComponentEntry[], appSrcDir: string, projectSrc: string): Promise<number> {
+export async function generatePreviews(
+  entries: ComponentEntry[],
+  appSrcDir: string,
+  projectSrc: string,
+): Promise<number> {
   const previewPagesDir = join(appSrcDir, "pages", "_preview");
   const targetsDir = join(appSrcDir, "_preview", "targets");
   for (const d of [previewPagesDir, join(appSrcDir, "_preview")]) {
@@ -131,10 +181,22 @@ export async function generatePreviews(entries: ComponentEntry[], appSrcDir: str
         `<div class="iso-stage-page">\n  ${targetTag(selector, e, c)}\n  ` +
           `<stage-bridge [meta]="meta" [caseData]="caseData"></stage-bridge>\n</div>\n`,
       );
-      const baseCase = { props: c.props, signals: c.signals ?? {}, innerHtml: c.innerHtml ?? null, mocks: c.mocks ?? {} };
-      routes.push({ path: c.route.replace(/^\//, ""), load: `./pages/_preview/${pageId}` });
+      const baseCase = {
+        props: c.props,
+        signals: c.signals ?? {},
+        innerHtml: c.innerHtml ?? null,
+        mocks: c.mocks ?? {},
+      };
+      routes.push({
+        path: c.route.replace(/^\//, ""),
+        load: `./pages/_preview/${pageId}`,
+      });
       moduleLines.push(
-        `  ${JSON.stringify("./pages/_preview/" + pageId)}: { resolve: (ctx) => previewResolve(${JSON.stringify(meta)}, ${JSON.stringify(baseCase)}, ctx) },`,
+        `  ${
+          JSON.stringify("./pages/_preview/" + pageId)
+        }: { resolve: (ctx) => previewResolve(${JSON.stringify(meta)}, ${
+          JSON.stringify(baseCase)
+        }, ctx) },`,
       );
       pages++;
     }

@@ -9,7 +9,8 @@
 const JSON_MODE = Deno.args.includes("--json") || Deno.args.includes("-j");
 
 if (JSON_MODE) {
-  console.log = console.info = console.debug = (...a: unknown[]) => console.error(...a);
+  console.log = console.info = console.debug = (...a: unknown[]) =>
+    console.error(...a);
 }
 
 /** Was the process started in --json mode? (raw-args scan — evaluated pre-parse) */

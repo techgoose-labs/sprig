@@ -6,7 +6,11 @@ import { snapshotOf } from "./lifecycle.ts";
 // a Set/Map was snapshotted and restored as an empty object on the client (silent state
 // corruption). Such fields must be DROPPED (kept at the constructor default) like NaN.
 Deno.test("snapshotOf drops a lossy Set/Map field instead of snapshotting it as {}", () => {
-  const snap = snapshotOf({ count: 3, tags: new Set(["a", "b"]), seen: new Map([["k", 1]]) });
+  const snap = snapshotOf({
+    count: 3,
+    tags: new Set(["a", "b"]),
+    seen: new Map([["k", 1]]),
+  });
   assertEquals(snap.count, 3, "plain fields still captured");
   assert(!("tags" in snap), "Set field dropped (JSON-lossy to {})");
   assert(!("seen" in snap), "Map field dropped (JSON-lossy to {})");

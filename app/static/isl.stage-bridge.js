@@ -1,2 +1,313 @@
-import{d,e as E,f as A,k as C}from"./chunk-UESQ4FBT.js";var H=["click","dblclick","auxclick","contextmenu","mousedown","mouseup","pointerdown","pointerup","keydown","keyup","input","change","submit","reset","focusin","focusout"],M="a, button, input, select, textarea, label, summary, [role], [tabindex], [contenteditable]",y=typeof document<"u",S=null,$=!1;function N(t){return t.id?`${t.tagName.toLowerCase()}#${t.id}`:t.tagName.toLowerCase()}function O(t,e){return t instanceof KeyboardEvent?`key=${t.key}`:e instanceof HTMLInputElement?e.type==="checkbox"?`checked=${e.checked}`:`value="${e.value}"`:e instanceof HTMLTextAreaElement||e instanceof HTMLSelectElement?`value="${e.value}"`:(e.textContent||"").trim().slice(0,40)}function R(){if($||!y)return;$=!0;let t=e=>{parent!==window&&parent.postMessage({source:"isolate-stage",...e},"*")};for(let e of H)addEventListener(e,s=>{let r=s.target?.closest?.(M);if(!r||r.disabled||r.getAttribute("aria-disabled")==="true")return;let c={time:new Date().toLocaleTimeString(),source:N(r),type:s.type,detail:O(s,r)};t({type:"event",payload:c}),parent===window&&globalThis.__isolateEmit?.(c)},{capture:!0});addEventListener("message",e=>{let s=e.data;!s||s.target!=="isolate-stage"||(s.type==="set"?S?.applySet(s):s.type==="request"&&S?.publish())})}function T(t){return t.value!==void 0?t.value:t.type==="boolean"?!1:t.type==="number"||t.type==="range"?t.min??0:t.type==="select"?t.options?.[0]??"":t.type==="color"?"#000000":""}function j(t,e,s){let r=t,c=e in t&&typeof r[e]!="function";if(s.type==="boolean")return c?!!r[e]:t.hasAttribute(e);let p=c?r[e]:t.getAttribute(e);if(p==null)return T(s);if(s.type==="number"||s.type==="range"){let a=Number(p);return Number.isFinite(a)?a:T(s)}return p}function K(t,e,s){let r=t;if(e in t&&typeof r[e]!="function")try{r[e]=s;return}catch{}s===!0?t.setAttribute(e,""):s===!1||s==null?t.removeAttribute(e):t.setAttribute(e,String(s))}var h=E({inputs:["meta","caseData"],setup:t=>{let e=t.input("meta",{name:"",selector:"",controlDefs:{}})(),s=t.input("caseData",{props:{},signals:{},innerHtml:null})(),r={...s.props},c=typeof s.innerHtml=="string",p=c?s.innerHtml:"",a=null,D=()=>{let n=[];for(let[o,u]of Object.entries(e.controlDefs))if(u.signal){let l=a&&d(a[o])?a[o]():s.signals[o];n.push({scope:"signal",key:o,def:u,value:l})}else n.push({scope:"prop",key:o,def:u,value:r[o]});let i=Object.entries(e.subControlDefs??{}).map(([o,u])=>{let l=e.subTargets?.[o],m=l&&y?document.querySelector(l):null,b=s.mocks?.[o],x=typeof b=="object"&&b.props?b.props:{};return{key:o,name:o,controls:Object.entries(u).map(([g,_])=>({scope:"sub",key:g,instKey:l??o,def:_,value:m?j(m,g,_):g in x?x[g]:T(_)}))}});return{name:e.name,background:e.background,html:c?p:null,controls:n,instances:i}},L=n=>{y&&parent!==window&&parent.postMessage({source:"isolate-stage",...n},"*")},k=!1,w=()=>{k=!0,globalThis.__isolateReady=!0},f=()=>L({type:"ready",hydrated:k,...D()}),v=(n,i)=>{let o=new URL(location.href);o.searchParams.set(n,String(i)),location.replace(o.href)},q=n=>{if(n.scope==="signal"&&a&&d(a[n.key]))a[n.key].set(n.value),f();else if(n.scope==="prop")r[n.key]=n.value,v(n.key,n.value);else if(n.scope==="html")p=String(n.value),v("_html",n.value);else if(n.scope==="sub"&&n.instKey){let i=typeof document<"u"?document.querySelector(n.instKey):null;i?(K(i,n.key,n.value),f()):v(`_m.${n.instKey}.${n.key}`,n.value)}};if(y){S={publish:f,applySet:q},R(),globalThis.__isolateReady=!1,(e.kind?e.kind==="island":!!document.querySelector(`sprig-island[data-sel="${e.selector}"]`))||w();let i=(o=0)=>{if(a)return;let u=document.querySelector(`sprig-island[data-sel="${e.selector}"]`),l=u&&u.__sprigScope;if(l){a=l;for(let[m,b]of Object.entries(s.signals))d(a[m])&&a[m].set(b);w(),f()}else o<60&&setTimeout(()=>i(o+1),40)};i(),queueMicrotask(f)}return{}}});var I=h.setup??A(h);C("stage-bridge",{setup:I,template:{source:`<span class="iso-bridge" aria-hidden="true" hidden></span>
-`,root:{t:"template",s:0,e:59,c:[{t:"element",s:0,e:58,c:[{t:"start_tag",s:0,e:51,c:[{t:"<",s:0,e:1,c:[],n:[],f:{}},{t:"tag_name",s:1,e:5,c:[],n:[],f:{}},{t:"attribute",s:6,e:24,c:[{t:"attribute_name",s:6,e:11,c:[],n:[],f:{}},{t:"=",s:11,e:12,c:[],n:[],f:{}},{t:"quoted_value",s:12,e:24,c:[{t:'"',s:12,e:13,c:[],n:[],f:{}},{t:"attribute_text",s:13,e:23,c:[],n:[],f:{}},{t:'"',s:23,e:24,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:25,e:43,c:[{t:"attribute_name",s:25,e:36,c:[],n:[],f:{}},{t:"=",s:36,e:37,c:[],n:[],f:{}},{t:"quoted_value",s:37,e:43,c:[{t:'"',s:37,e:38,c:[],n:[],f:{}},{t:"attribute_text",s:38,e:42,c:[],n:[],f:{}},{t:'"',s:42,e:43,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:44,e:50,c:[{t:"attribute_name",s:44,e:50,c:[],n:[],f:{}}],n:[0],f:{name:0}},{t:">",s:50,e:51,c:[],n:[],f:{}}],n:[1,2,3,4],f:{name:1}},{t:"end_tag",s:51,e:58,c:[{t:"</",s:51,e:53,c:[],n:[],f:{}},{t:"tag_name",s:53,e:57,c:[],n:[],f:{}},{t:">",s:57,e:58,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1],f:{}}],n:[0],f:{}}},scope:"s6f20a25c"});
+import { d, e as E, f as A, k as C } from "./chunk-UESQ4FBT.js";
+var H = [
+    "click",
+    "dblclick",
+    "auxclick",
+    "contextmenu",
+    "mousedown",
+    "mouseup",
+    "pointerdown",
+    "pointerup",
+    "keydown",
+    "keyup",
+    "input",
+    "change",
+    "submit",
+    "reset",
+    "focusin",
+    "focusout",
+  ],
+  M =
+    "a, button, input, select, textarea, label, summary, [role], [tabindex], [contenteditable]",
+  y = typeof document < "u",
+  S = null,
+  $ = !1;
+function N(t) {
+  return t.id ? `${t.tagName.toLowerCase()}#${t.id}` : t.tagName.toLowerCase();
+}
+function O(t, e) {
+  return t instanceof KeyboardEvent
+    ? `key=${t.key}`
+    : e instanceof HTMLInputElement
+    ? e.type === "checkbox" ? `checked=${e.checked}` : `value="${e.value}"`
+    : e instanceof HTMLTextAreaElement || e instanceof HTMLSelectElement
+    ? `value="${e.value}"`
+    : (e.textContent || "").trim().slice(0, 40);
+}
+function R() {
+  if ($ || !y) return;
+  $ = !0;
+  let t = (e) => {
+    parent !== window &&
+      parent.postMessage({ source: "isolate-stage", ...e }, "*");
+  };
+  for (let e of H) {
+    addEventListener(e, (s) => {
+      let r = s.target?.closest?.(M);
+      if (
+        !r || r.disabled || r.getAttribute("aria-disabled") === "true"
+      ) return;
+      let c = {
+        time: new Date().toLocaleTimeString(),
+        source: N(r),
+        type: s.type,
+        detail: O(s, r),
+      };
+      t({ type: "event", payload: c }),
+        parent === window && globalThis.__isolateEmit?.(c);
+    }, { capture: !0 });
+  }
+  addEventListener("message", (e) => {
+    let s = e.data;
+    !s || s.target !== "isolate-stage" ||
+      (s.type === "set"
+        ? S?.applySet(s)
+        : s.type === "request" && S?.publish());
+  });
+}
+function T(t) {
+  return t.value !== void 0
+    ? t.value
+    : t.type === "boolean"
+    ? !1
+    : t.type === "number" || t.type === "range"
+    ? t.min ?? 0
+    : t.type === "select"
+    ? t.options?.[0] ?? ""
+    : t.type === "color"
+    ? "#000000"
+    : "";
+}
+function j(t, e, s) {
+  let r = t, c = e in t && typeof r[e] != "function";
+  if (s.type === "boolean") return c ? !!r[e] : t.hasAttribute(e);
+  let p = c ? r[e] : t.getAttribute(e);
+  if (p == null) return T(s);
+  if (s.type === "number" || s.type === "range") {
+    let a = Number(p);
+    return Number.isFinite(a) ? a : T(s);
+  }
+  return p;
+}
+function K(t, e, s) {
+  let r = t;
+  if (e in t && typeof r[e] != "function") {
+    try {
+      r[e] = s;
+      return;
+    } catch {}
+  }
+  s === !0
+    ? t.setAttribute(e, "")
+    : s === !1 || s == null
+    ? t.removeAttribute(e)
+    : t.setAttribute(e, String(s));
+}
+var h = E({
+  inputs: ["meta", "caseData"],
+  setup: (t) => {
+    let e = t.input("meta", { name: "", selector: "", controlDefs: {} })(),
+      s = t.input("caseData", { props: {}, signals: {}, innerHtml: null })(),
+      r = { ...s.props },
+      c = typeof s.innerHtml == "string",
+      p = c ? s.innerHtml : "",
+      a = null,
+      D = () => {
+        let n = [];
+        for (let [o, u] of Object.entries(e.controlDefs)) {
+          if (u.signal) {
+            let l = a && d(a[o]) ? a[o]() : s.signals[o];
+            n.push({ scope: "signal", key: o, def: u, value: l });
+          } else n.push({ scope: "prop", key: o, def: u, value: r[o] });
+        }
+        let i = Object.entries(e.subControlDefs ?? {}).map(([o, u]) => {
+          let l = e.subTargets?.[o],
+            m = l && y ? document.querySelector(l) : null,
+            b = s.mocks?.[o],
+            x = typeof b == "object" && b.props ? b.props : {};
+          return {
+            key: o,
+            name: o,
+            controls: Object.entries(u).map(([g, _]) => ({
+              scope: "sub",
+              key: g,
+              instKey: l ?? o,
+              def: _,
+              value: m ? j(m, g, _) : g in x ? x[g] : T(_),
+            })),
+          };
+        });
+        return {
+          name: e.name,
+          background: e.background,
+          html: c ? p : null,
+          controls: n,
+          instances: i,
+        };
+      },
+      L = (n) => {
+        y && parent !== window &&
+          parent.postMessage({ source: "isolate-stage", ...n }, "*");
+      },
+      k = !1,
+      w = () => {
+        k = !0, globalThis.__isolateReady = !0;
+      },
+      f = () => L({ type: "ready", hydrated: k, ...D() }),
+      v = (n, i) => {
+        let o = new URL(location.href);
+        o.searchParams.set(n, String(i)), location.replace(o.href);
+      },
+      q = (n) => {
+        if (n.scope === "signal" && a && d(a[n.key])) {
+          a[n.key].set(n.value), f();
+        } else if (n.scope === "prop") r[n.key] = n.value, v(n.key, n.value);
+        else if (n.scope === "html") p = String(n.value), v("_html", n.value);
+        else if (n.scope === "sub" && n.instKey) {
+          let i = typeof document < "u"
+            ? document.querySelector(n.instKey)
+            : null;
+          i
+            ? (K(i, n.key, n.value), f())
+            : v(`_m.${n.instKey}.${n.key}`, n.value);
+        }
+      };
+    if (y) {
+      S = { publish: f, applySet: q },
+        R(),
+        globalThis.__isolateReady = !1,
+        (e.kind ? e.kind === "island" : !!document.querySelector(
+          `sprig-island[data-sel="${e.selector}"]`,
+        )) || w();
+      let i = (o = 0) => {
+        if (a) return;
+        let u = document.querySelector(
+            `sprig-island[data-sel="${e.selector}"]`,
+          ),
+          l = u && u.__sprigScope;
+        if (l) {
+          a = l;
+          for (let [m, b] of Object.entries(s.signals)) d(a[m]) && a[m].set(b);
+          w(), f();
+        } else o < 60 && setTimeout(() => i(o + 1), 40);
+      };
+      i(), queueMicrotask(f);
+    }
+    return {};
+  },
+});
+var I = h.setup ?? A(h);
+C("stage-bridge", {
+  setup: I,
+  template: {
+    source: `<span class="iso-bridge" aria-hidden="true" hidden></span>
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 59,
+      c: [{
+        t: "element",
+        s: 0,
+        e: 58,
+        c: [{
+          t: "start_tag",
+          s: 0,
+          e: 51,
+          c: [{ t: "<", s: 0, e: 1, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 1,
+            e: 5,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 6,
+            e: 24,
+            c: [{ t: "attribute_name", s: 6, e: 11, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 11,
+              e: 12,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 12,
+              e: 24,
+              c: [{ t: '"', s: 12, e: 13, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 13,
+                e: 23,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 23, e: 24, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "attribute",
+            s: 25,
+            e: 43,
+            c: [{ t: "attribute_name", s: 25, e: 36, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 36,
+              e: 37,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 37,
+              e: 43,
+              c: [{ t: '"', s: 37, e: 38, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 38,
+                e: 42,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 42, e: 43, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "attribute",
+            s: 44,
+            e: 50,
+            c: [{ t: "attribute_name", s: 44, e: 50, c: [], n: [], f: {} }],
+            n: [0],
+            f: { name: 0 },
+          }, { t: ">", s: 50, e: 51, c: [], n: [], f: {} }],
+          n: [1, 2, 3, 4],
+          f: { name: 1 },
+        }, {
+          t: "end_tag",
+          s: 51,
+          e: 58,
+          c: [{ t: "</", s: 51, e: 53, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 53,
+            e: 57,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 57, e: 58, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1],
+        f: {},
+      }],
+      n: [0],
+      f: {},
+    },
+  },
+  scope: "s6f20a25c",
+});

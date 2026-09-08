@@ -16,7 +16,12 @@
 // lets scope.method() resolve through the prototype, matching the sync render.
 import { assert, assertStringIncludes } from "jsr:@std/assert";
 import { named, parseTemplate } from "./parse.ts";
-import { islandHost, renderNodes, resolveIslands, type ComponentDef } from "./render.ts";
+import {
+  type ComponentDef,
+  islandHost,
+  renderNodes,
+  resolveIslands,
+} from "./render.ts";
 import type { Scope } from "./expr.ts";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -87,12 +92,24 @@ Deno.test("BUG AK CASE-B: a nested island bound to a parent-island PROTOTYPE met
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">Hi Ada<", "the nested island must render the parent prototype method's value");
+  assertStringIncludes(
+    html,
+    ">Hi Ada<",
+    "the nested island must render the parent prototype method's value",
+  );
 
   // and the nested island's hydration __snapshot must carry {msg:"Hi Ada"}, not {} or undefined.
-  const expected = islandHost("ci", "child-isl", "load", { msg: "Hi Ada", __snapshot: { msg: "Hi Ada" } }, "");
-  const snap = expected.match(/<script[^>]*class="sprig-props">(.*?)<\/script>/)![1];
-  assertStringIncludes(html, snap, "the nested island snapshot must be {msg:'Hi Ada'} (no prototype-stripping)");
+  const expected = islandHost("ci", "child-isl", "load", {
+    msg: "Hi Ada",
+    __snapshot: { msg: "Hi Ada" },
+  }, "");
+  const snap =
+    expected.match(/<script[^>]*class="sprig-props">(.*?)<\/script>/)![1];
+  assertStringIncludes(
+    html,
+    snap,
+    "the nested island snapshot must be {msg:'Hi Ada'} (no prototype-stripping)",
+  );
 });
 
 // CASE-A control: parent island resolve() returns a PLAIN object with format() as an OWN
@@ -104,12 +121,22 @@ Deno.test("BUG AK CASE-A control: a parent-island OWN-property method already re
     template: await parseTemplate(`<child-isl [msg]="format()"></child-isl>`),
     scope: "vm",
     island: {
-      scope: (i: Scope) => ({ name: i.name, format() { return "Hi " + (i.name as string); } }),
+      scope: (i: Scope) => ({
+        name: i.name,
+        format() {
+          return "Hi " + (i.name as string);
+        },
+      }),
       trigger: "load",
       snapshot: true,
       resolve: async (i: Scope) => {
         await sleep(5);
-        return { name: i.name, format() { return "Hi " + (i.name as string); } };
+        return {
+          name: i.name,
+          format() {
+            return "Hi " + (i.name as string);
+          },
+        };
       },
     },
   };
@@ -121,6 +148,10 @@ Deno.test("BUG AK CASE-A control: a parent-island OWN-property method already re
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">Hi Bob<", "control: an own-property method resolves with or without the fix");
+  assertStringIncludes(
+    html,
+    ">Hi Bob<",
+    "control: an own-property method resolves with or without the fix",
+  );
   assert(!html.includes(">undefined<"), "control: must not be undefined");
 });

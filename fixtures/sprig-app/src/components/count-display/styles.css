@@ -1,1 +1,5 @@
-.tabular-nums { font-size: 30px; font-variant-numeric: tabular-nums; margin: 0; }
+.tabular-nums {
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}

@@ -15,7 +15,7 @@ import { DOMParser } from "jsr:@b-fuze/deno-dom";
 import { parseTemplate } from "./parse.ts";
 import { serialize } from "./serialize.ts";
 import { type IslandEntry, makeClassSetup, registerIsland } from "./hydrate.ts";
-import { Injectable, inject, StateService } from "@mrg-keystone/sprig";
+import { inject, Injectable, StateService } from "@mrg-keystone/sprig";
 
 function mockLocalStorage(): Map<string, string> {
   const store = new Map<string, string>();
@@ -35,7 +35,10 @@ const unmockLs = () => delete (globalThis as any).localStorage;
 
 function mockDocument(html: string): void {
   const doc = new DOMParser().parseFromString(html, "text/html")!;
-  Object.defineProperty(globalThis, "document", { configurable: true, value: doc });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: doc,
+  });
 }
 // deno-lint-ignore no-explicit-any
 const unmockDoc = () => delete (globalThis as any).document;
@@ -65,8 +68,14 @@ Deno.test("BUG N: hydrateIsland's first render + onBrowserInit see the PERSISTED
     }
   }
 
-  const template = serialize(await parseTemplate(`<span>{{theme.mode}}</span>`));
-  const entry: IslandEntry = { setup: makeClassSetup(Widget as never), template, scope: "wgt" };
+  const template = serialize(
+    await parseTemplate(`<span>{{theme.mode}}</span>`),
+  );
+  const entry: IslandEntry = {
+    setup: makeClassSetup(Widget as never),
+    template,
+    scope: "wgt",
+  };
 
   mockDocument(
     `<html><body>` +
@@ -82,11 +91,19 @@ Deno.test("BUG N: hydrateIsland's first render + onBrowserInit see the PERSISTED
     registerIsland("w-idget", entry);
 
     // The first paint + onBrowserInit must already see the persisted value.
-    assertEquals(seenInInit, "dark", "onBrowserInit (first paint) must see persisted 'dark', not the constructor default 'light'");
+    assertEquals(
+      seenInInit,
+      "dark",
+      "onBrowserInit (first paint) must see persisted 'dark', not the constructor default 'light'",
+    );
 
     // And the first rendered HTML must show "dark" too.
     const el = document.querySelector("sprig-island")!;
-    assertEquals((el.textContent ?? "").includes("dark"), true, "the first client paint renders the persisted 'dark'");
+    assertEquals(
+      (el.textContent ?? "").includes("dark"),
+      true,
+      "the first client paint renders the persisted 'dark'",
+    );
   } finally {
     unmockDoc();
     unmockLs();

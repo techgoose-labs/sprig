@@ -32,11 +32,14 @@ export class DiscoveryService {
   #be = inject(Backend);
 
   async manifest(projectRoot: string): Promise<Manifest> {
-    const { ok, data } = await this.#be.get<RawManifest>("/http/get-manifest", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ projectRoot }),
-    });
+    const { ok, data } = await this.#be.get<RawManifest>(
+      "/api/http/get-manifest",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ projectRoot }),
+      },
+    );
     const raw: RawManifest = ok && data ? data : {};
     const cases: Case[] = (raw.entrys ?? []).flatMap((e) =>
       (e.cases ?? []).map((c): Case => ({
@@ -54,7 +57,9 @@ export class DiscoveryService {
     );
     // The "broken previews" banner is for real config errors only — drop the
     // advisory "unsupported" notes (e.g. a case using the deferred _mocks feature).
-    const problems = (raw.problems ?? []).filter((p) => p.kind !== "unsupported");
+    const problems = (raw.problems ?? []).filter((p) =>
+      p.kind !== "unsupported"
+    );
     return { cases, problems, count: cases.length };
   }
 }

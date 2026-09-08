@@ -10,7 +10,8 @@ const info = {
   completed: Promise.resolve(),
 } as unknown as Deno.ServeHandlerInfo;
 
-const get = (path: string) => handler.fetch(new Request("http://localhost" + path), info);
+const get = (path: string) =>
+  handler.fetch(new Request("http://localhost" + path), info);
 const post = (path: string, body: unknown) =>
   handler.fetch(
     new Request("http://localhost" + path, {

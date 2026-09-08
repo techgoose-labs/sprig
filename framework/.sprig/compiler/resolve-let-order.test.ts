@@ -11,7 +11,7 @@
 // not mutated. Following sibling islands then see the @let.
 import { assert, assertStringIncludes } from "jsr:@std/assert";
 import { named, parseTemplate } from "./parse.ts";
-import { renderNodes, resolveIslands, type ComponentDef } from "./render.ts";
+import { type ComponentDef, renderNodes, resolveIslands } from "./render.ts";
 import type { Scope } from "./expr.ts";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -43,22 +43,38 @@ function registryWith(...defs: ComponentDef[]) {
 Deno.test("BUG AG: an island sibling after a @let sees the @let value through the pre-pass", async () => {
   const child = await makeIsland();
   const registry = registryWith(child);
-  const page = await parseTemplate(`@let answer = 42; <child-island [msg]="answer"></child-island>`);
+  const page = await parseTemplate(
+    `@let answer = 42; <child-island [msg]="answer"></child-island>`,
+  );
   const base = { scope: {} as Scope, registry, source: page.text };
 
   const resolved = new Map<string, Scope>();
   await resolveIslands(named(page), base, resolved);
   const html = renderNodes(named(page), { ...base, resolved });
 
-  assertStringIncludes(html, ">42<", "the island must see the @let-derived input via the pre-pass");
+  assertStringIncludes(
+    html,
+    ">42<",
+    "the island must see the @let-derived input via the pre-pass",
+  );
 });
 
 Deno.test("BUG AG control: a plain sync render (no pre-pass) already renders the @let value", async () => {
   const child = await makeIsland();
   const registry = registryWith(child);
-  const page = await parseTemplate(`@let answer = 42; <child-island [msg]="answer"></child-island>`);
+  const page = await parseTemplate(
+    `@let answer = 42; <child-island [msg]="answer"></child-island>`,
+  );
   // no resolveIslands: the sync render applies the @let in document order and the island
   // falls back to its synchronous scope() — which echoes msg=42 correctly.
-  const html = renderNodes(named(page), { scope: {} as Scope, registry, source: page.text });
-  assertStringIncludes(html, ">42<", "control: sync render applies @let in order");
+  const html = renderNodes(named(page), {
+    scope: {} as Scope,
+    registry,
+    source: page.text,
+  });
+  assertStringIncludes(
+    html,
+    ">42<",
+    "control: sync render applies @let in order",
+  );
 });

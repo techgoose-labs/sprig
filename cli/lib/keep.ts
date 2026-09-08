@@ -9,7 +9,10 @@ import type { TestReport } from "../../server/src/core/business/runner/mod.ts";
 
 // keep mounts each @EndpointController("http") method at /http/<path>; calls are
 // POST + JSON body — the same shape the preview app's /api/run route uses.
-async function call<T>(path: string, body: Record<string, unknown>): Promise<T> {
+async function call<T>(
+  path: string,
+  body: Record<string, unknown>,
+): Promise<T> {
   const res = await api.backend.fetch(`/http/${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -39,7 +42,10 @@ export const keep = {
   // it back to the core's `entries` so the commands stay unchanged.
   async discover(projectRoot: string): Promise<DiscoverResult> {
     const r = await call<
-      { entrys: DiscoverResult["entries"]; problems: DiscoverResult["problems"] }
+      {
+        entrys: DiscoverResult["entries"];
+        problems: DiscoverResult["problems"];
+      }
     >("get-discovery", { projectRoot });
     return { entries: r.entrys, problems: r.problems };
   },

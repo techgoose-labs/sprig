@@ -62,19 +62,30 @@ export interface WiringAnalysis {
 // ────────────────────────────── template walking ────────────────────────────
 const lineOf = (source: string, idx: number): number => {
   let line = 1;
-  for (let i = 0; i < idx && i < source.length; i++) if (source[i] === "\n") line++;
+  for (let i = 0; i < idx && i < source.length; i++) {
+    if (source[i] === "\n") line++;
+  }
   return line;
 };
 
 /** tag + attribute nodes of an element node (mirrors render.ts tagInfo, read-only). */
 function tagAttrs(node: Node): { tag: string; attrs: Node[] } | null {
   if (node.type === "self_closing_element") {
-    return { tag: field(node, "name")!.text, attrs: named(node).filter((c: Node) => c.type !== "tag_name") };
+    return {
+      tag: field(node, "name")!.text,
+      attrs: named(node).filter((c: Node) => c.type !== "tag_name"),
+    };
   }
-  if (node.type !== "element" && node.type !== "script_element" && node.type !== "style_element") return null;
+  if (
+    node.type !== "element" && node.type !== "script_element" &&
+    node.type !== "style_element"
+  ) return null;
   const start = named(node).find((c: Node) => c.type === "start_tag");
   if (!start) return null;
-  return { tag: field(start, "name")!.text, attrs: named(start).filter((c: Node) => c.type !== "tag_name") };
+  return {
+    tag: field(start, "name")!.text,
+    attrs: named(start).filter((c: Node) => c.type !== "tag_name"),
+  };
 }
 
 /** Depth-first pre-order (document order) over every element in the template,
@@ -107,10 +118,15 @@ interface Comp {
  *  Deliberately permissive: rule 1 must never false-positive on an unusual but real
  *  declaration, so anything that binds NAME to a signal-producing call counts. */
 export function declaredSignals(logicSource: string): Set<string> {
-  const src = logicSource.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const src = logicSource.replace(/\/\*[\s\S]*?\*\//g, "").replace(
+    /\/\/[^\n]*/g,
+    "",
+  );
   const out = new Set<string>();
-  const decl = /(?:^|[\s,{(;])([A-Za-z_$][\w$]*)\s*(?::\s*[^=;,(){}]+)?=\s*(?:signal|computed|linkedSignal)\s*[<(]/g;
-  const prop = /([A-Za-z_$][\w$]*)\s*:\s*(?:signal|computed|linkedSignal)\s*[<(]/g;
+  const decl =
+    /(?:^|[\s,{(;])([A-Za-z_$][\w$]*)\s*(?::\s*[^=;,(){}]+)?=\s*(?:signal|computed|linkedSignal)\s*[<(]/g;
+  const prop =
+    /([A-Za-z_$][\w$]*)\s*:\s*(?:signal|computed|linkedSignal)\s*[<(]/g;
   for (const m of src.matchAll(decl)) out.add(m[1]);
   for (const m of src.matchAll(prop)) out.add(m[1]);
   return out;
@@ -146,7 +162,10 @@ interface RawRoute {
  *  that mounted it. Inline `children` of a non-layout (page) route mount in the
  *  same region as their parent — only routers/* wrap. Returns null when the app
  *  declares no JSON route table (defineRoutes-in-TS apps). */
-async function resolveMountRegions(srcDir: string, byRelDir: Map<string, Comp>): Promise<Map<string, Set<string>> | null> {
+async function resolveMountRegions(
+  srcDir: string,
+  byRelDir: Map<string, Comp>,
+): Promise<Map<string, Set<string>> | null> {
   let entry: RawRoute[] | null = null;
   if (await readText(join(srcDir, "routers", "root", "routes.json")) !== null) {
     entry = [{ path: "", load: "routers/root" }];
@@ -166,7 +185,7 @@ async function resolveMountRegions(srcDir: string, byRelDir: Map<string, Comp>):
   const seenRouters = new Set<string>(); // cycle guard — a routes.json naming an ancestor router
   const add = (region: string, relDir: string) => {
     let s = regions.get(region);
-    if (!s) regions.set(region, (s = new Set()));
+    if (!s) regions.set(region, s = new Set());
     s.add(relDir);
   };
   const expand = async (entries: RawRoute[], region: string): Promise<void> => {
@@ -236,9 +255,19 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
   const comps: Comp[] = [];
   const byRelDir = new Map<string, Comp>();
   try {
-    for await (const entry of walk(srcDir, { includeDirs: false, match: [/template\.html$/] })) {
-      const relDir = relative(srcDir, entry.path).replace(/\\/g, "/").replace(/\/template\.html$/, "");
-      if (/(?:^|\/)(?:node_modules|static|isolate|_isolate)(?:\/|$)/.test(relDir)) continue;
+    for await (
+      const entry of walk(srcDir, {
+        includeDirs: false,
+        match: [/template\.html$/],
+      })
+    ) {
+      const relDir = relative(srcDir, entry.path).replace(/\\/g, "/").replace(
+        /\/template\.html$/,
+        "",
+      );
+      if (
+        /(?:^|\/)(?:node_modules|static|isolate|_isolate)(?:\/|$)/.test(relDir)
+      ) continue;
       const logic = await readText(join(srcDir, relDir, "logic.ts"));
       const comp: Comp = {
         relDir,
@@ -261,13 +290,19 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
       const local = byRelDir.get(`pages/${page}/components/${tag}`);
       if (local) return local;
     }
-    return comps.find((c) => c.selector === tag && !/^pages\/[^/]+\/components\//.test(c.relDir)) ??
+    return comps.find((c) =>
+      c.selector === tag && !/^pages\/[^/]+\/components\//.test(c.relDir)
+    ) ??
       comps.find((c) => c.selector === tag);
   };
 
   // 2. collect each template's tethers (templates sorted → deterministic output).
   const templates: TemplateWiring[] = [];
-  const collectFrom = async (file: string, relDir: string, source: string): Promise<void> => {
+  const collectFrom = async (
+    file: string,
+    relDir: string,
+    source: string,
+  ): Promise<void> => {
     const tethers: Tether[] = [];
     let root: Node;
     try {
@@ -280,7 +315,11 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
       if (!info) continue;
       try {
         for (const t of collectWiring(info.attrs, root.text)) {
-          tethers.push({ ...t, tag: info.tag, forwards: info.tag === "router-outlet" });
+          tethers.push({
+            ...t,
+            tag: info.tag,
+            forwards: info.tag === "router-outlet",
+          });
         }
       } catch (e) {
         // malformed wiring (interpolated channel, bad longhand) — the render throws
@@ -296,19 +335,29 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
     }
     if (tethers.length) templates.push({ file, relDir, tethers });
   };
-  const bootstrapTpl = await readText(join(appDir, "bootstrap", "template.html"));
-  if (bootstrapTpl !== null) await collectFrom("bootstrap/template.html", "", bootstrapTpl);
+  const bootstrapTpl = await readText(
+    join(appDir, "bootstrap", "template.html"),
+  );
+  if (bootstrapTpl !== null) {
+    await collectFrom("bootstrap/template.html", "", bootstrapTpl);
+  }
   for (const c of comps) {
     const src = await readText(join(srcDir, c.relDir, "template.html"));
-    if (src !== null) await collectFrom(`src/${c.relDir}/template.html`, c.relDir, src);
+    if (src !== null) {
+      await collectFrom(`src/${c.relDir}/template.html`, c.relDir, src);
+    }
   }
 
   // 3. resolve the routing graph → what mounts under each outlet.
   const regions = await resolveMountRegions(srcDir, byRelDir);
-  const allPages = comps.filter((c) => isPageRoot(c.relDir)).map((c) => c.relDir);
+  const allPages = comps.filter((c) => isPageRoot(c.relDir)).map((c) =>
+    c.relDir
+  );
   const mountsUnder = (declRelDir: string): string[] => {
     if (regions === null) return allPages; // no JSON table → every page can mount (superset)
-    if (declRelDir.startsWith("routers/")) return [...(regions.get(declRelDir) ?? [])];
+    if (declRelDir.startsWith("routers/")) {
+      return [...(regions.get(declRelDir) ?? [])];
+    }
     return [...(regions.get("") ?? [])]; // the shell's outlet (or an outlet a shell-level component carries)
   };
 
@@ -319,7 +368,17 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
     const key = tpl.file + " " + t.c;
     let ch = channels.get(key);
     if (!ch) {
-      channels.set(key, (ch = { name: t.c, file: tpl.file, line: t.l ?? 1, direct: [], forwards: [], pages: [] }));
+      channels.set(
+        key,
+        ch = {
+          name: t.c,
+          file: tpl.file,
+          line: t.l ?? 1,
+          direct: [],
+          forwards: [],
+          pages: [],
+        },
+      );
     }
     if (t.l && t.l < ch.line) ch.line = t.l;
     return ch;
@@ -342,7 +401,8 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
           rule: 1,
           file: tpl.file,
           line: t.l ?? 1,
-          message: `${where} — "${t.tag}" is not a component in this app, so it declares no signal "${t.f}" ` +
+          message:
+            `${where} — "${t.tag}" is not a component in this app, so it declares no signal "${t.f}" ` +
             `(a wiring verb tethers a component's own signal; template-wiring-spec.md §6 rule 1)`,
         });
       } else if (comp.signals === null) {
@@ -351,7 +411,8 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
           rule: 1,
           file: tpl.file,
           line: t.l ?? 1,
-          message: `${where} — component "${t.tag}" (src/${comp.relDir}/) is static (no logic.ts), so it has no ` +
+          message:
+            `${where} — component "${t.tag}" (src/${comp.relDir}/) is static (no logic.ts), so it has no ` +
             `signal "${t.f}" to tether (template-wiring-spec.md §6 rule 1)`,
         });
       } else if (!comp.signals.has(t.f)) {
@@ -361,8 +422,11 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
           rule: 1,
           file: tpl.file,
           line: t.l ?? 1,
-          message: `${where} — component "${t.tag}" declares no signal "${t.f}"` +
-            (known.length ? ` (its logic.ts declares: ${known.join(", ")})` : " (its logic.ts declares no signals)") +
+          message:
+            `${where} — component "${t.tag}" declares no signal "${t.f}"` +
+            (known.length
+              ? ` (its logic.ts declares: ${known.join(", ")})`
+              : " (its logic.ts declares no signals)") +
             ` (template-wiring-spec.md §6 rule 1)`,
         });
       }
@@ -380,7 +444,9 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
       for (const pageRel of mounted) {
         const page = byRelDir.get(pageRel);
         if (!page?.signals?.has(t.f)) continue; // no matching signal → the page is untouched
-        if (ch.pages.some((p) => p.selector === page.selector && p.verb === t.v)) continue;
+        if (
+          ch.pages.some((p) => p.selector === page.selector && p.verb === t.v)
+        ) continue;
         ch.pages.push({ selector: page.selector, verb: t.v });
       }
     }
@@ -400,21 +466,25 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
         rule: 2,
         file: ch.file,
         line: ch.line,
-        message: `channel "${ch.name}" has no sets: participant — the value has no origin ` +
+        message:
+          `channel "${ch.name}" has no sets: participant — the value has no origin ` +
           `(an editor/reader of a value nothing originates is a bug; template-wiring-spec.md §6 rule 2)`,
       });
     }
     if (total === 1) {
       const only = ch.direct[0]?.tag ?? ch.pages[0]?.selector;
       const unmatched = ch.forwards.length > 0 && ch.pages.length === 0
-        ? ` (its <router-outlet ${ch.forwards[0].verb}:${ch.forwards[0].local}> matches no routed page)`
+        ? ` (its <router-outlet ${ch.forwards[0].verb}:${
+          ch.forwards[0].local
+        }> matches no routed page)`
         : "";
       diagnostics.push({
         level: "warning",
         rule: 3,
         file: ch.file,
         line: ch.line,
-        message: `channel "${ch.name}" has exactly one participant (${only})${unmatched} — dead wire or typo ` +
+        message:
+          `channel "${ch.name}" has exactly one participant (${only})${unmatched} — dead wire or typo ` +
           `(template-wiring-spec.md §6 rule 3)`,
       });
     }
@@ -424,7 +494,10 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
         rule: 4,
         file: ch.file,
         line: ch.line,
-        message: `channel "${ch.name}" has ${setters.length} sets: participants (${setters.join(", ")}) — ` +
+        message:
+          `channel "${ch.name}" has ${setters.length} sets: participants (${
+            setters.join(", ")
+          }) — ` +
           `two origins is usually a bug; only the first in template order seeds ` +
           `(template-wiring-spec.md §6 rule 4)`,
       });
@@ -438,22 +511,51 @@ export async function analyzeWiring(appDir: string): Promise<WiringAnalysis> {
   //    the no-route-table fallback, where comps are pre-sorted).
   const infos: WiringChannelInfo[] = [...channels.values()]
     .sort((a, b) =>
-      a.file < b.file ? -1 : a.file > b.file ? 1 : a.line !== b.line ? a.line - b.line : a.name < b.name ? -1 : 1
+      a.file < b.file
+        ? -1
+        : a.file > b.file
+        ? 1
+        : a.line !== b.line
+        ? a.line - b.line
+        : a.name < b.name
+        ? -1
+        : 1
     )
     .map((ch) => {
       const clause = (verb: TetherSpec["v"]): string[] => {
         const names: string[] = [];
-        for (const d of ch.direct) if (d.verb === verb && !names.includes(d.tag)) names.push(d.tag);
-        const pages = ch.pages.filter((p) => p.verb === verb).map((p) => p.selector)
+        for (const d of ch.direct) {
+          if (d.verb === verb && !names.includes(d.tag)) names.push(d.tag);
+        }
+        const pages = ch.pages.filter((p) => p.verb === verb).map((p) =>
+          p.selector
+        )
           .filter((s) => !names.includes(s));
         return [...names, ...pages];
       };
-      return { name: ch.name, file: ch.file, line: ch.line, setBy: clause("sets"), editedBy: clause("edits"), readBy: clause("reads") };
+      return {
+        name: ch.name,
+        file: ch.file,
+        line: ch.line,
+        setBy: clause("sets"),
+        editedBy: clause("edits"),
+        readBy: clause("reads"),
+      };
     });
 
   // diagnostics in file/line order, errors before warnings on the same line.
   diagnostics.sort((a, b) =>
-    a.file < b.file ? -1 : a.file > b.file ? 1 : a.line !== b.line ? a.line - b.line : a.level === b.level ? 0 : a.level === "error" ? -1 : 1
+    a.file < b.file
+      ? -1
+      : a.file > b.file
+      ? 1
+      : a.line !== b.line
+      ? a.line - b.line
+      : a.level === b.level
+      ? 0
+      : a.level === "error"
+      ? -1
+      : 1
   );
   return { channels: infos, diagnostics };
 }
@@ -467,6 +569,8 @@ export function renderWiringMap(analysis: WiringAnalysis): string[] {
     if (ch.editedBy.length) clauses.push(`edited by ${ch.editedBy.join(", ")}`);
     if (ch.readBy.length) clauses.push(`read by ${ch.readBy.join(", ")}`);
     // a forward-only channel no page matched: nothing participates (lint flags it too)
-    return `${ch.name}: ${clauses.length ? clauses.join(" → ") : "(no participants)"}`;
+    return `${ch.name}: ${
+      clauses.length ? clauses.join(" → ") : "(no participants)"
+    }`;
   });
 }

@@ -33,7 +33,9 @@ function templateHasClientBinding(root: Node): boolean {
 }
 
 function classHasBrowserHook(cls: unknown): boolean {
-  const proto = typeof cls === "function" ? (cls as { prototype?: Record<string, unknown> }).prototype : undefined;
+  const proto = typeof cls === "function"
+    ? (cls as { prototype?: Record<string, unknown> }).prototype
+    : undefined;
   return !!proto && BROWSER_HOOKS.some((h) => typeof proto[h] === "function");
 }
 
@@ -42,10 +44,16 @@ export interface Classification {
   reasons: string[];
 }
 
-export function classify(opts: { template?: Node | null; componentClass?: unknown }): Classification {
+export function classify(
+  opts: { template?: Node | null; componentClass?: unknown },
+): Classification {
   const reasons: string[] = [];
-  if (opts.template && templateHasClientBinding(opts.template)) reasons.push("template binds an (event)/[(two-way)]");
-  if (classHasBrowserHook(opts.componentClass)) reasons.push("class defines onBrowserInit/onBrowserDestroy");
+  if (opts.template && templateHasClientBinding(opts.template)) {
+    reasons.push("template binds an (event)/[(two-way)]");
+  }
+  if (classHasBrowserHook(opts.componentClass)) {
+    reasons.push("class defines onBrowserInit/onBrowserDestroy");
+  }
   return { kind: reasons.length ? "island" : "static", reasons };
 }
 
@@ -63,9 +71,15 @@ export function formatReport(rows: ComponentReport[]): string {
   const w = Math.max(9, ...rows.map((r) => r.name.length));
   return rows
     .map((r) => {
-      const size = r.kind === "island" ? `${((r.bytes ?? 0) / 1024).toFixed(1)}kb` : "0kb";
-      const why = r.kind === "island" && r.reasons.length ? `  ← ${r.reasons.join("; ")}` : "";
-      return `  ${r.name.padEnd(w)}  ${r.kind.padEnd(6)}  ${size.padStart(6)}${why}`;
+      const size = r.kind === "island"
+        ? `${((r.bytes ?? 0) / 1024).toFixed(1)}kb`
+        : "0kb";
+      const why = r.kind === "island" && r.reasons.length
+        ? `  ← ${r.reasons.join("; ")}`
+        : "";
+      return `  ${r.name.padEnd(w)}  ${r.kind.padEnd(6)}  ${
+        size.padStart(6)
+      }${why}`;
     })
     .join("\n");
 }

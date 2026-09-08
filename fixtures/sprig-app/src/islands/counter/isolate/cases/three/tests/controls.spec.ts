@@ -12,8 +12,11 @@ const SHELL = `${BASE}/#/components/counter/default/three`;
  *  initial case instead). */
 async function openShell(page: import("@playwright/test").Page) {
   await page.goto(SHELL);
-  await expect(page.locator(".crumb")).toContainText("Starts at 3", { timeout: 10000 });
-  await expect(page.locator(".ctrl-group", { hasText: "count" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.locator(".crumb")).toContainText("Starts at 3", {
+    timeout: 10000,
+  });
+  await expect(page.locator(".ctrl-group", { hasText: "count" }).first())
+    .toBeVisible({ timeout: 10000 });
   return page.frameLocator(".stage-frame");
 }
 

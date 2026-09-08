@@ -6,7 +6,7 @@
 // CORRECT behavior: the encoded request returns 200 + the file's bytes.
 // Also: a malformed "%" path → 400, and a "..%2f" traversal is still blocked (403).
 import { assert, assertEquals } from "jsr:@std/assert";
-import { sprigUi } from "./mod.ts";
+import { Frontend } from "./mod.ts";
 import type { SprigApp } from "@mrg-keystone/sprig";
 
 const fakeApp: SprigApp = {
@@ -32,7 +32,7 @@ Deno.test("BUG P: a percent-encoded non-ASCII asset name is decoded and served (
     const contents = "export const x = 1;\n";
     await Deno.writeTextFile(`${dir}/${name}`, contents);
 
-    const ui = sprigUi({ app: fakeApp, base: "/ui", assetsDir: dir });
+    const ui = Frontend({ app: fakeApp, base: "/ui", assetsDir: dir }).handler;
     // the browser requests the percent-ENCODED form
     const encoded = "/ui/_assets/" + encodeURIComponent(name);
     const res = await ui(get(encoded));
@@ -44,21 +44,29 @@ Deno.test("BUG P: a percent-encoded non-ASCII asset name is decoded and served (
 
 Deno.test("BUG P: a malformed percent-escape in the asset path → 400", async () => {
   await withAssetDir(async (dir) => {
-    const ui = sprigUi({ app: fakeApp, base: "/ui", assetsDir: dir });
+    const ui = Frontend({ app: fakeApp, base: "/ui", assetsDir: dir }).handler;
     // lone "%" is not a valid escape → decodeURIComponent throws
     const res = await ui(get("/ui/_assets/bad%"));
     assert(res, "asset path is ours");
-    assertEquals(res!.status, 400, "malformed escape must be a clean 400, not a crash");
+    assertEquals(
+      res!.status,
+      400,
+      "malformed escape must be a clean 400, not a crash",
+    );
   });
 });
 
 Deno.test("BUG P: an encoded traversal (..%2f) is still blocked (403)", async () => {
   await withAssetDir(async (dir) => {
     await Deno.writeTextFile(`${dir}/secret.js`, "TOP SECRET");
-    const ui = sprigUi({ app: fakeApp, base: "/ui", assetsDir: dir });
+    const ui = Frontend({ app: fakeApp, base: "/ui", assetsDir: dir }).handler;
     // "..%2fsecret.js" decodes to "../secret.js" — must be rejected AFTER decoding.
     const res = await ui(get("/ui/_assets/..%2fsecret.js"));
     assert(res, "asset path is ours");
-    assertEquals(res!.status, 403, "decoded traversal segment must be forbidden");
+    assertEquals(
+      res!.status,
+      403,
+      "decoded traversal segment must be forbidden",
+    );
   });
 });

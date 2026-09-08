@@ -29,7 +29,10 @@ Deno.test("BUG V: a { setup } (defineComponent) page builds its setup scope for 
     });
     const r = await createRenderer(tmp, "/ui", { dev: true });
     const html = await r.renderDocument("pages/home", {});
-    assert(html.includes(">hello</p>"), `setup() signal did not render server-side. Got:\n${html}`);
+    assert(
+      html.includes(">hello</p>"),
+      `setup() signal did not render server-side. Got:\n${html}`,
+    );
   } finally {
     await Deno.remove(tmp, { recursive: true });
   }
@@ -41,13 +44,15 @@ Deno.test("BUG V control: a class page with the same template already renders th
     await writeTree(tmp, {
       "shell/template.html": `<div><router-outlet></router-outlet></div>`,
       "pages/home/template.html": `<p>{{ greeting() }}</p>`,
-      "pages/home/logic.ts":
-        `import { signal } from "@mrg-keystone/sprig";\n` +
+      "pages/home/logic.ts": `import { signal } from "@mrg-keystone/sprig";\n` +
         `export default class Home { greeting = signal("hello"); }`,
     });
     const r = await createRenderer(tmp, "/ui", { dev: true });
     const html = await r.renderDocument("pages/home", {});
-    assert(html.includes(">hello</p>"), `class page control should render. Got:\n${html}`);
+    assert(
+      html.includes(">hello</p>"),
+      `class page control should render. Got:\n${html}`,
+    );
   } finally {
     await Deno.remove(tmp, { recursive: true });
   }

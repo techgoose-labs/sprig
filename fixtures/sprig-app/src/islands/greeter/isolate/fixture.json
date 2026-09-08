@@ -1,5 +1,7 @@
 {
   "category": "greeter",
   "folder": "default",
-  "controls": { "count": { "type": "range", "min": 0, "max": 10, "signal": true } }
+  "controls": {
+    "count": { "type": "range", "min": 0, "max": 10, "signal": true }
+  }
 }

@@ -4,22 +4,42 @@
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, join as joinPath } from "@std/path";
 import { perfConfig, perfHeadSnippet } from "./perf.ts";
-import { perfSend, runSoftNav, type SoftNavDeps, type SprigConfig } from "./hydrate.ts";
+import {
+  perfSend,
+  runSoftNav,
+  type SoftNavDeps,
+  type SprigConfig,
+} from "./hydrate.ts";
 import { createRenderer } from "./mod.ts";
 
 const env = (m: Record<string, string>) => ({ get: (k: string) => m[k] });
 
 Deno.test("perf: enabled only by INFRA_PERF=true/1 with INFRA_PERF_URL set", () => {
   assertEquals(perfConfig(env({})), null);
-  assertEquals(perfConfig(env({ INFRA_PERF: "false", INFRA_PERF_URL: "http://x/p" })), null);
+  assertEquals(
+    perfConfig(env({ INFRA_PERF: "false", INFRA_PERF_URL: "http://x/p" })),
+    null,
+  );
   assertEquals(perfConfig(env({ INFRA_PERF_URL: "http://x/p" })), null);
   assertEquals(perfConfig(env({ INFRA_PERF: "true" })), null); // no URL → off (warns once)
-  assertEquals(perfConfig(env({ INFRA_PERF: "true", INFRA_PERF_URL: "http://x/p" })), { url: "http://x/p", app: "" });
   assertEquals(
-    perfConfig(env({ INFRA_PERF: " TRUE ", INFRA_PERF_URL: "http://x/p", INFRA_APP_ID: "app-1" })),
+    perfConfig(env({ INFRA_PERF: "true", INFRA_PERF_URL: "http://x/p" })),
+    { url: "http://x/p", app: "" },
+  );
+  assertEquals(
+    perfConfig(
+      env({
+        INFRA_PERF: " TRUE ",
+        INFRA_PERF_URL: "http://x/p",
+        INFRA_APP_ID: "app-1",
+      }),
+    ),
     { url: "http://x/p", app: "app-1" },
   );
-  assertEquals(perfConfig(env({ INFRA_PERF: "1", INFRA_PERF_URL: "http://x/p" })), { url: "http://x/p", app: "" });
+  assertEquals(
+    perfConfig(env({ INFRA_PERF: "1", INFRA_PERF_URL: "http://x/p" })),
+    { url: "http://x/p", app: "" },
+  );
   // an env read that throws (no --allow-env) means OFF, never a crash
   assertEquals(
     perfConfig({
@@ -33,7 +53,10 @@ Deno.test("perf: enabled only by INFRA_PERF=true/1 with INFRA_PERF_URL set", () 
 
 Deno.test("perf: head snippet carries the contract and resists </script> breakout", () => {
   assertEquals(perfHeadSnippet(null), "");
-  const s = perfHeadSnippet({ url: "https://infra.example/perf?x=</script><script>alert(1)</script>", app: "app-1" });
+  const s = perfHeadSnippet({
+    url: "https://infra.example/perf?x=</script><script>alert(1)</script>",
+    app: "app-1",
+  });
   assertStringIncludes(s, "navId");
   assertStringIncludes(s, '"infra-app-id"');
   assertStringIncludes(s, "timeOrigin"); // #1 is backdated to the real navigation start
@@ -46,9 +69,15 @@ Deno.test("perf: head snippet carries the contract and resists </script> breakou
 Deno.test("perf: perfSend emits exactly the 4-field payload", () => {
   const sent: Array<{ url: string; body: string }> = [];
   const when = new Date("2026-07-02T10:00:00.000Z");
-  perfSend({ url: "http://infra/p", app: "app-1" }, "/ui/two", "nav-1", when, (url, body) => {
-    sent.push({ url, body });
-  });
+  perfSend(
+    { url: "http://infra/p", app: "app-1" },
+    "/ui/two",
+    "nav-1",
+    when,
+    (url, body) => {
+      sent.push({ url, body });
+    },
+  );
   assertEquals(sent.length, 1);
   assertEquals(sent[0].url, "http://infra/p");
   assertEquals(JSON.parse(sent[0].body), {
@@ -87,8 +116,14 @@ Deno.test("perf: renderDocument ships snippet + config only when the env gate is
     // OFF (no env): no snippet, no config entry
     let r = await createRenderer(tmp, "/ui");
     let html = await r.renderDocument("pages/home", {});
-    assert(!html.includes("infra-app-id"), "disabled: document must not carry the snippet");
-    assert(!html.includes('"perf"'), "disabled: __sprig_config must not carry perf");
+    assert(
+      !html.includes("infra-app-id"),
+      "disabled: document must not carry the snippet",
+    );
+    assert(
+      !html.includes('"perf"'),
+      "disabled: __sprig_config must not carry perf",
+    );
 
     // ON: snippet in the head + { url, app } in __sprig_config
     Deno.env.set("INFRA_PERF", "true");
@@ -100,8 +135,15 @@ Deno.test("perf: renderDocument ships snippet + config only when the env gate is
     assertStringIncludes(html, "http://127.0.0.1:9/perf");
     // the snippet must run BEFORE the stylesheet link (a pending stylesheet blocks
     // inline scripts on the CSSOM — beacon #1 must not wait for the CSS download)
-    assert(html.indexOf('"infra-app-id"') < html.indexOf("app.css"), "snippet must precede the stylesheet");
-    const cfg = JSON.parse(html.match(/<script type="application\/json" id="__sprig_config">(.*?)<\/script>/s)![1]);
+    assert(
+      html.indexOf('"infra-app-id"') < html.indexOf("app.css"),
+      "snippet must precede the stylesheet",
+    );
+    const cfg = JSON.parse(
+      html.match(
+        /<script type="application\/json" id="__sprig_config">(.*?)<\/script>/s,
+      )![1],
+    );
     assertEquals(cfg.perf, { url: "http://127.0.0.1:9/perf", app: "test-app" });
 
     // streaming path emits the same document
@@ -119,15 +161,30 @@ Deno.test("perf: renderDocument ships snippet + config only when the env gate is
 });
 
 // ── soft-nav outcome semantics (what gates the pair's second report) ─────────
-type FakeOutlet = { innerHTML: string; getAttribute: (n: string) => string | null };
+type FakeOutlet = {
+  innerHTML: string;
+  getAttribute: (n: string) => string | null;
+};
 function navEvent(url: string, aborted = false) {
-  return { destination: { url }, signal: { aborted }, navigationType: "push", canIntercept: true } as never;
-}
-function deps(over: Partial<SoftNavDeps> & { assigned?: string[] }): SoftNavDeps {
-  const assigned = over.assigned ?? [];
-  const outletOf = over.outletOf ?? ((_d) => ({ innerHTML: "next", getAttribute: () => null }) as never);
   return {
-    fetch: over.fetch ?? (() => Promise.resolve(new Response("<x/>", { headers: { "content-type": "text/html" } }))),
+    destination: { url },
+    signal: { aborted },
+    navigationType: "push",
+    canIntercept: true,
+  } as never;
+}
+function deps(
+  over: Partial<SoftNavDeps> & { assigned?: string[] },
+): SoftNavDeps {
+  const assigned = over.assigned ?? [];
+  const outletOf = over.outletOf ??
+    ((_d) => ({ innerHTML: "next", getAttribute: () => null }) as never);
+  return {
+    fetch: over.fetch ??
+      (() =>
+        Promise.resolve(
+          new Response("<x/>", { headers: { "content-type": "text/html" } }),
+        )),
     parse: over.parse ?? ((_h) => ({}) as never),
     outletOf,
     // nested-outlet chain: for these single-outlet perf mocks it's just [outletOf(d)] (or []).
@@ -166,7 +223,10 @@ Deno.test("perf/soft-nav: runSoftNav reports swapped / fallback / aborted", asyn
     outcome = await runSoftNav(
       navEvent("http://localhost/ui/two"),
       { ...CFG },
-      deps({ assigned, fetch: () => Promise.resolve(new Response("boom", { status: 500 })) }),
+      deps({
+        assigned,
+        fetch: () => Promise.resolve(new Response("boom", { status: 500 })),
+      }),
     );
     assertEquals(outcome, "fallback");
     assertEquals(assigned, ["http://localhost/ui/two"]);
@@ -175,13 +235,19 @@ Deno.test("perf/soft-nav: runSoftNav reports swapped / fallback / aborted", asyn
     outcome = await runSoftNav(
       navEvent("http://localhost/ui/two"),
       { ...CFG },
-      deps({ outletOf: (d) => (d === g.document ? ({ innerHTML: "" } as never) : null) }),
+      deps({
+        outletOf: (
+          d,
+        ) => (d === g.document ? ({ innerHTML: "" } as never) : null),
+      }),
     );
     assertEquals(outcome, "fallback");
 
     // superseded navigation → "aborted" (no report, no fallback navigation)
     const aborted: string[] = [];
-    outcome = await runSoftNav(navEvent("http://localhost/ui/two", true), { ...CFG }, deps({ assigned: aborted }));
+    outcome = await runSoftNav(navEvent("http://localhost/ui/two", true), {
+      ...CFG,
+    }, deps({ assigned: aborted }));
     assertEquals(outcome, "aborted");
     assertEquals(aborted, []);
   } finally {

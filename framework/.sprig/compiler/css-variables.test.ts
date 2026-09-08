@@ -13,7 +13,8 @@ Deno.test("emitThemeCss: utility tokens → @theme, the rest → :root", () => {
         "--text-step-0": "0.9375rem",
         "--step-0": "1rem",
         "--dur-fast": "200ms",
-        "--color-base-content-30": "color-mix(in oklch, var(--color-base-content) 30%, transparent)",
+        "--color-base-content-30":
+          "color-mix(in oklch, var(--color-base-content) 30%, transparent)",
       },
     },
   });
@@ -22,7 +23,10 @@ Deno.test("emitThemeCss: utility tokens → @theme, the rest → :root", () => {
   const themeBlock = css.slice(css.indexOf("@theme"), css.indexOf("}"));
   assertStringIncludes(themeBlock, "--color-primary: #5048E5;");
   assertStringIncludes(themeBlock, "--radius-box: 0.5rem;");
-  assertStringIncludes(themeBlock, "--ease-standard: cubic-bezier(0.2, 0, 0, 1);");
+  assertStringIncludes(
+    themeBlock,
+    "--ease-standard: cubic-bezier(0.2, 0, 0, 1);",
+  );
   assertStringIncludes(themeBlock, "--text-step-0: 0.9375rem;");
 
   // non-namespace, var()-referencing, and color-scheme → :root
@@ -75,7 +79,8 @@ Deno.test("emitThemeCss: rejects multiple themes with no default", () => {
 
 Deno.test("emitThemeCss: rejects a non-string value", () => {
   assertThrows(
-    () => emitThemeCss({ themes: { brand: { "--x": 5 as unknown as string } } }),
+    () =>
+      emitThemeCss({ themes: { brand: { "--x": 5 as unknown as string } } }),
     Error,
     "must be a string",
   );

@@ -1,11 +1,521 @@
-import{g as t,h as i,i as r,j as o,l as m,m as u}from"./chunk-UESQ4FBT.js";function l(n){r();let s=new EventSource(`${n}/_sprig/hmr`);s.onmessage=d=>{let e=JSON.parse(d.data);e.type==="template"&&e.sel&&e.template?(o(e.sel,e.template),f(`template \u21BB ${e.sel} (state kept)`)):e.type==="css"?(b(e.v??String(performance.now())),f("css \u21BB")):e.type==="reload"?(f("reload"),location.reload()):e.type==="error"&&console.error("[sprig hmr]",e.message)};let c=!1;s.onopen=()=>{if(c){f("dev server restarted \u2014 reloading"),location.reload();return}c=!0,f("connected")}}function b(n){document.querySelectorAll('link[rel="stylesheet"]').forEach(s=>{let c=new URL(s.href);c.searchParams.set("v",n),s.href=c.toString()})}function f(n){console.info(`%c[sprig hmr]%c ${n}`,"color:#7c3aed;font-weight:bold","color:inherit")}var a=JSON.parse(document.getElementById("__sprig_config")?.textContent??"{}");a.hmr&&l(a.base);i({greeter:"sf06ebbc6",counter:"see564490",clock:"s1716a92a","stage-bridge":"s6f20a25c","run-tests":"sf030fe9d",workbench:"sea757acc"});t("count-display",{template:{source:`<!-- a static child component the counter island composes -->
+import {
+  g as t,
+  h as i,
+  i as r,
+  j as o,
+  l as m,
+  m as u,
+} from "./chunk-UESQ4FBT.js";
+function l(n) {
+  r();
+  let s = new EventSource(`${n}/_sprig/hmr`);
+  s.onmessage = (d) => {
+    let e = JSON.parse(d.data);
+    e.type === "template" && e.sel && e.template
+      ? (o(e.sel, e.template), f(`template \u21BB ${e.sel} (state kept)`))
+      : e.type === "css"
+      ? (b(e.v ?? String(performance.now())), f("css \u21BB"))
+      : e.type === "reload"
+      ? (f("reload"), location.reload())
+      : e.type === "error" && console.error("[sprig hmr]", e.message);
+  };
+  let c = !1;
+  s.onopen = () => {
+    if (c) {
+      f("dev server restarted \u2014 reloading"), location.reload();
+      return;
+    }
+    c = !0, f("connected");
+  };
+}
+function b(n) {
+  document.querySelectorAll('link[rel="stylesheet"]').forEach((s) => {
+    let c = new URL(s.href);
+    c.searchParams.set("v", n), s.href = c.toString();
+  });
+}
+function f(n) {
+  console.info(
+    `%c[sprig hmr]%c ${n}`,
+    "color:#7c3aed;font-weight:bold",
+    "color:inherit",
+  );
+}
+var a = JSON.parse(
+  document.getElementById("__sprig_config")?.textContent ?? "{}",
+);
+a.hmr && l(a.base);
+i({
+  greeter: "sf06ebbc6",
+  counter: "see564490",
+  clock: "s1716a92a",
+  "stage-bridge": "s6f20a25c",
+  "run-tests": "sf030fe9d",
+  workbench: "sea757acc",
+});
+t("count-display", {
+  template: {
+    source: `<!-- a static child component the counter island composes -->
 <p class="tabular-nums">{{ value }}</p>
-`,root:{t:"template",s:0,e:102,c:[{t:"comment",s:0,e:61,c:[],n:[],f:{}},{t:"element",s:62,e:101,c:[{t:"start_tag",s:62,e:86,c:[{t:"<",s:62,e:63,c:[],n:[],f:{}},{t:"tag_name",s:63,e:64,c:[],n:[],f:{}},{t:"attribute",s:65,e:85,c:[{t:"attribute_name",s:65,e:70,c:[],n:[],f:{}},{t:"=",s:70,e:71,c:[],n:[],f:{}},{t:"quoted_value",s:71,e:85,c:[{t:'"',s:71,e:72,c:[],n:[],f:{}},{t:"attribute_text",s:72,e:84,c:[],n:[],f:{}},{t:'"',s:84,e:85,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:85,e:86,c:[],n:[],f:{}}],n:[1,2],f:{name:1}},{t:"interpolation",s:86,e:97,c:[{t:"{{",s:86,e:88,c:[],n:[],f:{}},{t:"identifier",s:89,e:94,c:[],n:[],f:{}},{t:"}}",s:95,e:97,c:[],n:[],f:{}}],n:[1],f:{expression:1}},{t:"end_tag",s:97,e:101,c:[{t:"</",s:97,e:99,c:[],n:[],f:{}},{t:"tag_name",s:99,e:100,c:[],n:[],f:{}},{t:">",s:100,e:101,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2],f:{}}],n:[0,1],f:{}}},scope:"sf3ddcc20"});t("ui-button",{template:{source:`<!-- ui-button \u2014 a static button component (used standalone AND as the counter's child) -->
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 102,
+      c: [{ t: "comment", s: 0, e: 61, c: [], n: [], f: {} }, {
+        t: "element",
+        s: 62,
+        e: 101,
+        c: [{
+          t: "start_tag",
+          s: 62,
+          e: 86,
+          c: [{ t: "<", s: 62, e: 63, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 63,
+            e: 64,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 65,
+            e: 85,
+            c: [{ t: "attribute_name", s: 65, e: 70, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 70,
+              e: 71,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 71,
+              e: 85,
+              c: [{ t: '"', s: 71, e: 72, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 72,
+                e: 84,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 84, e: 85, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, { t: ">", s: 85, e: 86, c: [], n: [], f: {} }],
+          n: [1, 2],
+          f: { name: 1 },
+        }, {
+          t: "interpolation",
+          s: 86,
+          e: 97,
+          c: [{ t: "{{", s: 86, e: 88, c: [], n: [], f: {} }, {
+            t: "identifier",
+            s: 89,
+            e: 94,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: "}}", s: 95, e: 97, c: [], n: [], f: {} }],
+          n: [1],
+          f: { expression: 1 },
+        }, {
+          t: "end_tag",
+          s: 97,
+          e: 101,
+          c: [{ t: "</", s: 97, e: 99, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 99,
+            e: 100,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 100, e: 101, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1, 2],
+        f: {},
+      }],
+      n: [0, 1],
+      f: {},
+    },
+  },
+  scope: "sf3ddcc20",
+});
+t("ui-button", {
+  template: {
+    source:
+      `<!-- ui-button \u2014 a static button component (used standalone AND as the counter's child) -->
 <button class="btn" [attr.id]="id" [class.btn--sm]="size === 'sm'" [class.btn--lg]="size === 'lg'" [disabled]="disabled" [innerHTML]="content"></button>
-`,root:{t:"template",s:0,e:245,c:[{t:"comment",s:0,e:91,c:[],n:[],f:{}},{t:"element",s:92,e:244,c:[{t:"start_tag",s:92,e:235,c:[{t:"<",s:92,e:93,c:[],n:[],f:{}},{t:"tag_name",s:93,e:99,c:[],n:[],f:{}},{t:"attribute",s:100,e:111,c:[{t:"attribute_name",s:100,e:105,c:[],n:[],f:{}},{t:"=",s:105,e:106,c:[],n:[],f:{}},{t:"quoted_value",s:106,e:111,c:[{t:'"',s:106,e:107,c:[],n:[],f:{}},{t:"attribute_text",s:107,e:110,c:[],n:[],f:{}},{t:'"',s:110,e:111,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"property_binding",s:112,e:126,c:[{t:"[",s:112,e:113,c:[],n:[],f:{}},{t:"binding_name",s:113,e:120,c:[],n:[],f:{}},{t:"]",s:120,e:121,c:[],n:[],f:{}},{t:"=",s:121,e:122,c:[],n:[],f:{}},{t:'"',s:122,e:123,c:[],n:[],f:{}},{t:"identifier",s:123,e:125,c:[],n:[],f:{}},{t:'"',s:125,e:126,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:127,e:158,c:[{t:"[",s:127,e:128,c:[],n:[],f:{}},{t:"binding_name",s:128,e:141,c:[],n:[],f:{}},{t:"]",s:141,e:142,c:[],n:[],f:{}},{t:"=",s:142,e:143,c:[],n:[],f:{}},{t:'"',s:143,e:144,c:[],n:[],f:{}},{t:"binary_expression",s:144,e:157,c:[{t:"identifier",s:144,e:148,c:[],n:[],f:{}},{t:"===",s:149,e:152,c:[],n:[],f:{}},{t:"string",s:153,e:157,c:[],n:[],f:{}}],n:[0,2],f:{left:0,operator:1,right:2}},{t:'"',s:157,e:158,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:159,e:190,c:[{t:"[",s:159,e:160,c:[],n:[],f:{}},{t:"binding_name",s:160,e:173,c:[],n:[],f:{}},{t:"]",s:173,e:174,c:[],n:[],f:{}},{t:"=",s:174,e:175,c:[],n:[],f:{}},{t:'"',s:175,e:176,c:[],n:[],f:{}},{t:"binary_expression",s:176,e:189,c:[{t:"identifier",s:176,e:180,c:[],n:[],f:{}},{t:"===",s:181,e:184,c:[],n:[],f:{}},{t:"string",s:185,e:189,c:[],n:[],f:{}}],n:[0,2],f:{left:0,operator:1,right:2}},{t:'"',s:189,e:190,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:191,e:212,c:[{t:"[",s:191,e:192,c:[],n:[],f:{}},{t:"binding_name",s:192,e:200,c:[],n:[],f:{}},{t:"]",s:200,e:201,c:[],n:[],f:{}},{t:"=",s:201,e:202,c:[],n:[],f:{}},{t:'"',s:202,e:203,c:[],n:[],f:{}},{t:"identifier",s:203,e:211,c:[],n:[],f:{}},{t:'"',s:211,e:212,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:213,e:234,c:[{t:"[",s:213,e:214,c:[],n:[],f:{}},{t:"binding_name",s:214,e:223,c:[],n:[],f:{}},{t:"]",s:223,e:224,c:[],n:[],f:{}},{t:"=",s:224,e:225,c:[],n:[],f:{}},{t:'"',s:225,e:226,c:[],n:[],f:{}},{t:"identifier",s:226,e:233,c:[],n:[],f:{}},{t:'"',s:233,e:234,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:">",s:234,e:235,c:[],n:[],f:{}}],n:[1,2,3,4,5,6,7],f:{name:1}},{t:"end_tag",s:235,e:244,c:[{t:"</",s:235,e:237,c:[],n:[],f:{}},{t:"tag_name",s:237,e:243,c:[],n:[],f:{}},{t:">",s:243,e:244,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1],f:{}}],n:[0,1],f:{}}},scope:"s0d024af5"});t("float-button",{template:{source:`<!-- button \u2014 a static sprig component. Inputs: id, disabled, size, content (the
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 245,
+      c: [{ t: "comment", s: 0, e: 91, c: [], n: [], f: {} }, {
+        t: "element",
+        s: 92,
+        e: 244,
+        c: [{
+          t: "start_tag",
+          s: 92,
+          e: 235,
+          c: [{ t: "<", s: 92, e: 93, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 93,
+            e: 99,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 100,
+            e: 111,
+            c: [{ t: "attribute_name", s: 100, e: 105, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 105,
+              e: 106,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 106,
+              e: 111,
+              c: [{ t: '"', s: 106, e: 107, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 107,
+                e: 110,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 110, e: 111, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "property_binding",
+            s: 112,
+            e: 126,
+            c: [
+              { t: "[", s: 112, e: 113, c: [], n: [], f: {} },
+              { t: "binding_name", s: 113, e: 120, c: [], n: [], f: {} },
+              { t: "]", s: 120, e: 121, c: [], n: [], f: {} },
+              { t: "=", s: 121, e: 122, c: [], n: [], f: {} },
+              { t: '"', s: 122, e: 123, c: [], n: [], f: {} },
+              { t: "identifier", s: 123, e: 125, c: [], n: [], f: {} },
+              { t: '"', s: 125, e: 126, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 127,
+            e: 158,
+            c: [
+              { t: "[", s: 127, e: 128, c: [], n: [], f: {} },
+              { t: "binding_name", s: 128, e: 141, c: [], n: [], f: {} },
+              { t: "]", s: 141, e: 142, c: [], n: [], f: {} },
+              { t: "=", s: 142, e: 143, c: [], n: [], f: {} },
+              { t: '"', s: 143, e: 144, c: [], n: [], f: {} },
+              {
+                t: "binary_expression",
+                s: 144,
+                e: 157,
+                c: [{ t: "identifier", s: 144, e: 148, c: [], n: [], f: {} }, {
+                  t: "===",
+                  s: 149,
+                  e: 152,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: "string", s: 153, e: 157, c: [], n: [], f: {} }],
+                n: [0, 2],
+                f: { left: 0, operator: 1, right: 2 },
+              },
+              { t: '"', s: 157, e: 158, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 159,
+            e: 190,
+            c: [
+              { t: "[", s: 159, e: 160, c: [], n: [], f: {} },
+              { t: "binding_name", s: 160, e: 173, c: [], n: [], f: {} },
+              { t: "]", s: 173, e: 174, c: [], n: [], f: {} },
+              { t: "=", s: 174, e: 175, c: [], n: [], f: {} },
+              { t: '"', s: 175, e: 176, c: [], n: [], f: {} },
+              {
+                t: "binary_expression",
+                s: 176,
+                e: 189,
+                c: [{ t: "identifier", s: 176, e: 180, c: [], n: [], f: {} }, {
+                  t: "===",
+                  s: 181,
+                  e: 184,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: "string", s: 185, e: 189, c: [], n: [], f: {} }],
+                n: [0, 2],
+                f: { left: 0, operator: 1, right: 2 },
+              },
+              { t: '"', s: 189, e: 190, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 191,
+            e: 212,
+            c: [
+              { t: "[", s: 191, e: 192, c: [], n: [], f: {} },
+              { t: "binding_name", s: 192, e: 200, c: [], n: [], f: {} },
+              { t: "]", s: 200, e: 201, c: [], n: [], f: {} },
+              { t: "=", s: 201, e: 202, c: [], n: [], f: {} },
+              { t: '"', s: 202, e: 203, c: [], n: [], f: {} },
+              { t: "identifier", s: 203, e: 211, c: [], n: [], f: {} },
+              { t: '"', s: 211, e: 212, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 213,
+            e: 234,
+            c: [
+              { t: "[", s: 213, e: 214, c: [], n: [], f: {} },
+              { t: "binding_name", s: 214, e: 223, c: [], n: [], f: {} },
+              { t: "]", s: 223, e: 224, c: [], n: [], f: {} },
+              { t: "=", s: 224, e: 225, c: [], n: [], f: {} },
+              { t: '"', s: 225, e: 226, c: [], n: [], f: {} },
+              { t: "identifier", s: 226, e: 233, c: [], n: [], f: {} },
+              { t: '"', s: 233, e: 234, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, { t: ">", s: 234, e: 235, c: [], n: [], f: {} }],
+          n: [1, 2, 3, 4, 5, 6, 7],
+          f: { name: 1 },
+        }, {
+          t: "end_tag",
+          s: 235,
+          e: 244,
+          c: [{ t: "</", s: 235, e: 237, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 237,
+            e: 243,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 243, e: 244, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1],
+        f: {},
+      }],
+      n: [0, 1],
+      f: {},
+    },
+  },
+  scope: "s0d024af5",
+});
+t("float-button", {
+  template: {
+    source:
+      `<!-- button \u2014 a static sprig component. Inputs: id, disabled, size, content (the
      case's _innerHtml maps to the \`content\` input \u2192 [innerHTML]). -->
 <button class="btn" [attr.id]="id" [class.btn--sm]="size === 'sm'" [class.btn--lg]="size === 'lg'" [disabled]="disabled" [innerHTML]="content"></button>
-`,root:{t:"template",s:0,e:305,c:[{t:"comment",s:0,e:151,c:[],n:[],f:{}},{t:"element",s:152,e:304,c:[{t:"start_tag",s:152,e:295,c:[{t:"<",s:152,e:153,c:[],n:[],f:{}},{t:"tag_name",s:153,e:159,c:[],n:[],f:{}},{t:"attribute",s:160,e:171,c:[{t:"attribute_name",s:160,e:165,c:[],n:[],f:{}},{t:"=",s:165,e:166,c:[],n:[],f:{}},{t:"quoted_value",s:166,e:171,c:[{t:'"',s:166,e:167,c:[],n:[],f:{}},{t:"attribute_text",s:167,e:170,c:[],n:[],f:{}},{t:'"',s:170,e:171,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"property_binding",s:172,e:186,c:[{t:"[",s:172,e:173,c:[],n:[],f:{}},{t:"binding_name",s:173,e:180,c:[],n:[],f:{}},{t:"]",s:180,e:181,c:[],n:[],f:{}},{t:"=",s:181,e:182,c:[],n:[],f:{}},{t:'"',s:182,e:183,c:[],n:[],f:{}},{t:"identifier",s:183,e:185,c:[],n:[],f:{}},{t:'"',s:185,e:186,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:187,e:218,c:[{t:"[",s:187,e:188,c:[],n:[],f:{}},{t:"binding_name",s:188,e:201,c:[],n:[],f:{}},{t:"]",s:201,e:202,c:[],n:[],f:{}},{t:"=",s:202,e:203,c:[],n:[],f:{}},{t:'"',s:203,e:204,c:[],n:[],f:{}},{t:"binary_expression",s:204,e:217,c:[{t:"identifier",s:204,e:208,c:[],n:[],f:{}},{t:"===",s:209,e:212,c:[],n:[],f:{}},{t:"string",s:213,e:217,c:[],n:[],f:{}}],n:[0,2],f:{left:0,operator:1,right:2}},{t:'"',s:217,e:218,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:219,e:250,c:[{t:"[",s:219,e:220,c:[],n:[],f:{}},{t:"binding_name",s:220,e:233,c:[],n:[],f:{}},{t:"]",s:233,e:234,c:[],n:[],f:{}},{t:"=",s:234,e:235,c:[],n:[],f:{}},{t:'"',s:235,e:236,c:[],n:[],f:{}},{t:"binary_expression",s:236,e:249,c:[{t:"identifier",s:236,e:240,c:[],n:[],f:{}},{t:"===",s:241,e:244,c:[],n:[],f:{}},{t:"string",s:245,e:249,c:[],n:[],f:{}}],n:[0,2],f:{left:0,operator:1,right:2}},{t:'"',s:249,e:250,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:251,e:272,c:[{t:"[",s:251,e:252,c:[],n:[],f:{}},{t:"binding_name",s:252,e:260,c:[],n:[],f:{}},{t:"]",s:260,e:261,c:[],n:[],f:{}},{t:"=",s:261,e:262,c:[],n:[],f:{}},{t:'"',s:262,e:263,c:[],n:[],f:{}},{t:"identifier",s:263,e:271,c:[],n:[],f:{}},{t:'"',s:271,e:272,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:"property_binding",s:273,e:294,c:[{t:"[",s:273,e:274,c:[],n:[],f:{}},{t:"binding_name",s:274,e:283,c:[],n:[],f:{}},{t:"]",s:283,e:284,c:[],n:[],f:{}},{t:"=",s:284,e:285,c:[],n:[],f:{}},{t:'"',s:285,e:286,c:[],n:[],f:{}},{t:"identifier",s:286,e:293,c:[],n:[],f:{}},{t:'"',s:293,e:294,c:[],n:[],f:{}}],n:[1,5],f:{name:1,value:5}},{t:">",s:294,e:295,c:[],n:[],f:{}}],n:[1,2,3,4,5,6,7],f:{name:1}},{t:"end_tag",s:295,e:304,c:[{t:"</",s:295,e:297,c:[],n:[],f:{}},{t:"tag_name",s:297,e:303,c:[],n:[],f:{}},{t:">",s:303,e:304,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1],f:{}}],n:[0,1],f:{}}},scope:"sc45c27ed"});t("login",{template:{source:`<!-- login \u2014 a static page composition. Input: heading. -->
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 305,
+      c: [{ t: "comment", s: 0, e: 151, c: [], n: [], f: {} }, {
+        t: "element",
+        s: 152,
+        e: 304,
+        c: [{
+          t: "start_tag",
+          s: 152,
+          e: 295,
+          c: [{ t: "<", s: 152, e: 153, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 153,
+            e: 159,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 160,
+            e: 171,
+            c: [{ t: "attribute_name", s: 160, e: 165, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 165,
+              e: 166,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 166,
+              e: 171,
+              c: [{ t: '"', s: 166, e: 167, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 167,
+                e: 170,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 170, e: 171, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "property_binding",
+            s: 172,
+            e: 186,
+            c: [
+              { t: "[", s: 172, e: 173, c: [], n: [], f: {} },
+              { t: "binding_name", s: 173, e: 180, c: [], n: [], f: {} },
+              { t: "]", s: 180, e: 181, c: [], n: [], f: {} },
+              { t: "=", s: 181, e: 182, c: [], n: [], f: {} },
+              { t: '"', s: 182, e: 183, c: [], n: [], f: {} },
+              { t: "identifier", s: 183, e: 185, c: [], n: [], f: {} },
+              { t: '"', s: 185, e: 186, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 187,
+            e: 218,
+            c: [
+              { t: "[", s: 187, e: 188, c: [], n: [], f: {} },
+              { t: "binding_name", s: 188, e: 201, c: [], n: [], f: {} },
+              { t: "]", s: 201, e: 202, c: [], n: [], f: {} },
+              { t: "=", s: 202, e: 203, c: [], n: [], f: {} },
+              { t: '"', s: 203, e: 204, c: [], n: [], f: {} },
+              {
+                t: "binary_expression",
+                s: 204,
+                e: 217,
+                c: [{ t: "identifier", s: 204, e: 208, c: [], n: [], f: {} }, {
+                  t: "===",
+                  s: 209,
+                  e: 212,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: "string", s: 213, e: 217, c: [], n: [], f: {} }],
+                n: [0, 2],
+                f: { left: 0, operator: 1, right: 2 },
+              },
+              { t: '"', s: 217, e: 218, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 219,
+            e: 250,
+            c: [
+              { t: "[", s: 219, e: 220, c: [], n: [], f: {} },
+              { t: "binding_name", s: 220, e: 233, c: [], n: [], f: {} },
+              { t: "]", s: 233, e: 234, c: [], n: [], f: {} },
+              { t: "=", s: 234, e: 235, c: [], n: [], f: {} },
+              { t: '"', s: 235, e: 236, c: [], n: [], f: {} },
+              {
+                t: "binary_expression",
+                s: 236,
+                e: 249,
+                c: [{ t: "identifier", s: 236, e: 240, c: [], n: [], f: {} }, {
+                  t: "===",
+                  s: 241,
+                  e: 244,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: "string", s: 245, e: 249, c: [], n: [], f: {} }],
+                n: [0, 2],
+                f: { left: 0, operator: 1, right: 2 },
+              },
+              { t: '"', s: 249, e: 250, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 251,
+            e: 272,
+            c: [
+              { t: "[", s: 251, e: 252, c: [], n: [], f: {} },
+              { t: "binding_name", s: 252, e: 260, c: [], n: [], f: {} },
+              { t: "]", s: 260, e: 261, c: [], n: [], f: {} },
+              { t: "=", s: 261, e: 262, c: [], n: [], f: {} },
+              { t: '"', s: 262, e: 263, c: [], n: [], f: {} },
+              { t: "identifier", s: 263, e: 271, c: [], n: [], f: {} },
+              { t: '"', s: 271, e: 272, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, {
+            t: "property_binding",
+            s: 273,
+            e: 294,
+            c: [
+              { t: "[", s: 273, e: 274, c: [], n: [], f: {} },
+              { t: "binding_name", s: 274, e: 283, c: [], n: [], f: {} },
+              { t: "]", s: 283, e: 284, c: [], n: [], f: {} },
+              { t: "=", s: 284, e: 285, c: [], n: [], f: {} },
+              { t: '"', s: 285, e: 286, c: [], n: [], f: {} },
+              { t: "identifier", s: 286, e: 293, c: [], n: [], f: {} },
+              { t: '"', s: 293, e: 294, c: [], n: [], f: {} },
+            ],
+            n: [1, 5],
+            f: { name: 1, value: 5 },
+          }, { t: ">", s: 294, e: 295, c: [], n: [], f: {} }],
+          n: [1, 2, 3, 4, 5, 6, 7],
+          f: { name: 1 },
+        }, {
+          t: "end_tag",
+          s: 295,
+          e: 304,
+          c: [{ t: "</", s: 295, e: 297, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 297,
+            e: 303,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 303, e: 304, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1],
+        f: {},
+      }],
+      n: [0, 1],
+      f: {},
+    },
+  },
+  scope: "sc45c27ed",
+});
+t("login", {
+  template: {
+    source: `<!-- login \u2014 a static page composition. Input: heading. -->
 <div class="login">
   <h1 class="login__h">{{ heading }}</h1>
   <input id="email" type="email" placeholder="you@example.com" class="login__input" />
@@ -14,10 +524,736 @@ import{g as t,h as i,i as r,j as o,l as m,m as u}from"./chunk-UESQ4FBT.js";funct
     <button id="cancel" class="btn" type="button">Cancel</button>
   </div>
 </div>
-`,root:{t:"template",s:0,e:385,c:[{t:"comment",s:0,e:59,c:[],n:[],f:{}},{t:"element",s:60,e:384,c:[{t:"start_tag",s:60,e:79,c:[{t:"<",s:60,e:61,c:[],n:[],f:{}},{t:"tag_name",s:61,e:64,c:[],n:[],f:{}},{t:"attribute",s:65,e:78,c:[{t:"attribute_name",s:65,e:70,c:[],n:[],f:{}},{t:"=",s:70,e:71,c:[],n:[],f:{}},{t:"quoted_value",s:71,e:78,c:[{t:'"',s:71,e:72,c:[],n:[],f:{}},{t:"attribute_text",s:72,e:77,c:[],n:[],f:{}},{t:'"',s:77,e:78,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:78,e:79,c:[],n:[],f:{}}],n:[1,2],f:{name:1}},{t:"element",s:82,e:121,c:[{t:"start_tag",s:82,e:103,c:[{t:"<",s:82,e:83,c:[],n:[],f:{}},{t:"tag_name",s:83,e:85,c:[],n:[],f:{}},{t:"attribute",s:86,e:102,c:[{t:"attribute_name",s:86,e:91,c:[],n:[],f:{}},{t:"=",s:91,e:92,c:[],n:[],f:{}},{t:"quoted_value",s:92,e:102,c:[{t:'"',s:92,e:93,c:[],n:[],f:{}},{t:"attribute_text",s:93,e:101,c:[],n:[],f:{}},{t:'"',s:101,e:102,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:102,e:103,c:[],n:[],f:{}}],n:[1,2],f:{name:1}},{t:"interpolation",s:103,e:116,c:[{t:"{{",s:103,e:105,c:[],n:[],f:{}},{t:"identifier",s:106,e:113,c:[],n:[],f:{}},{t:"}}",s:114,e:116,c:[],n:[],f:{}}],n:[1],f:{expression:1}},{t:"end_tag",s:116,e:121,c:[{t:"</",s:116,e:118,c:[],n:[],f:{}},{t:"tag_name",s:118,e:120,c:[],n:[],f:{}},{t:">",s:120,e:121,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2],f:{}},{t:"self_closing_element",s:124,e:208,c:[{t:"<",s:124,e:125,c:[],n:[],f:{}},{t:"tag_name",s:125,e:130,c:[],n:[],f:{}},{t:"attribute",s:131,e:141,c:[{t:"attribute_name",s:131,e:133,c:[],n:[],f:{}},{t:"=",s:133,e:134,c:[],n:[],f:{}},{t:"quoted_value",s:134,e:141,c:[{t:'"',s:134,e:135,c:[],n:[],f:{}},{t:"attribute_text",s:135,e:140,c:[],n:[],f:{}},{t:'"',s:140,e:141,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:142,e:154,c:[{t:"attribute_name",s:142,e:146,c:[],n:[],f:{}},{t:"=",s:146,e:147,c:[],n:[],f:{}},{t:"quoted_value",s:147,e:154,c:[{t:'"',s:147,e:148,c:[],n:[],f:{}},{t:"attribute_text",s:148,e:153,c:[],n:[],f:{}},{t:'"',s:153,e:154,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:155,e:184,c:[{t:"attribute_name",s:155,e:166,c:[],n:[],f:{}},{t:"=",s:166,e:167,c:[],n:[],f:{}},{t:"quoted_value",s:167,e:184,c:[{t:'"',s:167,e:168,c:[],n:[],f:{}},{t:"attribute_text",s:168,e:183,c:[],n:[],f:{}},{t:'"',s:183,e:184,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:185,e:205,c:[{t:"attribute_name",s:185,e:190,c:[],n:[],f:{}},{t:"=",s:190,e:191,c:[],n:[],f:{}},{t:"quoted_value",s:191,e:205,c:[{t:'"',s:191,e:192,c:[],n:[],f:{}},{t:"attribute_text",s:192,e:204,c:[],n:[],f:{}},{t:'"',s:204,e:205,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"/>",s:206,e:208,c:[],n:[],f:{}}],n:[1,2,3,4,5],f:{name:1}},{t:"element",s:211,e:377,c:[{t:"start_tag",s:211,e:235,c:[{t:"<",s:211,e:212,c:[],n:[],f:{}},{t:"tag_name",s:212,e:215,c:[],n:[],f:{}},{t:"attribute",s:216,e:234,c:[{t:"attribute_name",s:216,e:221,c:[],n:[],f:{}},{t:"=",s:221,e:222,c:[],n:[],f:{}},{t:"quoted_value",s:222,e:234,c:[{t:'"',s:222,e:223,c:[],n:[],f:{}},{t:"attribute_text",s:223,e:233,c:[],n:[],f:{}},{t:'"',s:233,e:234,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:234,e:235,c:[],n:[],f:{}}],n:[1,2],f:{name:1}},{t:"element",s:240,e:302,c:[{t:"start_tag",s:240,e:286,c:[{t:"<",s:240,e:241,c:[],n:[],f:{}},{t:"tag_name",s:241,e:247,c:[],n:[],f:{}},{t:"attribute",s:248,e:259,c:[{t:"attribute_name",s:248,e:250,c:[],n:[],f:{}},{t:"=",s:250,e:251,c:[],n:[],f:{}},{t:"quoted_value",s:251,e:259,c:[{t:'"',s:251,e:252,c:[],n:[],f:{}},{t:"attribute_text",s:252,e:258,c:[],n:[],f:{}},{t:'"',s:258,e:259,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:260,e:271,c:[{t:"attribute_name",s:260,e:265,c:[],n:[],f:{}},{t:"=",s:265,e:266,c:[],n:[],f:{}},{t:"quoted_value",s:266,e:271,c:[{t:'"',s:266,e:267,c:[],n:[],f:{}},{t:"attribute_text",s:267,e:270,c:[],n:[],f:{}},{t:'"',s:270,e:271,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:272,e:285,c:[{t:"attribute_name",s:272,e:276,c:[],n:[],f:{}},{t:"=",s:276,e:277,c:[],n:[],f:{}},{t:"quoted_value",s:277,e:285,c:[{t:'"',s:277,e:278,c:[],n:[],f:{}},{t:"attribute_text",s:278,e:284,c:[],n:[],f:{}},{t:'"',s:284,e:285,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:285,e:286,c:[],n:[],f:{}}],n:[1,2,3,4],f:{name:1}},{t:"text",s:286,e:293,c:[],n:[],f:{}},{t:"end_tag",s:293,e:302,c:[{t:"</",s:293,e:295,c:[],n:[],f:{}},{t:"tag_name",s:295,e:301,c:[],n:[],f:{}},{t:">",s:301,e:302,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2],f:{}},{t:"element",s:307,e:368,c:[{t:"start_tag",s:307,e:353,c:[{t:"<",s:307,e:308,c:[],n:[],f:{}},{t:"tag_name",s:308,e:314,c:[],n:[],f:{}},{t:"attribute",s:315,e:326,c:[{t:"attribute_name",s:315,e:317,c:[],n:[],f:{}},{t:"=",s:317,e:318,c:[],n:[],f:{}},{t:"quoted_value",s:318,e:326,c:[{t:'"',s:318,e:319,c:[],n:[],f:{}},{t:"attribute_text",s:319,e:325,c:[],n:[],f:{}},{t:'"',s:325,e:326,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:327,e:338,c:[{t:"attribute_name",s:327,e:332,c:[],n:[],f:{}},{t:"=",s:332,e:333,c:[],n:[],f:{}},{t:"quoted_value",s:333,e:338,c:[{t:'"',s:333,e:334,c:[],n:[],f:{}},{t:"attribute_text",s:334,e:337,c:[],n:[],f:{}},{t:'"',s:337,e:338,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:"attribute",s:339,e:352,c:[{t:"attribute_name",s:339,e:343,c:[],n:[],f:{}},{t:"=",s:343,e:344,c:[],n:[],f:{}},{t:"quoted_value",s:344,e:352,c:[{t:'"',s:344,e:345,c:[],n:[],f:{}},{t:"attribute_text",s:345,e:351,c:[],n:[],f:{}},{t:'"',s:351,e:352,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:352,e:353,c:[],n:[],f:{}}],n:[1,2,3,4],f:{name:1}},{t:"text",s:353,e:359,c:[],n:[],f:{}},{t:"end_tag",s:359,e:368,c:[{t:"</",s:359,e:361,c:[],n:[],f:{}},{t:"tag_name",s:361,e:367,c:[],n:[],f:{}},{t:">",s:367,e:368,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2],f:{}},{t:"end_tag",s:371,e:377,c:[{t:"</",s:371,e:373,c:[],n:[],f:{}},{t:"tag_name",s:373,e:376,c:[],n:[],f:{}},{t:">",s:376,e:377,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2,3],f:{}},{t:"end_tag",s:378,e:384,c:[{t:"</",s:378,e:380,c:[],n:[],f:{}},{t:"tag_name",s:380,e:383,c:[],n:[],f:{}},{t:">",s:383,e:384,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2,3,4],f:{}}],n:[0,1],f:{}}},scope:"seaa0f7b1"});t("shell",{template:{source:`<!-- Root layout: the persistent document chrome. The matched page renders into
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 385,
+      c: [{ t: "comment", s: 0, e: 59, c: [], n: [], f: {} }, {
+        t: "element",
+        s: 60,
+        e: 384,
+        c: [{
+          t: "start_tag",
+          s: 60,
+          e: 79,
+          c: [{ t: "<", s: 60, e: 61, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 61,
+            e: 64,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 65,
+            e: 78,
+            c: [{ t: "attribute_name", s: 65, e: 70, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 70,
+              e: 71,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 71,
+              e: 78,
+              c: [{ t: '"', s: 71, e: 72, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 72,
+                e: 77,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 77, e: 78, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, { t: ">", s: 78, e: 79, c: [], n: [], f: {} }],
+          n: [1, 2],
+          f: { name: 1 },
+        }, {
+          t: "element",
+          s: 82,
+          e: 121,
+          c: [{
+            t: "start_tag",
+            s: 82,
+            e: 103,
+            c: [{ t: "<", s: 82, e: 83, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 83,
+              e: 85,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "attribute",
+              s: 86,
+              e: 102,
+              c: [{ t: "attribute_name", s: 86, e: 91, c: [], n: [], f: {} }, {
+                t: "=",
+                s: 91,
+                e: 92,
+                c: [],
+                n: [],
+                f: {},
+              }, {
+                t: "quoted_value",
+                s: 92,
+                e: 102,
+                c: [{ t: '"', s: 92, e: 93, c: [], n: [], f: {} }, {
+                  t: "attribute_text",
+                  s: 93,
+                  e: 101,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: '"', s: 101, e: 102, c: [], n: [], f: {} }],
+                n: [1],
+                f: {},
+              }],
+              n: [0, 2],
+              f: { name: 0, value: 2 },
+            }, { t: ">", s: 102, e: 103, c: [], n: [], f: {} }],
+            n: [1, 2],
+            f: { name: 1 },
+          }, {
+            t: "interpolation",
+            s: 103,
+            e: 116,
+            c: [{ t: "{{", s: 103, e: 105, c: [], n: [], f: {} }, {
+              t: "identifier",
+              s: 106,
+              e: 113,
+              c: [],
+              n: [],
+              f: {},
+            }, { t: "}}", s: 114, e: 116, c: [], n: [], f: {} }],
+            n: [1],
+            f: { expression: 1 },
+          }, {
+            t: "end_tag",
+            s: 116,
+            e: 121,
+            c: [{ t: "</", s: 116, e: 118, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 118,
+              e: 120,
+              c: [],
+              n: [],
+              f: {},
+            }, { t: ">", s: 120, e: 121, c: [], n: [], f: {} }],
+            n: [1],
+            f: { name: 1 },
+          }],
+          n: [0, 1, 2],
+          f: {},
+        }, {
+          t: "self_closing_element",
+          s: 124,
+          e: 208,
+          c: [{ t: "<", s: 124, e: 125, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 125,
+            e: 130,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 131,
+            e: 141,
+            c: [{ t: "attribute_name", s: 131, e: 133, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 133,
+              e: 134,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 134,
+              e: 141,
+              c: [{ t: '"', s: 134, e: 135, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 135,
+                e: 140,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 140, e: 141, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "attribute",
+            s: 142,
+            e: 154,
+            c: [{ t: "attribute_name", s: 142, e: 146, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 146,
+              e: 147,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 147,
+              e: 154,
+              c: [{ t: '"', s: 147, e: 148, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 148,
+                e: 153,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 153, e: 154, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "attribute",
+            s: 155,
+            e: 184,
+            c: [{ t: "attribute_name", s: 155, e: 166, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 166,
+              e: 167,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 167,
+              e: 184,
+              c: [{ t: '"', s: 167, e: 168, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 168,
+                e: 183,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 183, e: 184, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, {
+            t: "attribute",
+            s: 185,
+            e: 205,
+            c: [{ t: "attribute_name", s: 185, e: 190, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 190,
+              e: 191,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 191,
+              e: 205,
+              c: [{ t: '"', s: 191, e: 192, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 192,
+                e: 204,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 204, e: 205, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, { t: "/>", s: 206, e: 208, c: [], n: [], f: {} }],
+          n: [1, 2, 3, 4, 5],
+          f: { name: 1 },
+        }, {
+          t: "element",
+          s: 211,
+          e: 377,
+          c: [{
+            t: "start_tag",
+            s: 211,
+            e: 235,
+            c: [{ t: "<", s: 211, e: 212, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 212,
+              e: 215,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "attribute",
+              s: 216,
+              e: 234,
+              c: [
+                { t: "attribute_name", s: 216, e: 221, c: [], n: [], f: {} },
+                { t: "=", s: 221, e: 222, c: [], n: [], f: {} },
+                {
+                  t: "quoted_value",
+                  s: 222,
+                  e: 234,
+                  c: [{ t: '"', s: 222, e: 223, c: [], n: [], f: {} }, {
+                    t: "attribute_text",
+                    s: 223,
+                    e: 233,
+                    c: [],
+                    n: [],
+                    f: {},
+                  }, { t: '"', s: 233, e: 234, c: [], n: [], f: {} }],
+                  n: [1],
+                  f: {},
+                },
+              ],
+              n: [0, 2],
+              f: { name: 0, value: 2 },
+            }, { t: ">", s: 234, e: 235, c: [], n: [], f: {} }],
+            n: [1, 2],
+            f: { name: 1 },
+          }, {
+            t: "element",
+            s: 240,
+            e: 302,
+            c: [
+              {
+                t: "start_tag",
+                s: 240,
+                e: 286,
+                c: [{ t: "<", s: 240, e: 241, c: [], n: [], f: {} }, {
+                  t: "tag_name",
+                  s: 241,
+                  e: 247,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, {
+                  t: "attribute",
+                  s: 248,
+                  e: 259,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 248,
+                      e: 250,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 250, e: 251, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 251,
+                      e: 259,
+                      c: [{ t: '"', s: 251, e: 252, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 252,
+                        e: 258,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 258, e: 259, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, {
+                  t: "attribute",
+                  s: 260,
+                  e: 271,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 260,
+                      e: 265,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 265, e: 266, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 266,
+                      e: 271,
+                      c: [{ t: '"', s: 266, e: 267, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 267,
+                        e: 270,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 270, e: 271, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, {
+                  t: "attribute",
+                  s: 272,
+                  e: 285,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 272,
+                      e: 276,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 276, e: 277, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 277,
+                      e: 285,
+                      c: [{ t: '"', s: 277, e: 278, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 278,
+                        e: 284,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 284, e: 285, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, { t: ">", s: 285, e: 286, c: [], n: [], f: {} }],
+                n: [1, 2, 3, 4],
+                f: { name: 1 },
+              },
+              { t: "text", s: 286, e: 293, c: [], n: [], f: {} },
+              {
+                t: "end_tag",
+                s: 293,
+                e: 302,
+                c: [{ t: "</", s: 293, e: 295, c: [], n: [], f: {} }, {
+                  t: "tag_name",
+                  s: 295,
+                  e: 301,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: ">", s: 301, e: 302, c: [], n: [], f: {} }],
+                n: [1],
+                f: { name: 1 },
+              },
+            ],
+            n: [0, 1, 2],
+            f: {},
+          }, {
+            t: "element",
+            s: 307,
+            e: 368,
+            c: [
+              {
+                t: "start_tag",
+                s: 307,
+                e: 353,
+                c: [{ t: "<", s: 307, e: 308, c: [], n: [], f: {} }, {
+                  t: "tag_name",
+                  s: 308,
+                  e: 314,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, {
+                  t: "attribute",
+                  s: 315,
+                  e: 326,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 315,
+                      e: 317,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 317, e: 318, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 318,
+                      e: 326,
+                      c: [{ t: '"', s: 318, e: 319, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 319,
+                        e: 325,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 325, e: 326, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, {
+                  t: "attribute",
+                  s: 327,
+                  e: 338,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 327,
+                      e: 332,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 332, e: 333, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 333,
+                      e: 338,
+                      c: [{ t: '"', s: 333, e: 334, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 334,
+                        e: 337,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 337, e: 338, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, {
+                  t: "attribute",
+                  s: 339,
+                  e: 352,
+                  c: [
+                    {
+                      t: "attribute_name",
+                      s: 339,
+                      e: 343,
+                      c: [],
+                      n: [],
+                      f: {},
+                    },
+                    { t: "=", s: 343, e: 344, c: [], n: [], f: {} },
+                    {
+                      t: "quoted_value",
+                      s: 344,
+                      e: 352,
+                      c: [{ t: '"', s: 344, e: 345, c: [], n: [], f: {} }, {
+                        t: "attribute_text",
+                        s: 345,
+                        e: 351,
+                        c: [],
+                        n: [],
+                        f: {},
+                      }, { t: '"', s: 351, e: 352, c: [], n: [], f: {} }],
+                      n: [1],
+                      f: {},
+                    },
+                  ],
+                  n: [0, 2],
+                  f: { name: 0, value: 2 },
+                }, { t: ">", s: 352, e: 353, c: [], n: [], f: {} }],
+                n: [1, 2, 3, 4],
+                f: { name: 1 },
+              },
+              { t: "text", s: 353, e: 359, c: [], n: [], f: {} },
+              {
+                t: "end_tag",
+                s: 359,
+                e: 368,
+                c: [{ t: "</", s: 359, e: 361, c: [], n: [], f: {} }, {
+                  t: "tag_name",
+                  s: 361,
+                  e: 367,
+                  c: [],
+                  n: [],
+                  f: {},
+                }, { t: ">", s: 367, e: 368, c: [], n: [], f: {} }],
+                n: [1],
+                f: { name: 1 },
+              },
+            ],
+            n: [0, 1, 2],
+            f: {},
+          }, {
+            t: "end_tag",
+            s: 371,
+            e: 377,
+            c: [{ t: "</", s: 371, e: 373, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 373,
+              e: 376,
+              c: [],
+              n: [],
+              f: {},
+            }, { t: ">", s: 376, e: 377, c: [], n: [], f: {} }],
+            n: [1],
+            f: { name: 1 },
+          }],
+          n: [0, 1, 2, 3],
+          f: {},
+        }, {
+          t: "end_tag",
+          s: 378,
+          e: 384,
+          c: [{ t: "</", s: 378, e: 380, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 380,
+            e: 383,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 383, e: 384, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1, 2, 3, 4],
+        f: {},
+      }],
+      n: [0, 1],
+      f: {},
+    },
+  },
+  scope: "seaa0f7b1",
+});
+t("shell", {
+  template: {
+    source:
+      `<!-- Root layout: the persistent document chrome. The matched page renders into
      the outlet. The workbench itself is a full-bleed island, so the shell stays
      minimal \u2014 it just hosts the outlet. -->
 <div class="app-root">
   <router-outlet></router-outlet>
 </div>
-`,root:{t:"template",s:0,e:270,c:[{t:"comment",s:0,e:205,c:[],n:[],f:{}},{t:"element",s:206,e:269,c:[{t:"start_tag",s:206,e:228,c:[{t:"<",s:206,e:207,c:[],n:[],f:{}},{t:"tag_name",s:207,e:210,c:[],n:[],f:{}},{t:"attribute",s:211,e:227,c:[{t:"attribute_name",s:211,e:216,c:[],n:[],f:{}},{t:"=",s:216,e:217,c:[],n:[],f:{}},{t:"quoted_value",s:217,e:227,c:[{t:'"',s:217,e:218,c:[],n:[],f:{}},{t:"attribute_text",s:218,e:226,c:[],n:[],f:{}},{t:'"',s:226,e:227,c:[],n:[],f:{}}],n:[1],f:{}}],n:[0,2],f:{name:0,value:2}},{t:">",s:227,e:228,c:[],n:[],f:{}}],n:[1,2],f:{name:1}},{t:"element",s:231,e:262,c:[{t:"start_tag",s:231,e:246,c:[{t:"<",s:231,e:232,c:[],n:[],f:{}},{t:"tag_name",s:232,e:245,c:[],n:[],f:{}},{t:">",s:245,e:246,c:[],n:[],f:{}}],n:[1],f:{name:1}},{t:"end_tag",s:246,e:262,c:[{t:"</",s:246,e:248,c:[],n:[],f:{}},{t:"tag_name",s:248,e:261,c:[],n:[],f:{}},{t:">",s:261,e:262,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1],f:{}},{t:"end_tag",s:263,e:269,c:[{t:"</",s:263,e:265,c:[],n:[],f:{}},{t:"tag_name",s:265,e:268,c:[],n:[],f:{}},{t:">",s:268,e:269,c:[],n:[],f:{}}],n:[1],f:{name:1}}],n:[0,1,2],f:{}}],n:[0,1],f:{}}},scope:"s11e1fc01"});var _=()=>{m(a),u(a)};document.readyState==="loading"?addEventListener("DOMContentLoaded",_):_();
+`,
+    root: {
+      t: "template",
+      s: 0,
+      e: 270,
+      c: [{ t: "comment", s: 0, e: 205, c: [], n: [], f: {} }, {
+        t: "element",
+        s: 206,
+        e: 269,
+        c: [{
+          t: "start_tag",
+          s: 206,
+          e: 228,
+          c: [{ t: "<", s: 206, e: 207, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 207,
+            e: 210,
+            c: [],
+            n: [],
+            f: {},
+          }, {
+            t: "attribute",
+            s: 211,
+            e: 227,
+            c: [{ t: "attribute_name", s: 211, e: 216, c: [], n: [], f: {} }, {
+              t: "=",
+              s: 216,
+              e: 217,
+              c: [],
+              n: [],
+              f: {},
+            }, {
+              t: "quoted_value",
+              s: 217,
+              e: 227,
+              c: [{ t: '"', s: 217, e: 218, c: [], n: [], f: {} }, {
+                t: "attribute_text",
+                s: 218,
+                e: 226,
+                c: [],
+                n: [],
+                f: {},
+              }, { t: '"', s: 226, e: 227, c: [], n: [], f: {} }],
+              n: [1],
+              f: {},
+            }],
+            n: [0, 2],
+            f: { name: 0, value: 2 },
+          }, { t: ">", s: 227, e: 228, c: [], n: [], f: {} }],
+          n: [1, 2],
+          f: { name: 1 },
+        }, {
+          t: "element",
+          s: 231,
+          e: 262,
+          c: [{
+            t: "start_tag",
+            s: 231,
+            e: 246,
+            c: [{ t: "<", s: 231, e: 232, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 232,
+              e: 245,
+              c: [],
+              n: [],
+              f: {},
+            }, { t: ">", s: 245, e: 246, c: [], n: [], f: {} }],
+            n: [1],
+            f: { name: 1 },
+          }, {
+            t: "end_tag",
+            s: 246,
+            e: 262,
+            c: [{ t: "</", s: 246, e: 248, c: [], n: [], f: {} }, {
+              t: "tag_name",
+              s: 248,
+              e: 261,
+              c: [],
+              n: [],
+              f: {},
+            }, { t: ">", s: 261, e: 262, c: [], n: [], f: {} }],
+            n: [1],
+            f: { name: 1 },
+          }],
+          n: [0, 1],
+          f: {},
+        }, {
+          t: "end_tag",
+          s: 263,
+          e: 269,
+          c: [{ t: "</", s: 263, e: 265, c: [], n: [], f: {} }, {
+            t: "tag_name",
+            s: 265,
+            e: 268,
+            c: [],
+            n: [],
+            f: {},
+          }, { t: ">", s: 268, e: 269, c: [], n: [], f: {} }],
+          n: [1],
+          f: { name: 1 },
+        }],
+        n: [0, 1, 2],
+        f: {},
+      }],
+      n: [0, 1],
+      f: {},
+    },
+  },
+  scope: "s11e1fc01",
+});
+var _ = () => {
+  m(a), u(a);
+};
+document.readyState === "loading"
+  ? addEventListener("DOMContentLoaded", _)
+  : _();

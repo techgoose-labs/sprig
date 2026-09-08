@@ -1,11 +1,13 @@
 import { assertEquals } from "@std/assert";
-import { sprigUi } from "./mod.ts";
+import { Frontend } from "./mod.ts";
 
-// Minimal UI middleware; the asset branch runs before app.fetch, so a stub app is fine.
-const ui = sprigUi({
-  app: { fetch: () => new Response("app") } as unknown as Parameters<typeof sprigUi>[0]["app"],
+// Minimal UI unit; the asset branch runs before app.fetch, so a stub app is fine.
+const ui = Frontend({
+  app: { fetch: () => new Response("app") } as unknown as Parameters<
+    typeof Frontend
+  >[0]["app"],
   assetsDir: "static",
-});
+}).handler;
 
 // BUG (cross-model lens Q3 / workflow security-2) — the path-traversal guard split
 // only on "/", so a percent-encoded BACKSLASH (%5c) produced "..\\.." which has no

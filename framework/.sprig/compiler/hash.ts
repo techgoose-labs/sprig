@@ -29,7 +29,9 @@ export async function shortHash(paths: string[]): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", all);
   // 8 bytes / 64-bit — `v` is the sole cache-buster for the stable-named, immutable-
   // cached client.js + isl.*.js, so keep it collision-safe (matches esbuild's hashes).
-  return [...new Uint8Array(digest)].slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(digest)].slice(0, 8).map((b) =>
+    b.toString(16).padStart(2, "0")
+  ).join("");
 }
 
 /** The ?v= content version of a built assets dir: shortHash over the SERVED file set
@@ -40,7 +42,9 @@ export async function versionOf(dir: string): Promise<string | null> {
   try {
     const files: string[] = [];
     for await (const e of Deno.readDir(dir)) {
-      if (e.isFile && (e.name.endsWith(".js") || e.name === "app.css")) files.push(join(dir, e.name));
+      if (e.isFile && (e.name.endsWith(".js") || e.name === "app.css")) {
+        files.push(join(dir, e.name));
+      }
     }
     return files.length ? await shortHash(files.sort()) : null;
   } catch {

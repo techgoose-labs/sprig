@@ -13,7 +13,11 @@ export async function scan(input: RootDto): Promise<DiscoverResultDto> {
   const projectData = new ProjectData();
 
   // reads — load inputs through the data adapters (validated at the seam)
-  const projectScan = assert(DiscoverResultDto, await projectData.scan(validInput.projectRoot), "project.scan");
+  const projectScan = assert(
+    DiscoverResultDto,
+    await projectData.scan(validInput.projectRoot),
+    "project.scan",
+  );
 
   // core — pure business logic, no I/O
   const out = scanCore(validInput, projectScan);
@@ -23,7 +27,10 @@ export async function scan(input: RootDto): Promise<DiscoverResultDto> {
 
 // Pure business logic for discovery.scan — no I/O. Takes the
 // request input and the dtos the reads loaded; returns the result.
-function scanCore(input: RootDto, projectScan: DiscoverResultDto): { result: DiscoverResultDto } {
+function scanCore(
+  input: RootDto,
+  projectScan: DiscoverResultDto,
+): { result: DiscoverResultDto } {
   const discovery = new Discovery();
   return { result: discovery.collect(projectScan) };
 }

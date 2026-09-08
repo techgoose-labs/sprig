@@ -43,11 +43,21 @@ Deno.test("renderDocument prefers the env-threaded assetsVersion over its own re
   const { tmp, restore } = await makeDegradedRenderer();
   try {
     const r = await createRenderer(tmp, "/ui", {});
-    const html = await r.renderDocument("pages/home", {}, { assetsVersion: "cafe1234beef5678" });
+    const html = await r.renderDocument("pages/home", {}, {
+      assetsVersion: "cafe1234beef5678",
+    });
     const v = vsOf(html);
-    assertEquals(v.client, "cafe1234beef5678", "client.js is stamped with the SERVED dir's hash");
+    assertEquals(
+      v.client,
+      "cafe1234beef5678",
+      "client.js is stamped with the SERVED dir's hash",
+    );
     assertEquals(v.css, "cafe1234beef5678", "app.css too");
-    assertEquals(v.cfg, "cafe1234beef5678", "__sprig_config.v too (island imports use it)");
+    assertEquals(
+      v.cfg,
+      "cafe1234beef5678",
+      "__sprig_config.v too (island imports use it)",
+    );
   } finally {
     restore();
     await Deno.remove(tmp, { recursive: true });
@@ -58,11 +68,16 @@ Deno.test("renderStream stamps the env version in head AND tail", async () => {
   const { tmp, restore } = await makeDegradedRenderer();
   try {
     const r = await createRenderer(tmp, "/ui", {});
-    const html = await new Response(r.renderStream("pages/home", {}, { assetsVersion: "cafe1234beef5678" })).text();
+    const html = await new Response(
+      r.renderStream("pages/home", {}, { assetsVersion: "cafe1234beef5678" }),
+    ).text();
     const v = vsOf(html);
     assertEquals(v.client, "cafe1234beef5678");
     assertEquals(v.cfg, "cafe1234beef5678");
-    assert(!html.includes("?v=dev"), "no degraded URL survives when the env supplies the version");
+    assert(
+      !html.includes("?v=dev"),
+      "no degraded URL survives when the env supplies the version",
+    );
   } finally {
     restore();
     await Deno.remove(tmp, { recursive: true });
@@ -76,20 +91,34 @@ Deno.test("a degraded NON-dev render warns ONCE, naming the directory it tried",
   console.warn = (...a: unknown[]) => warns.push(a.join(" "));
   try {
     const r = await createRenderer(tmp, "/ui", {});
-    assertEquals(warns.length, 0, "no warning at boot — serveSprig apps get their version per request");
+    assertEquals(
+      warns.length,
+      0,
+      "no warning at boot — serveSprig apps get their version per request",
+    );
 
     const html = await r.renderDocument("pages/home", {}); // no env version → degraded
     assertStringIncludes(html, "?v=dev", "the fallback itself is unchanged");
     assertEquals(warns.length, 1, "the FIRST degraded render warns");
     assertStringIncludes(warns[0], "[sprig]");
-    assertStringIncludes(warns[0], joinPath(Deno.cwd(), "static"), "names the dir it tried to hash");
+    assertStringIncludes(
+      warns[0],
+      joinPath(Deno.cwd(), "static"),
+      "names the dir it tried to hash",
+    );
 
     await r.renderDocument("pages/home", {});
     assertEquals(warns.length, 1, "…and only the first (once per process)");
 
     warns.length = 0;
-    await r.renderDocument("pages/home", {}, { assetsVersion: "cafe1234beef5678" });
-    assertEquals(warns.length, 0, "an env-supplied version is not a degraded render");
+    await r.renderDocument("pages/home", {}, {
+      assetsVersion: "cafe1234beef5678",
+    });
+    assertEquals(
+      warns.length,
+      0,
+      "an env-supplied version is not a degraded render",
+    );
   } finally {
     console.warn = origWarn;
     restore();

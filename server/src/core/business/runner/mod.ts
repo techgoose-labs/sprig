@@ -14,8 +14,8 @@ const PW_BIN = `${RUNNER_DIR}/.bin/playwright`;
 // app's full suite exceeds it (twice measured on a 20+-page suite — the run dies as
 // error:"timeout" with nothing wrong). ISOLATE_SPAWN_TIMEOUT_MS raises the ceiling for
 // CI/gates without touching per-unit default behavior.
-const DEFAULT_TIMEOUT_MS =
-  Number(Deno.env.get("ISOLATE_SPAWN_TIMEOUT_MS")) || 120_000;
+const DEFAULT_TIMEOUT_MS = Number(Deno.env.get("ISOLATE_SPAWN_TIMEOUT_MS")) ||
+  120_000;
 
 const stripAnsi = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
 
@@ -64,7 +64,8 @@ export async function runnerStatus(): Promise<RunnerStatus> {
       stdout: "piped",
       stderr: "null",
     }).output();
-    version = new TextDecoder().decode(out.stdout).match(/(\d+\.\d+\.\d+)/)?.[1];
+    version = new TextDecoder().decode(out.stdout).match(/(\d+\.\d+\.\d+)/)
+      ?.[1];
   } catch { /* ignore */ }
   return { ok: true, version, path: RUNNER_DIR, message: "runner ready" };
 }

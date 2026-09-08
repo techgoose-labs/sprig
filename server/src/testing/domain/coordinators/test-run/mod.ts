@@ -13,7 +13,11 @@ export async function run(input: TestRunRequestDto): Promise<TestReportDto> {
   const runnerData = new RunnerData();
 
   // reads — load inputs through the data adapters (validated at the seam)
-  const runnerRun = assert(TestReportDto, await runnerData.run(validInput), "runner.run");
+  const runnerRun = assert(
+    TestReportDto,
+    await runnerData.run(validInput),
+    "runner.run",
+  );
 
   // core — pure business logic, no I/O
   const out = runCore(validInput, runnerRun);
@@ -23,7 +27,10 @@ export async function run(input: TestRunRequestDto): Promise<TestReportDto> {
 
 // Pure business logic for test.run — no I/O. Takes the
 // request input and the dtos the reads loaded; returns the result.
-function runCore(input: TestRunRequestDto, runnerRun: TestReportDto): { result: TestReportDto } {
+function runCore(
+  input: TestRunRequestDto,
+  runnerRun: TestReportDto,
+): { result: TestReportDto } {
   const test = new Test();
   return { result: test.collect(runnerRun) };
 }

@@ -73,7 +73,9 @@ export class JsonNode {
     return this.#source.slice(this.#s.s, this.#s.e);
   }
   get namedChildren(): JsonNode[] {
-    return (this.#named ??= this.#s.n.map((i) => new JsonNode(this.#s.c[i], this.#source)));
+    return (this.#named ??= this.#s.n.map((i) =>
+      new JsonNode(this.#s.c[i], this.#source)
+    ));
   }
   childForFieldName(name: string): JsonNode | null {
     const i = this.#s.f[name];

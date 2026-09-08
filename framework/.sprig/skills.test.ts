@@ -26,16 +26,31 @@ Deno.test("installSkills: base-level whole-folder replace into user scope", asyn
   Deno.env.set("CLAUDE_SKILLS_DIR", dest); // sandbox — never the real ~/.claude/skills
   try {
     // --- seed the destination (a prior install) ---
-    await writeFile(join(dest, "build", "SKILL.md"), "name: sprig:build\nOLD BUILD\n");
-    await writeFile(join(dest, "build", "USER_NOTES.md"), "a file the user added inside build/");
+    await writeFile(
+      join(dest, "build", "SKILL.md"),
+      "name: sprig:build\nOLD BUILD\n",
+    );
+    await writeFile(
+      join(dest, "build", "USER_NOTES.md"),
+      "a file the user added inside build/",
+    );
     await writeFile(join(dest, "myskill", "SKILL.md"), "name: me:myskill\n");
     await writeFile(join(dest, "myskill", "MARKER.txt"), "untouched");
 
     // --- the source skills/ to install ---
-    await writeFile(join(src, "build", "SKILL.md"), "name: sprig:build\nNEW BUILD\n");
+    await writeFile(
+      join(src, "build", "SKILL.md"),
+      "name: sprig:build\nNEW BUILD\n",
+    );
     await writeFile(join(src, "fresh", "SKILL.md"), "name: sprig:fresh\n");
-    await writeFile(join(src, "interfaces", "design-system.md"), "shared contract"); // no SKILL.md, exempt
-    await writeFile(join(src, "nogood", "README.md"), "not a skill — no SKILL.md");
+    await writeFile(
+      join(src, "interfaces", "design-system.md"),
+      "shared contract",
+    ); // no SKILL.md, exempt
+    await writeFile(
+      join(src, "nogood", "README.md"),
+      "not a skill — no SKILL.md",
+    );
 
     await installSkills(src);
 
@@ -50,7 +65,10 @@ Deno.test("installSkills: base-level whole-folder replace into user scope", asyn
     assert(await exists(join(dest, "fresh", "SKILL.md")));
     // ... the unrelated existing skill is UNTOUCHED ...
     assert(await exists(join(dest, "myskill", "SKILL.md")));
-    assertEquals(await Deno.readTextFile(join(dest, "myskill", "MARKER.txt")), "untouched");
+    assertEquals(
+      await Deno.readTextFile(join(dest, "myskill", "MARKER.txt")),
+      "untouched",
+    );
     // ... the interfaces contracts sibling is carried (exempt from the SKILL.md guard) ...
     assert(await exists(join(dest, "interfaces", "design-system.md")));
     // ... and a dir without SKILL.md is skipped.
@@ -84,9 +102,15 @@ Deno.test("installAgents: base-level replace of flat .md files into user scope",
     await installAgents(src);
 
     // same-named agent is UPDATED ...
-    assertEquals(await Deno.readTextFile(join(dest, "hunter.md")), "NEW HUNTER");
+    assertEquals(
+      await Deno.readTextFile(join(dest, "hunter.md")),
+      "NEW HUNTER",
+    );
     // ... the new agent is INSTALLED ...
-    assertEquals(await Deno.readTextFile(join(dest, "fresh.md")), "a brand new agent");
+    assertEquals(
+      await Deno.readTextFile(join(dest, "fresh.md")),
+      "a brand new agent",
+    );
     // ... the unrelated existing agent is UNTOUCHED ...
     assertEquals(await Deno.readTextFile(join(dest, "mine.md")), "untouched");
     // ... and the dotfile is NOT copied.
@@ -116,9 +140,15 @@ Deno.test("installSkills: replaces a symlinked skill in place (no write-through)
 
     const li = await Deno.lstat(join(dest, "build"));
     assert(!li.isSymlink, "destination is a real dir, not a symlink");
-    assertEquals(await Deno.readTextFile(join(dest, "build", "SKILL.md")), "real folder");
+    assertEquals(
+      await Deno.readTextFile(join(dest, "build", "SKILL.md")),
+      "real folder",
+    );
     // the link target was not written through
-    assertEquals(await Deno.readTextFile(join(elsewhere, "SKILL.md")), "linked target");
+    assertEquals(
+      await Deno.readTextFile(join(elsewhere, "SKILL.md")),
+      "linked target",
+    );
   } finally {
     if (prev === undefined) Deno.env.delete("CLAUDE_SKILLS_DIR");
     else Deno.env.set("CLAUDE_SKILLS_DIR", prev);

@@ -37,7 +37,10 @@ function splitTopComma(s: string): string[] {
     const c = s[i];
     if (c === "(") dp++;
     else if (c === ")") dp--;
-    else if (c === "," && dp === 0) { out.push(s.slice(last, i)); last = i + 1; }
+    else if (c === "," && dp === 0) {
+      out.push(s.slice(last, i));
+      last = i + 1;
+    }
   }
   out.push(s.slice(last));
   return out;
@@ -73,16 +76,22 @@ Deno.test("scope: :host(.a, .b) rule does NOT match a foreign .b element", () =>
       `</body></html>`,
     "text/html",
   )!;
-  const matchedIds = Array.from(doc.querySelectorAll(sel)).map((el) => el.getAttribute("id"));
+  const matchedIds = Array.from(doc.querySelectorAll(sel)).map((el) =>
+    el.getAttribute("id")
+  );
   // the scoped rule must NOT select the foreign (unmarked) .b element
   assert(
     !matchedIds.includes("foreign"),
-    `scoped selector "${sel}" leaked onto #foreign (a .b element from another component); matched=${JSON.stringify(matchedIds)}`,
+    `scoped selector "${sel}" leaked onto #foreign (a .b element from another component); matched=${
+      JSON.stringify(matchedIds)
+    }`,
   );
   // sanity: it still selects our own marked element
   assert(
     matchedIds.includes("own"),
-    `scoped selector "${sel}" failed to match its own [sX] .a.b element; matched=${JSON.stringify(matchedIds)}`,
+    `scoped selector "${sel}" failed to match its own [sX] .a.b element; matched=${
+      JSON.stringify(matchedIds)
+    }`,
   );
 });
 
@@ -102,10 +111,14 @@ Deno.test("scope: chained :host-context collects an ancestor chain that actually
       `</body></html>`,
     "text/html",
   )!;
-  const matchedIds = Array.from(doc.querySelectorAll(sel)).map((el) => el.getAttribute("id"));
+  const matchedIds = Array.from(doc.querySelectorAll(sel)).map((el) =>
+    el.getAttribute("id")
+  );
   assert(
     matchedIds.includes("target"),
-    `chained :host-context selector "${sel}" did not match the .x inside an [sX] host with .a and .b ancestors (collapsed to a non-matching selector); matched=${JSON.stringify(matchedIds)}`,
+    `chained :host-context selector "${sel}" did not match the .x inside an [sX] host with .a and .b ancestors (collapsed to a non-matching selector); matched=${
+      JSON.stringify(matchedIds)
+    }`,
   );
 });
 

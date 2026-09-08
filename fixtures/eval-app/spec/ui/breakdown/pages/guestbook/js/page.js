@@ -4,21 +4,63 @@
 
 // ---------- Hardcoded data (the whole "backend") ----------
 const SEED_MESSAGES = [
-  { id: 1, name: "Marisol Vega",      avatar: "https://i.pravatar.cc/96?img=47", message: "So glad I found this little corner of the internet. It feels like a kitchen with the lights on. Thank you for having me.", minutesAgo: 8 },
-  { id: 2, name: "Dev Okafor",        avatar: "https://i.pravatar.cc/96?img=15", message: "Stopping by from the other side of the world. Sending warmth to whoever reads this next. 🌍", minutesAgo: 41 },
-  { id: 3, name: "Pilar",             avatar: null,                               message: "First time signing a guestbook since I was a kid at my grandmother's lake house. Lovely to do it again.", minutesAgo: 95 },
-  { id: 4, name: "The Whitman House", avatar: null,                               message: "We read these out loud at dinner. Keep them coming — they make the table a little brighter.", minutesAgo: 180 },
-  { id: 5, name: "Quinn Adeyemi",     avatar: "https://i.pravatar.cc/96?img=8",   message: "Just passing through. Lovely place. I'll be back.", minutesAgo: 420 },
-  { id: 6, name: "Sam",               avatar: null,                               message: "Hello from a rainy Tuesday. This made it a little less grey.", minutesAgo: 1500 },
+  {
+    id: 1,
+    name: "Marisol Vega",
+    avatar: "https://i.pravatar.cc/96?img=47",
+    message:
+      "So glad I found this little corner of the internet. It feels like a kitchen with the lights on. Thank you for having me.",
+    minutesAgo: 8,
+  },
+  {
+    id: 2,
+    name: "Dev Okafor",
+    avatar: "https://i.pravatar.cc/96?img=15",
+    message:
+      "Stopping by from the other side of the world. Sending warmth to whoever reads this next. 🌍",
+    minutesAgo: 41,
+  },
+  {
+    id: 3,
+    name: "Pilar",
+    avatar: null,
+    message:
+      "First time signing a guestbook since I was a kid at my grandmother's lake house. Lovely to do it again.",
+    minutesAgo: 95,
+  },
+  {
+    id: 4,
+    name: "The Whitman House",
+    avatar: null,
+    message:
+      "We read these out loud at dinner. Keep them coming — they make the table a little brighter.",
+    minutesAgo: 180,
+  },
+  {
+    id: 5,
+    name: "Quinn Adeyemi",
+    avatar: "https://i.pravatar.cc/96?img=8",
+    message: "Just passing through. Lovely place. I'll be back.",
+    minutesAgo: 420,
+  },
+  {
+    id: 6,
+    name: "Sam",
+    avatar: null,
+    message: "Hello from a rainy Tuesday. This made it a little less grey.",
+    minutesAgo: 1500,
+  },
 ];
 
 // overflow torture-test entries (one giant unbroken token + a wall of text + a long name)
 const OVERFLOW_MESSAGES = [
   {
     id: 901,
-    name: "Maximiliana-Featherington-Bartholomew-the-Third-of-Willowbrook-upon-Avon",
+    name:
+      "Maximiliana-Featherington-Bartholomew-the-Third-of-Willowbrook-upon-Avon",
     avatar: null,
-    message: "I have an extraordinary amount to say and absolutely no intention of using paragraph breaks, so here is one breathless run-on sentence that keeps going and going well past any reasonable length to make certain the card wraps gracefully instead of blowing out the layout, and then for good measure here is an unbreakable token: Supercalifragilisticexpialidocioussuperlongunbreakableurlwithnowhitespaceatallxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    message:
+      "I have an extraordinary amount to say and absolutely no intention of using paragraph breaks, so here is one breathless run-on sentence that keeps going and going well past any reasonable length to make certain the card wraps gracefully instead of blowing out the layout, and then for good measure here is an unbreakable token: Supercalifragilisticexpialidocioussuperlongunbreakableurlwithnowhitespaceatallxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     minutesAgo: 2,
   },
   ...SEED_MESSAGES,
@@ -32,8 +74,18 @@ let viewState = "loading"; // normal | empty | loading | overflow
 const $ = (sel) => document.querySelector(sel);
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(s).replace(
+    /[&<>"']/g,
+    (
+      c,
+    ) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c]),
+  );
 }
 
 function initials(name) {
@@ -70,14 +122,18 @@ function avatarHtml(m) {
   const tint = AVATAR_TINTS[m.id % AVATAR_TINTS.length];
   return `<div class="avatar avatar-placeholder">
     <div class="${tint} w-12 rounded-full">
-      <span class="text-base font-semibold">${escapeHtml(initials(m.name))}</span>
+      <span class="text-base font-semibold">${
+    escapeHtml(initials(m.name))
+  }</span>
     </div>
   </div>`;
 }
 
 function cardHtml(m, isNew) {
   const name = (m.name || "").trim() || "Anonymous guest";
-  return `<article class="card bg-base-100 border border-base-300 shadow-sm ${isNew ? "animate-rise" : ""}">
+  return `<article class="card bg-base-100 border border-base-300 shadow-sm ${
+    isNew ? "animate-rise" : ""
+  }">
     <div class="card-body gap-3 p-5">
       <div class="flex items-start gap-3">
         ${avatarHtml(m)}
@@ -85,10 +141,14 @@ function cardHtml(m, isNew) {
           <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span class="font-semibold break-words">${escapeHtml(name)}</span>
             <span class="badge badge-soft badge-secondary badge-sm shrink-0">
-              <i data-lucide="clock" class="size-[0.85em]"></i> ${timeAgo(m.minutesAgo)}
+              <i data-lucide="clock" class="size-[0.85em]"></i> ${
+    timeAgo(m.minutesAgo)
+  }
             </span>
           </div>
-          <p class="mt-1.5 text-base-content/85 leading-relaxed break-words [overflow-wrap:anywhere]">${escapeHtml(m.message)}</p>
+          <p class="mt-1.5 text-base-content/85 leading-relaxed break-words [overflow-wrap:anywhere]">${
+    escapeHtml(m.message)
+  }</p>
         </div>
       </div>
     </div>
@@ -138,13 +198,16 @@ function renderWall() {
     $("#wallCount").textContent = "0";
   } else {
     wall.innerHTML = list.map((m) => cardHtml(m, m.isNew)).join("");
-    list.forEach((m) => { m.isNew = false; }); // only animate once
+    list.forEach((m) => {
+      m.isNew = false;
+    }); // only animate once
     $("#wallCount").textContent = list.length;
   }
 
   // total "signed" count in header — playful fixed base + live wall size
   const base = 47;
-  $("#signedCount").textContent = (base + (viewState === "empty" ? 0 : list.length)).toLocaleString();
+  $("#signedCount").textContent =
+    (base + (viewState === "empty" ? 0 : list.length)).toLocaleString();
 
   // reflect active demo button
   document.querySelectorAll(".js-state").forEach((b) => {
@@ -161,9 +224,9 @@ function renderWall() {
 function showToast(kind, title, body) {
   const tones = {
     success: { cls: "alert-success", icon: "party-popper" },
-    error:   { cls: "alert-error",   icon: "circle-alert" },
+    error: { cls: "alert-error", icon: "circle-alert" },
     warning: { cls: "alert-warning", icon: "triangle-alert" },
-    info:    { cls: "alert-soft alert-info", icon: "info" },
+    info: { cls: "alert-soft alert-info", icon: "info" },
   };
   const t = tones[kind] || tones.info;
   const el = document.createElement("div");
@@ -240,7 +303,10 @@ document.querySelectorAll(".js-state").forEach((btn) => {
       // fake a fetch: show skeletons, then settle back to the real wall
       viewState = "loading";
       renderWall();
-      setTimeout(() => { viewState = "normal"; renderWall(); }, 1400);
+      setTimeout(() => {
+        viewState = "normal";
+        renderWall();
+      }, 1400);
     } else {
       viewState = target;
       renderWall();
@@ -249,10 +315,17 @@ document.querySelectorAll(".js-state").forEach((btn) => {
 });
 
 $("#errToastBtn").addEventListener("click", () => {
-  showToast("error", "Couldn't post your message", "Something went wrong on our end. Give it another try.");
+  showToast(
+    "error",
+    "Couldn't post your message",
+    "Something went wrong on our end. Give it another try.",
+  );
 });
 
 // ---------- Boot (fake initial load) ----------
 lucide.createIcons();
 renderWall(); // shows skeletons (viewState = "loading")
-setTimeout(() => { viewState = "normal"; renderWall(); }, 900);
+setTimeout(() => {
+  viewState = "normal";
+  renderWall();
+}, 900);

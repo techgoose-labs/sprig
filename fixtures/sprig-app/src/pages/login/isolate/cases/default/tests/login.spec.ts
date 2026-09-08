@@ -10,8 +10,11 @@ const ROUTE = "/pages/login/auth/default";
 /** Open the shell with this case active + its surface published. */
 async function openShell(page: import("@playwright/test").Page) {
   await page.goto(`${BASE}/#${ROUTE}`);
-  await expect(page.locator(".crumb")).toContainText("Default", { timeout: 10000 });
-  await expect(page.locator(".ctrl-group", { hasText: "Sign in" }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.locator(".crumb")).toContainText("Default", {
+    timeout: 10000,
+  });
+  await expect(page.locator(".ctrl-group", { hasText: "Sign in" }).first())
+    .toBeVisible({ timeout: 10000 });
   return page.frameLocator(".stage-frame");
 }
 
@@ -27,7 +30,9 @@ test("each targeted instance group edits only its own element", async ({ page })
 
   // Disabling the "Sign in" (#submit) group leaves #cancel untouched — a targeted
   // group writes the live DOM property directly.
-  await page.locator(".ctrl-group", { hasText: "Sign in" }).locator("input[type=checkbox]").check();
+  await page.locator(".ctrl-group", { hasText: "Sign in" }).locator(
+    "input[type=checkbox]",
+  ).check();
   await expect(frame.locator("#submit")).toBeDisabled();
   await expect(frame.locator("#cancel")).toBeEnabled();
 });
@@ -55,7 +60,9 @@ test("does not log events on inert markup (only controls)", async ({ page }) => 
 test("a disabled control emits no events (not even pointer events)", async ({ page }) => {
   const frame = await openShell(page);
   // Disable #cancel via its targeted controls group (live DOM write).
-  await page.locator(".ctrl-group", { hasText: "Cancel" }).locator("input[type=checkbox]").check();
+  await page.locator(".ctrl-group", { hasText: "Cancel" }).locator(
+    "input[type=checkbox]",
+  ).check();
   await expect(frame.locator("#cancel")).toBeDisabled();
 
   // Force a click on the disabled button — the stage listener must ignore it —
@@ -64,6 +71,8 @@ test("a disabled control emits no events (not even pointer events)", async ({ pa
   await frame.locator("#submit").click();
 
   await page.locator(".dock-tab", { hasText: "console" }).click();
-  await expect(page.locator(".con-row", { hasText: "button#submit" }).first()).toBeVisible();
-  await expect(page.locator(".con-row", { hasText: "button#cancel" })).toHaveCount(0);
+  await expect(page.locator(".con-row", { hasText: "button#submit" }).first())
+    .toBeVisible();
+  await expect(page.locator(".con-row", { hasText: "button#cancel" }))
+    .toHaveCount(0);
 });

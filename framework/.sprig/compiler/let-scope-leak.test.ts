@@ -7,7 +7,11 @@ import { renderNodes } from "./render.ts";
 import type { Scope } from "./expr.ts";
 
 // deno-lint-ignore no-explicit-any
-async function renderSrc(src: string, scope: Scope, registry: any = { get: () => undefined }): Promise<string> {
+async function renderSrc(
+  src: string,
+  scope: Scope,
+  registry: any = { get: () => undefined },
+): Promise<string> {
   const root = await parseTemplate(src);
   return renderNodes(named(root), { scope, registry, source: root.text });
 }
@@ -20,7 +24,10 @@ Deno.test("bug L: @let inside a @switch @case must NOT leak into trailing siblin
   // the body sees its own @let
   assertStringIncludes(out, "<p>99</p>");
   // the trailing sibling must NOT see the case-local @let
-  assert(/<span><\/span>/.test(out), `trailing <span> must be empty, got: ${out}`);
+  assert(
+    /<span><\/span>/.test(out),
+    `trailing <span> must be empty, got: ${out}`,
+  );
 });
 
 Deno.test("bug L: @let inside a @switch @default must NOT leak into trailing siblings", async () => {
@@ -29,7 +36,10 @@ Deno.test("bug L: @let inside a @switch @default must NOT leak into trailing sib
     { s: "zzz" },
   );
   assertStringIncludes(out, "<p>7</p>");
-  assert(/<span><\/span>/.test(out), `trailing <span> must be empty, got: ${out}`);
+  assert(
+    /<span><\/span>/.test(out),
+    `trailing <span> must be empty, got: ${out}`,
+  );
 });
 
 Deno.test("bug L: @let inside a @defer block must NOT leak into trailing siblings", async () => {
@@ -38,7 +48,10 @@ Deno.test("bug L: @let inside a @defer block must NOT leak into trailing sibling
     {},
   );
   assertStringIncludes(out, "<p>5</p>");
-  assert(/<span><\/span>/.test(out), `trailing <span> must be empty, got: ${out}`);
+  assert(
+    /<span><\/span>/.test(out),
+    `trailing <span> must be empty, got: ${out}`,
+  );
 });
 
 Deno.test("bug L: @let inside a @for @empty block must NOT leak into trailing siblings", async () => {
@@ -47,5 +60,8 @@ Deno.test("bug L: @let inside a @for @empty block must NOT leak into trailing si
     { xs: [] },
   );
   assertStringIncludes(out, "<b>42</b>");
-  assert(/<span><\/span>/.test(out), `trailing <span> must be empty, got: ${out}`);
+  assert(
+    /<span><\/span>/.test(out),
+    `trailing <span> must be empty, got: ${out}`,
+  );
 });

@@ -21,7 +21,9 @@ Deno.test("BUG AE: an out-of-range numeric entity in a component-tag attr does N
   clearStaticCache();
   const card = await staticDef("my-card", `<span>{{ title }}</span>`);
   const registry = { get: (s: string) => (s === "my-card" ? card : undefined) };
-  const root = await parseTemplate(`<my-card title="x &#1114112; y"></my-card>`);
+  const root = await parseTemplate(
+    `<my-card title="x &#1114112; y"></my-card>`,
+  );
 
   let html = "";
   // renderNodes MUST NOT throw on an out-of-range code point.
@@ -43,7 +45,11 @@ Deno.test("BUG AE: other out-of-range forms (&#x110000; / huge decimal) also do 
   const registry = { get: (s: string) => (s === "my-card" ? card : undefined) };
   for (const ent of ["&#x110000;", "&#9999999999;"]) {
     const root = await parseTemplate(`<my-card title="a ${ent} b"></my-card>`);
-    const html = renderNodes(named(root), { scope: {}, registry, source: root.text });
+    const html = renderNodes(named(root), {
+      scope: {},
+      registry,
+      source: root.text,
+    });
     // raw match preserved (the leading '&' re-escapes to '&amp;') or U+FFFD; never a crash.
     assert(
       html.includes(ent.slice(1)) || html.includes("�"),

@@ -12,7 +12,11 @@ type Markers = { __sprig_runtime?: true; __sprig_runtime_dual?: true };
 Deno.test("server side (no document): never marks, never reports", () => {
   const g: Markers = {};
   assertEquals(detectDualRuntime(g, false), false);
-  assertEquals(g.__sprig_runtime, undefined, "no marker on the server — double module instances are legitimate there");
+  assertEquals(
+    g.__sprig_runtime,
+    undefined,
+    "no marker on the server — double module instances are legitimate there",
+  );
 });
 
 Deno.test("browser: first copy marks, second copy is detected and flagged", () => {
@@ -21,16 +25,32 @@ Deno.test("browser: first copy marks, second copy is detected and flagged", () =
   console.error = (...a: unknown[]) => errors.push(a.join(" "));
   try {
     const g: Markers = {};
-    assertEquals(detectDualRuntime(g, true), false, "the first copy is not an error");
+    assertEquals(
+      detectDualRuntime(g, true),
+      false,
+      "the first copy is not an error",
+    );
     assertEquals(g.__sprig_runtime, true);
     assertEquals(g.__sprig_runtime_dual, undefined);
     assertEquals(errors.length, 0);
 
-    assertEquals(detectDualRuntime(g, true), true, "the second copy IS the incident state");
-    assertEquals(g.__sprig_runtime_dual, true, "flag set for hydrate's one-shot recovery reload");
+    assertEquals(
+      detectDualRuntime(g, true),
+      true,
+      "the second copy IS the incident state",
+    );
+    assertEquals(
+      g.__sprig_runtime_dual,
+      true,
+      "flag set for hydrate's one-shot recovery reload",
+    );
     assertEquals(errors.length, 1);
     assertStringIncludes(errors[0], "two copies of the sprig runtime");
-    assertStringIncludes(errors[0], "stale cached bundle", "the message names the actual cause, not a DI symptom");
+    assertStringIncludes(
+      errors[0],
+      "stale cached bundle",
+      "the message names the actual cause, not a DI symptom",
+    );
   } finally {
     console.error = origError;
   }
@@ -41,7 +61,10 @@ Deno.test("the real module-load path: importing core.ts twice in a 'browser' rep
   const origError = console.error;
   console.error = (...a: unknown[]) => errors.push(a.join(" "));
   // a minimal "document" so core.ts's module-scope detection treats this as a browser
-  Object.defineProperty(globalThis, "document", { configurable: true, value: {} });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {},
+  });
   const g = globalThis as unknown as Markers;
   const hadMarker = g.__sprig_runtime;
   try {

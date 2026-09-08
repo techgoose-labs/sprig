@@ -18,17 +18,28 @@ function workbenchRoot(): string {
 }
 
 export const devCmd = new Command()
-  .description("Discover a sprig project's components, generate previews, and serve the workbench.")
+  .description(
+    "Discover a sprig project's components, generate previews, and serve the workbench.",
+  )
   .option("--no-open", "Don't auto-open the browser.")
-  .option("-f, --force", "Preview the valid components even if some configs are malformed.")
+  .option(
+    "-f, --force",
+    "Preview the valid components even if some configs are malformed.",
+  )
   .action(async (opts) => {
-    const o = opts as unknown as { root: string; open: boolean; force?: boolean };
+    const o = opts as unknown as {
+      root: string;
+      open: boolean;
+      force?: boolean;
+    };
     const root = resolve(o.root);
 
     // 1. discover the sprig folder-components + their isolate/ fixtures
     const { entries, problems } = await discover(root);
     if (entries.length === 0) {
-      console.log("Nothing to isolate — no folder-component has an isolate/ folder yet.");
+      console.log(
+        "Nothing to isolate — no folder-component has an isolate/ folder yet.",
+      );
       return;
     }
     // "unsupported" notes (e.g. a case using the not-yet-supported _mocks) are
@@ -36,12 +47,22 @@ export const devCmd = new Command()
     const fatal = problems.filter((p) => p.kind !== "unsupported");
     const advisory = problems.filter((p) => p.kind === "unsupported");
     if (advisory.length) {
-      console.error(`ℹ ${advisory.length} case(s) use features not yet supported (rendered without them):\n\n${formatProblems(advisory, root)}\n`);
+      console.error(
+        `ℹ ${advisory.length} case(s) use features not yet supported (rendered without them):\n\n${
+          formatProblems(advisory, root)
+        }\n`,
+      );
     }
     if (fatal.length) {
-      console.error(`✗ isolate found ${fatal.length} config problem(s):\n\n${formatProblems(fatal, root)}\n`);
+      console.error(
+        `✗ isolate found ${fatal.length} config problem(s):\n\n${
+          formatProblems(fatal, root)
+        }\n`,
+      );
       if (!o.force) {
-        console.error("Fix these and re-run, or `isolate dev --force` to preview the valid ones anyway.");
+        console.error(
+          "Fix these and re-run, or `isolate dev --force` to preview the valid ones anyway.",
+        );
         Deno.exit(1);
       }
       console.error("Continuing anyway (--force).\n");
@@ -56,7 +77,9 @@ export const devCmd = new Command()
     const wbApp = await materializeWorkbench(wbRoot, root);
     const appSrc = join(wbApp, "src");
     const n = await generatePreviews(entries, appSrc, resolve(root, "src"));
-    console.log(`Generated ${n} preview page(s) for ${entries.length} component(s).`);
+    console.log(
+      `Generated ${n} preview page(s) for ${entries.length} component(s).`,
+    );
 
     // 3. build the workbench app IN-PROCESS (code-split islands + scope CSS + the HMR client) →
     //    <wbRoot>/static. Previously this shelled out `deno run framework/cli.ts build`, which
@@ -65,8 +88,12 @@ export const devCmd = new Command()
     //    own forcedImportMap from <wbApp>/src, so no --config subprocess is needed.
     const built = await buildClient(join(wbApp, "src"), join(wbRoot, "static"));
     console.log(
-      `sprig build: ${built.islands.length} island chunk(s) [${built.islands.join(", ")}] + ` +
-        `${built.chunks.length} shared chunk(s) → ${join(wbRoot, "static")} (${(built.bytes / 1024).toFixed(1)}kb, v=${built.hash})`,
+      `sprig build: ${built.islands.length} island chunk(s) [${
+        built.islands.join(", ")
+      }] + ` +
+        `${built.chunks.length} shared chunk(s) → ${join(wbRoot, "static")} (${
+          (built.bytes / 1024).toFixed(1)
+        }kb, v=${built.hash})`,
     );
 
     // 4. serve the single origin: the sprig shell + the generated previews + the in-process
@@ -80,9 +107,22 @@ export const devCmd = new Command()
       // dynamically import each preview target. Without it the SSR import resolves `$.services/*`
       // against REPO/deno.json (which has no `$.*`) and dies with "not in import map". The build
       // step above already resolves these via the app's config; the serve step must match.
-      args: ["serve", "-A", "--unstable-kv", "--config", join(wbApp, "deno.json"), `--port=${port}`, resolve(REPO, "serve-dev.ts")],
+      args: [
+        "serve",
+        "-A",
+        "--unstable-kv",
+        "--config",
+        join(wbApp, "deno.json"),
+        `--port=${port}`,
+        resolve(REPO, "serve-dev.ts"),
+      ],
       cwd: REPO,
-      env: { ...Deno.env.toObject(), ISOLATE_PROJECT: root, SPRIG_DEV: "1", SPRIG_WB_ROOT: wbRoot },
+      env: {
+        ...Deno.env.toObject(),
+        ISOLATE_PROJECT: root,
+        SPRIG_DEV: "1",
+        SPRIG_WB_ROOT: wbRoot,
+      },
       stdout: "inherit",
       stderr: "inherit",
       stdin: "inherit",

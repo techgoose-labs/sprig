@@ -33,7 +33,9 @@ Deno.test("an event on a CHILD component tag still makes the host an island", as
 Deno.test("onServerInit-only class with a static template → STILL static", async () => {
   class UserCard {
     user: unknown = null;
-    async onServerInit() { this.user = { name: "x" }; } // server fetch, no browser behaviour
+    async onServerInit() {
+      this.user = { name: "x" };
+    } // server fetch, no browser behaviour
   }
   const tpl = await parseTemplate(`<div class="card">{{ user.name }}</div>`);
   const c = classify({ template: tpl, componentClass: UserCard });
@@ -54,8 +56,18 @@ Deno.test("a browser lifecycle hook → island even with a static template", asy
 Deno.test("the build report makes the decision legible", () => {
   const out = formatReport([
     { name: "user-card", kind: "static", reasons: [] },
-    { name: "like-button", kind: "island", reasons: ["template binds an (event)/[(two-way)]"], bytes: 1230 },
-    { name: "clock", kind: "island", reasons: ["class defines onBrowserInit/onBrowserDestroy"], bytes: 900 },
+    {
+      name: "like-button",
+      kind: "island",
+      reasons: ["template binds an (event)/[(two-way)]"],
+      bytes: 1230,
+    },
+    {
+      name: "clock",
+      kind: "island",
+      reasons: ["class defines onBrowserInit/onBrowserDestroy"],
+      bytes: 900,
+    },
   ]);
   assertStringIncludes(out, "user-card");
   assertStringIncludes(out, "static");

@@ -17,7 +17,7 @@
     <div class="spacer"></div>
     <button type="button" class="tbtn" (click)="runAll()" [disabled]="running()">
       <span class="dot"></span>
-      {{ running() ? 'Running…' : 'Run all tests' }}
+      {{ running() ? "Running…" : "Run all tests" }}
     </button>
   </header>
 
@@ -169,7 +169,7 @@
             tests
             @if (activeCase() && activeCase().tests.length > 0) { <span class="wb-badge">{{ activeCase().tests.length }}</span> }
           </button>
-          <button type="button" class="dock-collapse" [attr.title]="dockOpen() ? 'collapse' : 'expand'" (click)="toggleDock()">{{ dockOpen() ? '▾' : '▴' }}</button>
+          <button type="button" class="dock-collapse" [attr.title]="dockOpen() ? 'collapse' : 'expand'" (click)="toggleDock()">{{ dockOpen() ? "▾" : "▴" }}</button>
         </div>
         @if (dockOpen()) {
           <div class="dock-body">
@@ -223,7 +223,7 @@
                   @for (inst of surface().instances; track inst.key) {
                     <div class="ctrl-group">
                       <div class="ctrl-group__h">
-                        {{ inst.id ? inst.name + ' #' + inst.id : inst.name }}
+                        {{ inst.id ? inst.name + " #" + inst.id : inst.name }}
                         <span class="pill">instance</span>
                       </div>
                       @for (c of inst.controls; track c.key) {
@@ -282,7 +282,7 @@
               <div class="tests">
                 <div class="tests-bar">
                   <button type="button" class="run-btn" (click)="runTests()" [disabled]="testFiles().length === 0 || tests().status === 'running'">
-                    {{ tests().status === 'running' ? 'running…' : '▸ run tests' }}
+                    {{ tests().status === "running" ? "running…" : "▸ run tests" }}
                   </button>
                   <span class="tests-summary">
                     @if (testFiles().length > 0) {
@@ -301,7 +301,7 @@
                     <div class="spec-file__h">results</div>
                     @for (r of tests().results; track r.title) {
                       <div class="spec">
-                        <span class="ico" [class.pass]="r.ok" [class.fail]="!r.ok">{{ r.ok ? '✓' : '✗' }}</span>
+                        <span class="ico" [class.pass]="r.ok" [class.fail]="!r.ok">{{ r.ok ? "✓" : "✗" }}</span>
                         <span class="name">{{ r.title }}</span>
                       </div>
                     }

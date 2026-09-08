@@ -14,7 +14,11 @@ export async function build(input: RootDto): Promise<ManifestDto> {
   const projectData = new ProjectData();
 
   // reads — load inputs through the data adapters (validated at the seam)
-  const projectScan = assert(DiscoverResultDto, await projectData.scan(validInput.projectRoot), "project.scan");
+  const projectScan = assert(
+    DiscoverResultDto,
+    await projectData.scan(validInput.projectRoot),
+    "project.scan",
+  );
 
   // core — pure business logic, no I/O
   const out = buildCore(validInput, projectScan);
@@ -24,7 +28,10 @@ export async function build(input: RootDto): Promise<ManifestDto> {
 
 // Pure business logic for manifest.build — no I/O. Takes the
 // request input and the dtos the reads loaded; returns the result.
-function buildCore(input: RootDto, projectScan: DiscoverResultDto): { result: ManifestDto } {
+function buildCore(
+  input: RootDto,
+  projectScan: DiscoverResultDto,
+): { result: ManifestDto } {
   const manifest = new Manifest();
   return { result: manifest.fromDiscovery(projectScan).toDto() };
 }

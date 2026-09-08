@@ -37,4 +37,3 @@
 export { scan } from "./domain/coordinators/discovery-scan/mod.ts";
 
 export { build } from "./domain/coordinators/manifest-build/mod.ts";
-

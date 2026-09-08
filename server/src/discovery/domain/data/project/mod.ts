@@ -13,7 +13,10 @@ export interface ScanDeps {
 }
 
 export class Project {
-  async scan(projectRoot: string, deps: ScanDeps = {}): Promise<DiscoverResultDto> {
+  async scan(
+    projectRoot: string,
+    deps: ScanDeps = {},
+  ): Promise<DiscoverResultDto> {
     const discover = deps.discover ?? realDiscover;
     let r;
     try {

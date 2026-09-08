@@ -68,7 +68,11 @@ export default defineComponent({
     const events = signal<StageEvent[]>([]);
     const conQ = signal("");
     const conHidden = signal<Record<string, boolean>>({});
-    const tests = signal<TestState>({ status: "idle", results: [], error: null });
+    const tests = signal<TestState>({
+      status: "idle",
+      results: [],
+      error: null,
+    });
 
     let seq = 0;
     let evSeq = 0;
@@ -78,9 +82,12 @@ export default defineComponent({
       toasts.set([...toasts(), { id, tone, title, text }]);
       setTimeout(() => toasts.set(toasts().filter((t) => t.id !== id)), 5000);
     };
-    const dismissToast = (id: number) => toasts.set(toasts().filter((t) => t.id !== id));
+    const dismissToast = (id: number) =>
+      toasts.set(toasts().filter((t) => t.id !== id));
 
-    const activeCase = computed<Case | undefined>(() => all().find((c) => c.route === active()));
+    const activeCase = computed<Case | undefined>(() =>
+      all().find((c) => c.route === active())
+    );
     const reset = () => {
       surface.set(null);
       events.set([]);
@@ -95,7 +102,10 @@ export default defineComponent({
 
     // ── navigator (filtered + grouped sections → categories → components → cases) ──
     const matches = (c: Case, q: string) =>
-      !q || (c.category + " " + c.component + " " + c.label).toLowerCase().includes(q);
+      !q ||
+      (c.category + " " + c.component + " " + c.label).toLowerCase().includes(
+        q,
+      );
 
     const nav = computed(() => {
       const q = search().trim().toLowerCase();
@@ -103,7 +113,9 @@ export default defineComponent({
       const act = active();
       const coll = collapsed();
       return SECTIONS.flatMap((sec) => {
-        const inSec = all().filter((c) => c.target === sec.target && matches(c, q));
+        const inSec = all().filter((c) =>
+          c.target === sec.target && matches(c, q)
+        );
         if (!inSec.length) return [];
         const cats = groupBy(inSec, (c) => c.category);
         const catNodes = Object.keys(cats).sort().map((cat) => {
@@ -124,19 +136,29 @@ export default defineComponent({
             })),
           };
         });
-        return [{ label: sec.label, target: sec.target, isComp: sec.target === "component", cats: catNodes }];
+        return [{
+          label: sec.label,
+          target: sec.target,
+          isComp: sec.target === "component",
+          cats: catNodes,
+        }];
       });
     });
     const navEmpty = computed(() => nav().length === 0);
-    const toggleCat = (ck: string) => collapsed.set({ ...collapsed(), [ck]: !collapsed()[ck] });
-    const onSearch = (e: Event) => search.set((e.target as HTMLInputElement).value);
+    const toggleCat = (ck: string) =>
+      collapsed.set({ ...collapsed(), [ck]: !collapsed()[ck] });
+    const onSearch = (e: Event) =>
+      search.set((e.target as HTMLInputElement).value);
 
     // ── ⌘K palette ──
     const palItems = computed<Case[]>(() => {
       const pq = palQ().trim().toLowerCase();
       const list = !pq
         ? all()
-        : all().filter((c) => (c.component + " " + c.category + " " + c.label).toLowerCase().includes(pq));
+        : all().filter((c) =>
+          (c.component + " " + c.category + " " + c.label).toLowerCase()
+            .includes(pq)
+        );
       return list.slice(0, 50);
     });
     const openPalette = () => {
@@ -172,16 +194,27 @@ export default defineComponent({
         const res = await fetch("/api/http/post-test-run", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ files: c.testFiles, baseUrl: location.origin }),
+          body: JSON.stringify({
+            files: c.testFiles,
+            baseUrl: location.origin,
+          }),
         });
         const j: RunResponse = await res.json();
         const results = j.testResults || j.results || [];
         const pass = !!j.ok && results.length > 0 && results.every((r) => r.ok);
         caseStatus.set({ ...caseStatus(), [c.route]: pass ? "pass" : "fail" });
-        return { pass, results, error: (!j.ok && !results.length) ? (j.error || "run failed") : null };
+        return {
+          pass,
+          results,
+          error: (!j.ok && !results.length) ? (j.error || "run failed") : null,
+        };
       } catch (e) {
         caseStatus.set({ ...caseStatus(), [c.route]: "fail" });
-        return { pass: false, results: [], error: String((e as Error)?.message || e) };
+        return {
+          pass: false,
+          results: [],
+          error: String((e as Error)?.message || e),
+        };
       }
     };
     const runAll = async () => {
@@ -198,9 +231,17 @@ export default defineComponent({
       }
       running.set(false);
       if (passed === withTests.length) {
-        toast("ok", "All cases passed", passed + "/" + withTests.length + " cases green.");
+        toast(
+          "ok",
+          "All cases passed",
+          passed + "/" + withTests.length + " cases green.",
+        );
       } else {
-        toast("fail", "Some cases failed", passed + "/" + withTests.length + " cases passed.");
+        toast(
+          "fail",
+          "Some cases failed",
+          passed + "/" + withTests.length + " cases passed.",
+        );
       }
     };
     const runTests = async () => {
@@ -218,10 +259,18 @@ export default defineComponent({
         const j: RunResponse = await res.json();
         const results = j.testResults || j.results || [];
         const pass = !!j.ok && results.length > 0 && results.every((r) => r.ok);
-        tests.set({ status: "done", results, error: (!j.ok && !results.length) ? (j.error || "run failed") : null });
+        tests.set({
+          status: "done",
+          results,
+          error: (!j.ok && !results.length) ? (j.error || "run failed") : null,
+        });
         caseStatus.set({ ...caseStatus(), [c.route]: pass ? "pass" : "fail" });
       } catch (e) {
-        tests.set({ status: "done", results: [], error: String((e as Error)?.message || e) });
+        tests.set({
+          status: "done",
+          results: [],
+          error: String((e as Error)?.message || e),
+        });
         caseStatus.set({ ...caseStatus(), [c.route]: "fail" });
       }
     };
@@ -231,21 +280,27 @@ export default defineComponent({
     const testNames = computed<string[]>(() => activeCase()?.tests ?? []);
     const showSpecList = computed(() => {
       const t = tests();
-      return !t.results.length && t.status !== "running" && !t.error && testNames().length > 0;
+      return !t.results.length && t.status !== "running" && !t.error &&
+        testNames().length > 0;
     });
 
     // ── console tab view-model ──
-    const conTypes = computed<string[]>(() => [...new Set(events().map((e) => e.type))]);
+    const conTypes = computed<string[]>(() => [
+      ...new Set(events().map((e) => e.type)),
+    ]);
     const conVisible = computed<StageEvent[]>(() => {
       const cq = conQ().trim().toLowerCase();
       const hidden = conHidden();
       return events().filter((e) =>
         !hidden[e.type] &&
-        (!cq || (e.source + " " + e.type + " " + e.detail).toLowerCase().includes(cq))
+        (!cq ||
+          (e.source + " " + e.type + " " + e.detail).toLowerCase().includes(cq))
       );
     });
-    const toggleConType = (ty: string) => conHidden.set({ ...conHidden(), [ty]: !conHidden()[ty] });
-    const onConFilter = (e: Event) => conQ.set((e.target as HTMLInputElement).value);
+    const toggleConType = (ty: string) =>
+      conHidden.set({ ...conHidden(), [ty]: !conHidden()[ty] });
+    const onConFilter = (e: Event) =>
+      conQ.set((e.target as HTMLInputElement).value);
     const clearEvents = () => events.set([]);
 
     // ── stage tools ──
@@ -253,13 +308,19 @@ export default defineComponent({
     const setKbdMode = (m: string) => kbdMode.set(m);
     const toggleKbd = () => kbd.set(!kbd());
     const toggleGrid = () => grid.set(!grid());
-    const zoomOut = () => zoom.set(Math.max(0.25, Math.round((zoom() - 0.1) * 100) / 100));
+    const zoomOut = () =>
+      zoom.set(Math.max(0.25, Math.round((zoom() - 0.1) * 100) / 100));
     const zoomReset = () => zoom.set(1);
-    const zoomIn = () => zoom.set(Math.min(2, Math.round((zoom() + 0.1) * 100) / 100));
+    const zoomIn = () =>
+      zoom.set(Math.min(2, Math.round((zoom() + 0.1) * 100) / 100));
     const zoomPct = computed(() => Math.round(zoom() * 100) + "%");
     const onBg = (e: Event) => bg.set((e.target as HTMLInputElement).value);
-    const stageWidth = computed(() => (vp() === "fit" || vp() === "full") ? "100%" : vp() + "px");
-    const canvasStyle = computed(() => "width:" + stageWidth() + ";transform:scale(" + zoom() + ")");
+    const stageWidth = computed(() =>
+      (vp() === "fit" || vp() === "full") ? "100%" : vp() + "px"
+    );
+    const canvasStyle = computed(() =>
+      "width:" + stageWidth() + ";transform:scale(" + zoom() + ")"
+    );
     const canvasKbdClass = computed(() =>
       kbd() ? (kbdMode() === "android" ? "kbd-resize" : "kbd-overlay") : ""
     );
@@ -271,13 +332,23 @@ export default defineComponent({
       dockOpen.set(true);
     };
     const toggleDock = () => dockOpen.set(!dockOpen());
-    const dockStyle = computed(() => dockOpen() ? "height:" + dockH() + "px" : "");
+    const dockStyle = computed(() =>
+      dockOpen() ? "height:" + dockH() + "px" : ""
+    );
     const startDockResize = (e: PointerEvent) => {
       e.preventDefault();
       const startY = e.clientY;
       const startH = dockH();
       const onMove = (ev: PointerEvent) =>
-        dockH.set(Math.max(120, Math.min(globalThis.innerHeight - 160, startH + (startY - ev.clientY))));
+        dockH.set(
+          Math.max(
+            120,
+            Math.min(
+              globalThis.innerHeight - 160,
+              startH + (startY - ev.clientY),
+            ),
+          ),
+        );
       const onUp = () => {
         removeEventListener("pointermove", onMove);
         removeEventListener("pointerup", onUp);
@@ -288,11 +359,17 @@ export default defineComponent({
 
     // ── stage bridge (postMessage to/from the iframe) ──
     const frame = (): HTMLIFrameElement | null =>
-      isClient ? document.querySelector<HTMLIFrameElement>(".stage-frame") : null;
+      isClient
+        ? document.querySelector<HTMLIFrameElement>(".stage-frame")
+        : null;
     const sendSet = (msg: Record<string, unknown>) => {
       try {
         const f = frame();
-        f?.contentWindow?.postMessage({ target: "isolate-stage", type: "set", ...msg }, "*");
+        f?.contentWindow?.postMessage({
+          target: "isolate-stage",
+          type: "set",
+          ...msg,
+        }, "*");
       } catch { /* ignore */ }
     };
     const editControl = (c: ControlView, value: unknown) => {
@@ -300,22 +377,34 @@ export default defineComponent({
       const s = surface();
       if (!s) return;
       const upd = (x: ControlView) =>
-        (x.scope === c.scope && x.key === c.key && x.instKey === c.instKey) ? { ...x, value } : x;
+        (x.scope === c.scope && x.key === c.key && x.instKey === c.instKey)
+          ? { ...x, value }
+          : x;
       surface.set({
         ...s,
         controls: s.controls.map(upd),
-        instances: s.instances.map((inst) => ({ ...inst, controls: inst.controls.map(upd) })),
+        instances: s.instances.map((inst) => ({
+          ...inst,
+          controls: inst.controls.map(upd),
+        })),
       });
     };
     // widget helpers: resolve the control's widget type + read a typed value off the event.
     const controlType = (c: ControlView): string => {
       const def = c.def || {};
       return def.type ||
-        (typeof c.value === "boolean" ? "boolean" : typeof c.value === "number" ? "number" : "text");
+        (typeof c.value === "boolean"
+          ? "boolean"
+          : typeof c.value === "number"
+          ? "number"
+          : "text");
     };
-    const editText = (c: ControlView, e: Event) => editControl(c, (e.target as HTMLInputElement).value);
-    const editNumber = (c: ControlView, e: Event) => editControl(c, Number((e.target as HTMLInputElement).value));
-    const editBool = (c: ControlView, e: Event) => editControl(c, (e.target as HTMLInputElement).checked);
+    const editText = (c: ControlView, e: Event) =>
+      editControl(c, (e.target as HTMLInputElement).value);
+    const editNumber = (c: ControlView, e: Event) =>
+      editControl(c, Number((e.target as HTMLInputElement).value));
+    const editBool = (c: ControlView, e: Event) =>
+      editControl(c, (e.target as HTMLInputElement).checked);
     const editHtml = (e: Event) => {
       const v = (e.target as HTMLInputElement).value;
       sendSet({ scope: "html", value: v });
@@ -364,22 +453,31 @@ export default defineComponent({
           // polls the MAIN frame's __isolateReady, and when a spec drives the shell the
           // stage lives in the iframe. `hydrated` is stamped by the bridge (true once the
           // target island's scope is captured + case signals applied / static SSR final).
-          (globalThis as { __isolateReady?: boolean }).__isolateReady = !!d.hydrated;
+          (globalThis as { __isolateReady?: boolean }).__isolateReady = !!d
+            .hydrated;
         } else if (d.type === "instances") {
           const s = surface();
           if (s) surface.set({ ...s, instances: d.instances || [] });
         } else if (d.type === "event") {
-          events.set([{ id: ++evSeq, ...d.payload } as StageEvent, ...events()].slice(0, 300));
+          events.set(
+            [{ id: ++evSeq, ...d.payload } as StageEvent, ...events()].slice(
+              0,
+              300,
+            ),
+          );
           // forward to the isolate-events capture() binding when a spec installed it
           // (exposeBinding lands in every frame; the stage only self-emits when it has no
           // parent, so exactly one producer fires per event).
-          (globalThis as { __isolateEmit?: (e: unknown) => void }).__isolateEmit?.(d.payload);
+          (globalThis as { __isolateEmit?: (e: unknown) => void })
+            .__isolateEmit?.(d.payload);
         }
       });
       // focus the palette input when it opens
       effect(() => {
         if (palOpen()) {
-          queueMicrotask(() => document.querySelector<HTMLInputElement>(".palette input")?.focus());
+          queueMicrotask(() =>
+            document.querySelector<HTMLInputElement>(".palette input")?.focus()
+          );
         }
       });
     }
@@ -391,19 +489,81 @@ export default defineComponent({
       kbdR2: ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
       kbdR3: ["z", "x", "c", "v", "b", "n", "m"],
       // signals / state
-      active, search, palOpen, palQ, palSel, toasts, bannerOpen, running,
-      problems, dockTab, dockOpen, vp, zoom, grid, bg, kbd, kbdMode, surface, conQ,
+      active,
+      search,
+      palOpen,
+      palQ,
+      palSel,
+      toasts,
+      bannerOpen,
+      running,
+      problems,
+      dockTab,
+      dockOpen,
+      vp,
+      zoom,
+      grid,
+      bg,
+      kbd,
+      kbdMode,
+      surface,
+      conQ,
       // derived
-      nav, navEmpty, palItems, activeCase, hasAny: computed(() => all().length > 0),
-      testFiles, testNames, showSpecList, tests, conTypes, conVisible,
-      zoomPct, canvasStyle, canvasKbdClass, hostStyle, dockStyle, hasControls, controlsEmpty,
-      conHidden, caseStatus, events, previewBase, frameSrc,
+      nav,
+      navEmpty,
+      palItems,
+      activeCase,
+      hasAny: computed(() => all().length > 0),
+      testFiles,
+      testNames,
+      showSpecList,
+      tests,
+      conTypes,
+      conVisible,
+      zoomPct,
+      canvasStyle,
+      canvasKbdClass,
+      hostStyle,
+      dockStyle,
+      hasControls,
+      controlsEmpty,
+      conHidden,
+      caseStatus,
+      events,
+      previewBase,
+      frameSrc,
       // methods
-      go, toggleCat, onSearch, openPalette, onPalInput, onPalKey, palBackdrop,
-      runAll, runTests, setVp, setKbdMode, toggleKbd, toggleGrid, zoomOut, zoomReset, zoomIn, onBg,
-      setDock, toggleDock, startDockResize, dismissToast, closeBanner: () => bannerOpen.set(false),
-      editControl, controlType, editText, editNumber, editBool, editHtml,
-      toggleConType, onConFilter, clearEvents,
+      go,
+      toggleCat,
+      onSearch,
+      openPalette,
+      onPalInput,
+      onPalKey,
+      palBackdrop,
+      runAll,
+      runTests,
+      setVp,
+      setKbdMode,
+      toggleKbd,
+      toggleGrid,
+      zoomOut,
+      zoomReset,
+      zoomIn,
+      onBg,
+      setDock,
+      toggleDock,
+      startDockResize,
+      dismissToast,
+      closeBanner: () => bannerOpen.set(false),
+      editControl,
+      controlType,
+      editText,
+      editNumber,
+      editBool,
+      editHtml,
+      toggleConType,
+      onConFilter,
+      clearEvents,
     };
   },
 });

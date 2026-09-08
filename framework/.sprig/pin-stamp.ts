@@ -42,10 +42,13 @@ export interface StampResult {
 /** Re-pin the existing @mrg-keystone/sprig mappings to the CLI version `v`.
  *  Only existing keys are touched; local overrides and pins NEWER than `v`
  *  are left alone (never downgrade). */
-export function stampImports(imports: Record<string, string>, v: string): StampResult {
+export function stampImports(
+  imports: Record<string, string>,
+  v: string,
+): StampResult {
   const wanted: Record<string, string> = {
     "@mrg-keystone/sprig": `jsr:@mrg-keystone/sprig@${v}`,
-    "@mrg-keystone/sprig/keep": `jsr:@mrg-keystone/sprig@${v}/keep`,
+    "@mrg-keystone/sprig/bedrock": `jsr:@mrg-keystone/sprig@${v}/bedrock`,
   };
   const out = { ...imports };
   let changed = false;
@@ -83,7 +86,10 @@ export function migrateKey(k: string): string {
 /** Rewrite a LEGACY value's scope and re-pin its version to the CLI's (a
  *  legacy-named app predates the rename, so its pin is behind by definition). */
 export function migrateVal(val: string, v: string | null): string {
-  let out = val.replaceAll("@sprig/core", "@mrg-keystone/sprig").replaceAll("@sprig/keep", "@mrg-keystone/sprig/keep");
+  let out = val.replaceAll("@sprig/core", "@mrg-keystone/sprig").replaceAll(
+    "@sprig/keep",
+    "@mrg-keystone/sprig/keep",
+  );
   if (v) out = out.replace(/(@mrg-keystone\/sprig)@[^/"']+/g, `$1@${v}`);
   return out;
 }
@@ -98,12 +104,17 @@ export interface MigrateResult {
  *  to this migration and passes through byte-identical — this function must be
  *  a true no-op on an already-migrated app. A deliberate LOCAL override already
  *  present on the modern key wins over a migrating legacy key (which is dropped). */
-export function migrateImports(imports: Record<string, string>, v: string | null): MigrateResult {
+export function migrateImports(
+  imports: Record<string, string>,
+  v: string | null,
+): MigrateResult {
   let changed = false;
   const next: Record<string, string> = {};
   for (const [k, val] of Object.entries(imports)) {
     const key = migrateKey(k);
-    if (key === k && !val.includes("@sprig/core") && !val.includes("@sprig/keep")) {
+    if (
+      key === k && !val.includes("@sprig/core") && !val.includes("@sprig/keep")
+    ) {
       next[k] = val;
       continue;
     }

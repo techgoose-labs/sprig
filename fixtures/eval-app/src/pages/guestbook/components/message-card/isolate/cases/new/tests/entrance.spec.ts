@@ -20,7 +20,11 @@ test("the entrance is brand-rise (320ms, fill both)", async ({ page }) => {
   await page.goto(`${BASE}/pages/guestbook/message-card/new`);
   const anim = await page.locator("article.animate-rise").evaluate((el) => {
     const cs = getComputedStyle(el);
-    return { name: cs.animationName, duration: cs.animationDuration, fill: cs.animationFillMode };
+    return {
+      name: cs.animationName,
+      duration: cs.animationDuration,
+      fill: cs.animationFillMode,
+    };
   });
   expect(anim.name).toBe("brand-rise");
   expect(anim.duration).toBe("0.32s");

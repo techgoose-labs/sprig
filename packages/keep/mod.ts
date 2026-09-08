@@ -1,17 +1,31 @@
 /**
- * @mrg-keystone/sprig/keep — composes a keep backend and a sprig UI into ONE single-origin
- * `{ fetch }` handler (a Deno.ServeDefaultExport), and binds keep's in-process
- * client to the `Backend` token so `resolve.ts` reads data with no token, no TCP.
+ * `@mrg-keystone/sprig/bedrock` — the app's UI half, as a bedrock `Unit`.
  *
- * This is the whole composition root — the app author writes `serveSprig({...})`,
- * not a hand-rolled path dispatcher + globalThis bridge.
+ *   export default Bedrock({ ui: Frontend(), backend: api, auth: Infra() });
+ *
+ * This module used to BE a composition root: `serveSprig` dispatched paths,
+ * mounted a backend, ran an `/auth` gateway, and minted a per-request client.
+ * Every one of those is bedrock's now, once, for the whole app — so what is
+ * left here is the part that was always sprig's: serving the SSR pages, their
+ * assets, and binding the provisioned client into the `Backend` DI token so
+ * `resolve.ts` reads data with no token and no TCP.
  */
-import { backendClient, bootstrap, type Guard, isLayoutLoad, type Route, type RouteMeta, type SprigApp } from "@mrg-keystone/sprig";
+import {
+  backendClient,
+  bootstrap,
+  type Guard,
+  isLayoutLoad,
+  type Route,
+  type RouteMeta,
+  type SprigApp,
+} from "@mrg-keystone/sprig";
+import { logger, of } from "@mrg-keystone/bedrock";
+import type { Bag, Identity, Unit } from "@mrg-keystone/bedrock";
 import { dirname, fromFileUrl, join, toFileUrl } from "@std/path";
 import { createRenderer as makeRenderer } from "../../framework/.sprig/compiler/mod.ts";
 // Third-party browser libs VENDORED INTO the server source (imported as TEXT → part of the
 // module graph, not a disk read, so they ship whether sprig runs from ~/.sprig or straight
-// from JSR). serveSprig hands them to the client at <base>/_assets/vendor/<name>; every app
+// from JSR). Frontend hands them to the client at <base>/_assets/vendor/<name>; every app
 // AND the isolate workbench gets them without compiling them into its own frontend bundle.
 // The app declares these in deno.json ONLY for type-checking — this vendored copy is the one
 // and only version that actually runs (same "CLI owns the runtime" rule as @mrg-keystone/sprig).
@@ -21,12 +35,18 @@ import { createRenderer as makeRenderer } from "../../framework/.sprig/compiler/
 // the old text import, which embedded all 561K in the graph regardless.)
 const readVendor = async (name: string): Promise<string> => {
   const u = new URL(`./vendor/${name}`, import.meta.url);
-  return u.protocol === "file:" ? await Deno.readTextFile(u) : await (await fetch(u)).text();
+  return u.protocol === "file:"
+    ? await Deno.readTextFile(u)
+    : await (await fetch(u)).text();
 };
 const VENDOR: Record<string, { body: string; type: string }> = {
-  "apexcharts.js": { body: await readVendor("apexcharts.js"), type: "text/javascript; charset=utf-8" },
+  "apexcharts.js": {
+    body: await readVendor("apexcharts.js"),
+    type: "text/javascript; charset=utf-8",
+  },
 };
-/** The SHARED vendor-asset route: every serving path (serveSprig, Frontend/api.compose, sprigUi)
+/** The SHARED vendor-asset route — one serving path answers it now, so the
+ *  three-way lockstep this had to maintain (and twice broke) is gone.
  *  answers `<assetPrefix>/vendor/<name>` from the VENDOR map above, NOT the app's build output —
  *  the renderer injects these tags on every page and the app never emits the files, so a serving
  *  path without this route 404s the tag on every page load. Returns null for a non-vendor path
@@ -36,14 +56,22 @@ function serveVendorAsset(path: string, assetPrefix: string): Response | null {
   if (!path.startsWith(prefix)) return null;
   const asset = VENDOR[path.slice(prefix.length)];
   return asset
-    ? new Response(asset.body, { headers: { "content-type": asset.type, "cache-control": "public, max-age=86400" } })
+    ? new Response(asset.body, {
+      headers: {
+        "content-type": asset.type,
+        "cache-control": "public, max-age=86400",
+      },
+    })
     : new Response("Not Found", { status: 404 });
 }
 
 // The SSR renderer is server-only (Deno APIs) so it can't live in client-safe
 // @mrg-keystone/sprig; it belongs with the rest of the server glue. The actual COMPILER
 // (buildClient + the tree-sitter parser) is CLI-only and is NOT re-exported here.
-export { createRenderer, type SsrRenderer } from "../../framework/.sprig/compiler/mod.ts";
+export {
+  createRenderer,
+  type SsrRenderer,
+} from "../../framework/.sprig/compiler/mod.ts";
 import { assetsVersioner } from "../../framework/.sprig/compiler/hash.ts";
 
 // ───────────────────────────── JSON folder routing ─────────────────────────────
@@ -69,23 +97,35 @@ async function routeFileExists(p: string): Promise<boolean> {
   }
 }
 
-async function resolveGuards(names: string[], srcDir: string): Promise<Guard[]> {
+async function resolveGuards(
+  names: string[],
+  srcDir: string,
+): Promise<Guard[]> {
   const guards: Guard[] = [];
   for (const name of names) {
     // a guard is a folder: guards/<name>/mod.ts (+ its test.ts). guard.ts is the legacy filename.
     const dir = join(srcDir, "guards", name);
-    const path = (await routeFileExists(join(dir, "mod.ts"))) ? join(dir, "mod.ts") : join(dir, "guard.ts");
+    const path = (await routeFileExists(join(dir, "mod.ts")))
+      ? join(dir, "mod.ts")
+      : join(dir, "guard.ts");
     const mod = await import(toFileUrl(path).href) as Record<string, unknown>;
-    const fn = (mod.default ?? mod.guard ?? Object.values(mod).find((v) => typeof v === "function")) as Guard | undefined;
+    const fn = (mod.default ?? mod.guard ?? Object.values(mod).find((v) =>
+      typeof v === "function"
+    )) as Guard | undefined;
     if (typeof fn !== "function") {
-      throw new Error(`sprig loadRoutes: guard "${name}" — ${path} must export a guard function (default or named).`);
+      throw new Error(
+        `sprig loadRoutes: guard "${name}" — ${path} must export a guard function (default or named).`,
+      );
     }
     guards.push(fn);
   }
   return guards;
 }
 
-async function mapRouteTable(entries: RawRoute[], srcDir: string): Promise<Route[]> {
+async function mapRouteTable(
+  entries: RawRoute[],
+  srcDir: string,
+): Promise<Route[]> {
   const out: Route[] = [];
   for (const e of entries) {
     const route: Route = { path: e.path };
@@ -94,7 +134,9 @@ async function mapRouteTable(entries: RawRoute[], srcDir: string): Promise<Route
     if (e.meta) route.meta = e.meta;
     if (e.guards?.length) route.guards = await resolveGuards(e.guards, srcDir);
     // children = inline children (recursively) + a router's OWN routes.json (routers/<name>/…)
-    const children: Route[] = e.children ? await mapRouteTable(e.children, srcDir) : [];
+    const children: Route[] = e.children
+      ? await mapRouteTable(e.children, srcDir)
+      : [];
     if (isLayoutLoad(e.load)) {
       const table = join(srcDir, e.load!, "routes.json");
       if (await routeFileExists(table)) {
@@ -118,75 +160,17 @@ export async function loadRoutes(srcDir: string): Promise<Route[]> {
   if (await routeFileExists(join(srcDir, "routers", "root", "routes.json"))) {
     return await mapRouteTable([{ path: "", load: "routers/root" }], srcDir);
   }
-  const raw = JSON.parse(await Deno.readTextFile(join(srcDir, "root.json"))) as RawRoute[];
+  const raw = JSON.parse(
+    await Deno.readTextFile(join(srcDir, "root.json")),
+  ) as RawRoute[];
   return await mapRouteTable(raw, srcDir);
 }
 
-/** A credential handed to keep's session engine: a Firebase idToken or an opaque `?token=` handle. */
-export interface SessionIntake {
-  credential: string;
-  credentialKind: "firebase" | "opaque";
-  email?: string;
-}
-/** What `keep.intakeSession` returns — the opaque session id (goes in the httpOnly cookie) plus the
- *  decoded profile the gateway surfaces to the browser (the bearer NEVER leaves the server). */
-export interface SessionMinted {
-  id: string;
-  creator: string;
-  email?: string;
-  grants: string[];
-}
-/** The cached profile `/auth/me` reads back off a resolved session (grants are UX-only here — the
- *  request-path guard still enforces them deny-by-default from the verified bearer). */
-export interface SessionProfile {
-  name?: string;
-  email?: string;
-  grants?: string[];
-}
-
-/** The slice of keep's `bootstrapServer(...)` result that serveSprig consumes. */
-export interface KeepApi {
-  /** the IN-PROCESS client: typeof fetch, dispatches relative paths through the
-   *  full pipeline with no TCP, bypassing token auth. SSR-only. */
-  backend: { fetch: typeof fetch };
-  /** the NETWORK handler: token-gated; forward Deno.ServeHandlerInfo into it. */
-  handler: (req: Request, info?: Deno.ServeHandlerInfo) => Response | Promise<Response>;
-  /** keep's cookie-session engine — present only when keep enabled `KEEP_SESSION_KV`. When it is,
-   *  the /auth gateway mints an httpOnly `sprig_session` id via `intakeSession` (the bearer stays
-   *  server-side) and reads/clears it via `sessions.read` / `destroySession`; when it is absent the
-   *  gateway degrades to the legacy proxy that hands the bearer to the browser. */
-  intakeSession?: (input: SessionIntake) => Promise<SessionMinted>;
-  destroySession?: (id: string) => Promise<void>;
-  sessions?: { read(id: string): Promise<SessionProfile | null> };
-}
-
-export interface ServeSprigConfig {
-  keep: KeepApi;
-  /** The SSR app. OPTIONAL: when omitted, serveSprig composes it from the derived srcDir
-   *  (`<entry root>/<ui|app>/src`, probed on disk) exactly as `sprig dev` does — so a generated `serve.ts` is one line
-   *  and the app authors no composition. Pass it to override (how `sprig dev` calls serveSprig). */
-  app?: SprigApp;
-  /** where the UI mounts (default "/ui"). keep owns apiPrefix + docsPrefix. */
-  base?: string;
-  apiPrefix?: string; // default "/api"
-  docsPrefix?: string; // default "/docs"
-  /** directory served at <base>/_assets/* (the build's client.js etc.). OPTIONAL: derived from the
-   *  entry anchor (`<root>/<ui|app>/static`, probed on disk) when omitted — NOT the cwd-relative
-   *  "static", the default that silently shipped ?v=dev to prod. Pass to override. */
-  assetsDir?: string;
-  /** Firebase/Google sign-in. When an infra URL is resolvable here (or via the INFRA_URL env),
-   *  serveSprig auto-mounts the same-origin /auth gateway that sprig's `loginWithGoogle()` and
-   *  `?token=` seeding (@mrg-keystone/sprig) call — proxying `/auth/firebase-config`, `/auth/login`
-   *  (Firebase idToken → bearer) and `/auth/exchange` (opaque `?token=` → bearer) to infra so the
-   *  browser never touches the control plane cross-origin. The infra URL defaults to the baked-in
-   *  mrg-keystone control plane; pass `auth: { infraUrl: "" }` to disable the gateway and leave
-   *  /auth to the app.
-   *
-   *  `exchangePath` is infra's opaque-token exchange endpoint (default `/api/authz/exchange`,
-   *  mirroring the `/api/session/login` convention). The default is the one value to confirm
-   *  against your infra deployment; override here or via the `INFRA_EXCHANGE_PATH` env var. */
-  auth?: { infraUrl?: string; exchangePath?: string };
-}
+/** Who the caller is, as SSR sees it — bedrock's `Identity`, verbatim. It used
+ *  to be a shape sprig declared for itself (and duplicated in core.ts) and
+ *  populated from a cookie it parsed; it is the auth unit's verdict now, read
+ *  off the envelope, and there is exactly one definition of it in the system. */
+export type SessionProfile = Identity;
 
 const ASSET_TYPES: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
@@ -197,50 +181,21 @@ const ASSET_TYPES: Record<string, string> = {
 };
 
 /** Methods the WHATWG Fetch spec forbids the Request constructor from carrying.
- *  serveSprig re-wraps incoming requests, so these must be rejected BEFORE the
+ *  the unit re-wraps incoming requests, so these must be rejected BEFORE the
  *  re-wrap (else `new Request(...)` throws an uncaught TypeError → bare 500). */
 const FORBIDDEN_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 
-/** Bound on the request-body size and JSON nesting depth accepted at the gateway,
- *  so a tiny but deeply-nested body cannot exhaust the call stack downstream. */
-const MAX_BODY_BYTES = 4 * 1024 * 1024;
-const MAX_JSON_DEPTH = 200;
+// The request-body size / JSON-depth gateway moved to KEEP with its subject
+// (`checkBody`, `MAX_BODY_BYTES`, `MAX_JSON_DEPTH`). It used to live here, which
+// meant it guarded a keep backend only when a sprig UI happened to be composed
+// in front of it — a backend served alone, or behind any other UI, had none.
 
-// ───────────────────────────── framework logging (FRAMEWORK_LOGGING) ─────────────────────────────
-// Opt-in, default-off tracing of the decision points serveSprig/keep take at composition and per
-// request — auth mode chosen, session engine surfaced to the gateway, guard verdict — so an
-// integrator can see *why* the framework did what it did without reading its source. NOT app logging
-// and NOT the trace KV: the framework narrating its own branches. Read the env ONCE here (no
-// per-request env reads) into a scope set. `FRAMEWORK_LOGGING=1|true|on|*` turns on every scope; a
-// comma list (`FRAMEWORK_LOGGING=auth,session`) turns on just those. Every line is prefixed with a
-// stable `[fw:<scope>]` tag so `FRAMEWORK_LOGGING=1 sprig dev 2>&1 | grep fw:auth` just works. Never
-// log a secret (idToken/bearer/opaque token); the session id, emails, grants and cookie ATTRIBUTES
-// are already surfaced to the client, so they're fine.
-function parseFwScopes(v: string | undefined): Set<string> {
-  const t = (v ?? "").trim().toLowerCase();
-  if (!t || t === "0" || t === "false" || t === "off") return new Set();
-  if (t === "1" || t === "true" || t === "on" || t === "*" || t === "all") return new Set(["*"]);
-  return new Set(t.split(",").map((s) => s.trim()).filter(Boolean));
-}
-const FW_SCOPES = parseFwScopes(Deno.env.get("FRAMEWORK_LOGGING"));
-/** Is framework logging on for this scope? Cheap: a Set lookup, no env read. */
-function fwOn(scope: string): boolean {
-  return FW_SCOPES.size > 0 && (FW_SCOPES.has("*") || FW_SCOPES.has(scope));
-}
-/** Emit a gated framework-trace line (stderr) — silent unless `FRAMEWORK_LOGGING` names this scope. */
-function fwLog(scope: string, msg: string): void {
-  if (fwOn(scope)) console.error(`[fw:${scope}] ${msg}`);
-}
-const fwWarned = new Set<string>();
-/** Emit an ALWAYS-ON warning at most once per `key` per process (like `assetsGuard`'s loud-once
- *  degradation notice). Used for the silent-legacy-fallback fix: a valid login that quietly ran in
- *  legacy mode (no `sprig_session` cookie) must never be invisible, even with `FRAMEWORK_LOGGING`
- *  off — but a genuinely-legacy deployment should see one line, not one per request. */
-function fwWarnOnce(key: string, msg: string): void {
-  if (fwWarned.has(key)) return;
-  fwWarned.add(key);
-  console.warn(msg);
-}
+// `FRAMEWORK_LOGGING` and its `[fw:<scope>]` lines are gone. They existed to
+// narrate the branches this module used to take — which auth mode it chose,
+// whether a session engine reached the gateway, what the guard decided — and
+// every one of those branches is gone with the code that took them. What is
+// left is one thing (serve the pages), and it logs through bedrock's logger
+// like everything else, joined to the dispatch's request id.
 
 /** Derive the lookup extension from the BASENAME (the segment after the last
  *  "/"), lower-cased; "" when there is no dot in the basename. Never reads across
@@ -257,26 +212,105 @@ function contentTypeFor(file: string): string {
   return ASSET_TYPES[assetExt(file)] ?? "application/octet-stream";
 }
 
-/** Non-recursive depth scan of a JSON string: returns the max nesting depth of
- *  arrays/objects, ignoring braces inside string literals. O(n), no stack use —
- *  so it can reject a stack-exhausting body WITHOUT itself recursing. */
-function jsonDepth(text: string): number {
-  let depth = 0, max = 0, inStr = false, esc = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inStr) {
-      if (esc) esc = false;
-      else if (c === "\\") esc = true;
-      else if (c === '"') inStr = false;
-      continue;
+/** Read `<assetsDir>/build-info.json` once and render the provenance `<meta>` tags for the head.
+ *  Memoized (constant per deployment); "" when the file is absent (local dev / not stamped). */
+function buildMetaReader(assetsDir: string): () => Promise<string> {
+  let cached: string | null = null;
+  return async () => {
+    if (cached !== null) return cached;
+    try {
+      const info = JSON.parse(
+        await Deno.readTextFile(`${assetsDir}/build-info.json`),
+      ) as Record<string, unknown>;
+      const esc = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      const tag = (name: string, key: string) => {
+        const v = info[key];
+        return typeof v === "string" && v
+          ? `  <meta name="${name}" content="${esc(v)}" />\n`
+          : "";
+      };
+      cached = tag("git-repo", "repo") + tag("git-commit", "commit") +
+        tag("git-branch", "branch") + tag("build-time", "buildTime");
+    } catch {
+      cached = ""; // no build-info → emit nothing
     }
-    if (c === '"') inStr = true;
-    else if (c === "[" || c === "{") {
-      if (++depth > max) max = depth;
-    } else if (c === "]" || c === "}") depth--;
-  }
-  return max;
+    return cached;
+  };
 }
+
+/** Splice `meta` into an HTML response right after the opening `<head>` — streaming-safe (the head
+ *  flushes as the first chunk, so the tags land immediately and the body passes through untouched).
+ *  A non-HTML response, or an empty `meta`, is returned unchanged. */
+function injectHeadMeta(res: Response, meta: string): Response {
+  if (!meta) return res;
+  const type = res.headers.get("content-type") ?? "";
+  if (!type.includes("text/html") || res.body === null) return res;
+  const dec = new TextDecoder();
+  const enc = new TextEncoder();
+  const NEEDLE = "<head>";
+  let carry = "";
+  let done = false;
+  const rewrite = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      if (done) {
+        controller.enqueue(chunk);
+        return;
+      }
+      carry += dec.decode(chunk, { stream: true });
+      const at = carry.indexOf(NEEDLE);
+      if (at !== -1) {
+        const cut = at + NEEDLE.length;
+        controller.enqueue(
+          enc.encode(carry.slice(0, cut) + "\n" + meta + carry.slice(cut)),
+        );
+        carry = "";
+        done = true;
+      } else if (carry.length > 8192) {
+        controller.enqueue(enc.encode(carry)); // no <head> in the first 8KB → pass through
+        carry = "";
+        done = true;
+      }
+    },
+    flush(controller) {
+      if (carry) controller.enqueue(enc.encode(carry));
+    },
+  });
+  const headers = new Headers(res.headers);
+  headers.delete("content-length"); // body length changed
+  return new Response(res.body.pipeThrough(rewrite), {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
+}
+
+// ─────────────────────────── zero-composition derivation ───────────────────────────
+// A generated `serve.ts` is `export default Bedrock({ ui: Frontend(), backend: api })`.
+// Everything else is DERIVED from one runtime anchor (`Deno.mainModule`, the git-root serve.ts that
+// `--rune` hoists) plus the ui/-or-app/ convention (probed on disk): srcDir = <root>/<ui|app>/src, assetsDir = <root>/<ui|app>/static
+// (falling back to <root>/src|static for a UI-at-root layout). The app is then composed from srcDir the
+// SAME way `sprig dev` does — so an app authors no composition file and can't forget `assetsDir` (the
+// cwd-relative default that shipped ?v=dev to prod). Every derived value is an override-able default:
+// pass `app`/`assetsDir` explicitly and derivation never runs (back-compat, and how `sprig dev` calls it).
+
+/** The dir of the running entrypoint (the git-root `serve.ts`), or null when `Deno.mainModule` isn't a
+ *  file URL (e.g. a jsr:/https: entry, or a test harness) — then paths must be passed explicitly. */
+
+/** The dir of the running entrypoint (the git-root `serve.ts`), or null when `Deno.mainModule` isn't a
+ *  file URL (e.g. a jsr:/https: entry, or a test harness) — then paths must be passed explicitly. */
+function entryRoot(): string | null {
+  try {
+    const m = Deno.mainModule;
+    return m.startsWith("file:") ? dirname(fromFileUrl(m)) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The sanctioned UI package names under the project root, in preference order: `ui/` is the
+ *  canonical composed layout; `app/` is the alternate name rune's structure spec sanctions. */
+const UI_PACKAGE_NAMES = ["ui", "app"] as const;
 
 /** esbuild's content-hashed chunk names (chunk-XXXXXXXX.js, 8 base32 chars). These are
  *  content-addressed by FILENAME — new bytes always mean a new name — so `immutable`
@@ -313,7 +347,9 @@ async function serveAsset(
   // The guard runs AFTER decoding so an encoded "..%2f" traversal is still caught.
   // Split on BOTH separators: Windows treats "\" as a path separator too, so an
   // encoded backslash ("..%5c") must be caught as well — not just "/" (".."%2f).
-  if (decoded.split(/[/\\]/).includes("..")) return new Response("Forbidden", { status: 403 });
+  if (decoded.split(/[/\\]/).includes("..")) {
+    return new Response("Forbidden", { status: 403 });
+  }
   try {
     const path = `${dir}/${decoded}`;
     const stat = await Deno.stat(path);
@@ -327,17 +363,24 @@ async function serveAsset(
     // on a year-long cache of a dead deploy (every island failing to hydrate).
     const q = new URL(req.url).searchParams.get("v");
     const cur = version ? await version() : null;
-    const addressed = (cur !== null && q === cur) || HASHED_CHUNK.test(decoded.slice(decoded.lastIndexOf("/") + 1));
+    const addressed = (cur !== null && q === cur) ||
+      HASHED_CHUNK.test(decoded.slice(decoded.lastIndexOf("/") + 1));
     // cache validators so conditional GETs can 304 instead of re-transferring
     const lastModified = stat.mtime ?? new Date(0);
-    const etag = `W/"${stat.size.toString(16)}-${lastModified.getTime().toString(16)}"`;
+    const etag = `W/"${stat.size.toString(16)}-${
+      lastModified.getTime().toString(16)
+    }"`;
     const inm = req.headers.get("if-none-match");
     const ims = req.headers.get("if-modified-since");
     const notModified = (inm !== null && inm === etag) ||
-      (inm === null && ims !== null && new Date(ims).getTime() >= Math.floor(lastModified.getTime() / 1000) * 1000);
+      (inm === null && ims !== null &&
+        new Date(ims).getTime() >=
+          Math.floor(lastModified.getTime() / 1000) * 1000);
     const headers: Record<string, string> = {
       "content-type": contentTypeFor(file),
-      "cache-control": addressed ? "public, max-age=31536000, immutable" : "no-cache",
+      "cache-control": addressed
+        ? "public, max-age=31536000, immutable"
+        : "no-cache",
       "etag": etag,
       "last-modified": lastModified.toUTCString(),
     };
@@ -353,364 +396,19 @@ export interface ServeDefaultExport {
   fetch(req: Request, info: Deno.ServeHandlerInfo): Promise<Response>;
 }
 
-// ─────────────────────────────── /auth sign-in gateway ───────────────────────────────
-// The same-origin endpoints sprig's client auth (@mrg-keystone/sprig) needs. Everything is
-// server-side: the browser never calls infra cross-origin (infra's /api sets no CORS headers) and,
-// once keep's cookie-session engine is on, never holds a bearer at all.
-//   GET  /auth/firebase-config → <infra>/firebase-config.json   (public web config, 5-min cached)
-//   POST /auth/login           → Firebase idToken  → session     (`login()` no-arg / Google popup)
-//   POST /auth/exchange        → opaque ?token=     → session     (`login(token)` / magic link)
-//   GET  /auth/me              → the session cookie → {name,email,grants} | 401
-//   POST /auth/logout          → destroy the session + clear the cookie
+// The `/auth/*` gateway that used to live here is GONE — the endpoints, the
+// `sprig_session` cookie machinery, the Firebase loader, the opaque-token
+// exchange, and the baked-in infra URL with it. Auth is a UNIT now, in the
+// composition root's third slot:
 //
-// SESSION MODE (keep.intakeSession present — `KEEP_SESSION_KV` on): login/exchange mint an opaque
-// session id, keep stores the ORIGINAL credential + bearer + profile server-side, and the gateway
-// sets it in an **httpOnly** `sprig_session` cookie. The bearer NEVER reaches the browser; the
-// cookie rides same-origin on every request and keep resolves it (with silent refresh) server-side.
-// LEGACY MODE (no intakeSession): login/exchange proxy to infra and return the bearer verbatim, for
-// older non-KV deployments whose client still stores it. Sprig owns this so apps stop hand-rolling
-// it per-repo (the class of bug that silently issues no bearer).
-const MAX_LOGIN_BODY = 64_000; // an ID token is ~1–2 KB; anything larger is not a login request
-// infra's opaque-token → bearer exchange. Mirrors `/api/session/login`'s `/api/<domain>/<action>`
-// shape; the one value to confirm against your infra deployment (override via serveSprig's
-// `auth.exchangePath` or the INFRA_EXCHANGE_PATH env var).
-const DEFAULT_EXCHANGE_PATH = "/api/authz/exchange";
-/** The mrg-keystone control plane — baked in so every sprig app gets working Google sign-in with
- *  ZERO config. Override per-deployment via `auth.infraUrl` / the INFRA_URL env; pass
- *  `auth: { infraUrl: "" }` to disable the gateway and leave /auth to the app. */
-const DEFAULT_INFRA_URL = "https://infra.mrg-keystone.deno.net";
-/** The httpOnly cookie the session id lives in (keep's guard resolves this exact name). */
-const SESSION_COOKIE = "sprig_session";
-let firebaseConfigCache: { body: string; at: number } | null = null;
+//   Bedrock({ ui: Frontend(), backend: api, auth: Infra() })
+//
+// which is a strictly better place for it: the gateway sat inside the UI half,
+// so it guarded nothing (it only PROXIED), and an app that composed no sprig UI
+// had no `/auth` at all. The unit owns `/auth/*`, and its `verify` runs above
+// every unit on every channel. An island that needs to sign in calls
+// `/auth/login` over the wire like any other route.
 
-/** Read a cookie value off the request's Cookie header (undecoded); "" when absent. */
-function readCookie(req: Request, name: string): string {
-  const header = req.headers.get("cookie") ?? "";
-  for (const part of header.split(";")) {
-    const eq = part.indexOf("=");
-    if (eq < 0) continue;
-    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
-  }
-  return "";
-}
-
-/** Build the `Set-Cookie` for the session id. `Secure` only over https so localhost dev (http)
- *  still gets the cookie; `HttpOnly` keeps it out of JS reach; `SameSite=Lax` rides top-level nav. */
-function sessionCookie(id: string, req: Request, maxAge: number): string {
-  const secure = new URL(req.url).protocol === "https:" ? "; Secure" : "";
-  return `${SESSION_COOKIE}=${encodeURIComponent(id)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
-}
-
-/** keep throws this exact shape when the session store is off (no `KEEP_SESSION_KV`) — the signal
- *  to fall back to legacy bearer proxying rather than treat it as a credential rejection. */
-function isSessionStoreDisabled(e: unknown): boolean {
-  return e instanceof Error && /session store is disabled/i.test(e.message);
-}
-
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days — matches keep's default idle TTL
-
-/** Mint a session in SESSION MODE, or return null to fall back to legacy bearer proxying (when the
- *  store is disabled / unavailable). Sets the httpOnly cookie and returns the profile — no bearer. */
-async function mintSession(keep: SessionEngine, req: Request, input: SessionIntake): Promise<Response | null> {
-  // The public path this mint backs, for the log label (firebase → /auth/login, opaque → /auth/exchange).
-  const label = input.credentialKind === "opaque" ? "/auth/exchange" : "/auth/login";
-  if (!keep.intakeSession) {
-    fwLegacyFallback(label, "no-intakeSession", "session engine ABSENT (keep exposes no intakeSession)");
-    return null;
-  }
-  try {
-    const { id, creator, email, grants } = await keep.intakeSession(input);
-    fwLog(
-      "auth",
-      `${label} → SESSION MODE: minted id=${id} email=${email ?? "—"}; Set-Cookie ${SESSION_COOKIE} ` +
-        `(HttpOnly; SameSite=Lax; Secure=${new URL(req.url).protocol === "https:"}; Max-Age=${SESSION_MAX_AGE})`,
-    );
-    return new Response(JSON.stringify({ name: creator, email: email ?? "", grants }), {
-      status: 200,
-      headers: {
-        "content-type": "application/json",
-        "cache-control": "no-store",
-        "set-cookie": sessionCookie(id, req, SESSION_MAX_AGE),
-      },
-    });
-  } catch (e) {
-    if (isSessionStoreDisabled(e)) {
-      fwLegacyFallback(label, "store-disabled", "session store is DISABLED (KEEP_SESSION_KV off, or no INFRA_URL)");
-      return null; // → legacy proxy below
-    }
-    // A real credential rejection (infra said no) — surface as 401, don't leak the store to the app.
-    fwLog("auth", `${label} → 401: intakeSession rejected (${e instanceof Error ? e.message : String(e)})`);
-    return new Response(JSON.stringify({ message: "not authorized" }), {
-      status: 401,
-      headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
-  }
-}
-
-/** The silent-legacy-fallback fix. A valid login that quietly degrades to legacy bearer mode sets NO
- *  `sprig_session` cookie, so the SSR guard bounces every `/ui` back to `/ui/login` — and until this,
- *  nothing anywhere said so (the bug took ~1h to diagnose from the OUTSIDE, by the ABSENCE of a
- *  Set-Cookie header). Emit one always-on warning per (path,reason) naming the degrade, plus the full
- *  `[fw:auth]` detail line when `FRAMEWORK_LOGGING` is on. */
-function fwLegacyFallback(label: string, reason: "no-intakeSession" | "store-disabled", detail: string): void {
-  fwWarnOnce(
-    `legacy:${label}:${reason}`,
-    `[fw:auth] ${label} → LEGACY bearer mode: ${detail}. No ${SESSION_COOKIE} cookie will be set — ` +
-      `the SSR guard will bounce authed pages to /login. If you expected cookie sessions, this is the ` +
-      `bug (set KEEP_SESSION_KV=1 + INFRA_URL, and check the engine reached serveSprig). ` +
-      `Set FRAMEWORK_LOGGING=1 for the full auth trace.`,
-  );
-  fwLog("auth", `${label} → LEGACY FALLBACK: mintSession returned null (reason=${reason}); proxying to infra; NO cookie set`);
-}
-
-/** The session slice of KeepApi the gateway actually touches — lets `sprigAuth` mount the gateway
- *  with NO keep backend at all (all three absent → legacy proxy mode + cookie-clearing logout). */
-type SessionEngine = Pick<KeepApi, "intakeSession" | "destroySession" | "sessions">;
-
-async function serveAuthGateway(
-  req: Request,
-  keep: SessionEngine,
-  infraUrl: string,
-  exchangePath: string,
-): Promise<Response | null> {
-  const path = new URL(req.url).pathname;
-  const infra = infraUrl.replace(/\/+$/, "");
-
-  if (path === "/auth/firebase-config") {
-    if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: { allow: "GET" } });
-    if (!infra) return new Response("auth not configured", { status: 404 });
-    if (!firebaseConfigCache || Date.now() - firebaseConfigCache.at > 300_000) {
-      const res = await fetch(`${infra}/firebase-config.json`).catch(() => null);
-      if (!res?.ok) return new Response("firebase config unavailable", { status: 502 });
-      firebaseConfigCache = { body: await res.text(), at: Date.now() };
-    }
-    return new Response(firebaseConfigCache.body, {
-      headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
-  }
-
-  if (path === "/auth/login") {
-    if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { allow: "POST" } });
-    if (!infra) return new Response("auth not configured", { status: 404 });
-    const raw = await req.text();
-    if (raw.length > MAX_LOGIN_BODY) return new Response("Payload Too Large", { status: 413 });
-    let idToken = "", email = "";
-    try {
-      const body = JSON.parse(raw) as { idToken?: unknown; email?: unknown };
-      if (typeof body.idToken === "string") idToken = body.idToken;
-      if (typeof body.email === "string") email = body.email;
-    } catch { /* handled by the 400 below */ }
-    if (!idToken) {
-      return new Response(JSON.stringify({ message: "idToken required" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    fwLog("auth", `POST /auth/login: credentialKind=firebase email=${email || "—"}`);
-    // Preferred: keep mints a server-side session from the idToken and we set the httpOnly cookie.
-    const minted = await mintSession(keep, req, { credential: idToken, credentialKind: "firebase", email });
-    if (minted) return minted;
-    // Legacy fallback (no session store): server-to-server exchange; infra verifies the ID token and
-    // mints the offline-verifiable session bearer. Pass its verdict — and the bearer — through verbatim.
-    const res = await fetch(`${infra}/api/session/login`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ idToken, email }),
-    }).catch(() => null);
-    if (!res) return new Response("auth upstream unreachable", { status: 502 });
-    return new Response(await res.text(), {
-      status: res.status,
-      headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
-  }
-
-  if (path === "/auth/exchange") {
-    if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { allow: "POST" } });
-    if (!infra) return new Response("auth not configured", { status: 404 });
-    const raw = await req.text();
-    if (raw.length > MAX_LOGIN_BODY) return new Response("Payload Too Large", { status: 413 });
-    let token = "";
-    try {
-      const body = JSON.parse(raw) as { token?: unknown };
-      if (typeof body.token === "string") token = body.token;
-    } catch { /* handled by the 400 below */ }
-    if (!token) {
-      return new Response(JSON.stringify({ message: "token required" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
-    }
-    fwLog("auth", `POST /auth/exchange: credentialKind=opaque`);
-    // Preferred: keep swaps the opaque handle for a bearer, stores it server-side, sets the cookie.
-    const minted = await mintSession(keep, req, { credential: token, credentialKind: "opaque" });
-    if (minted) return minted;
-    // Legacy fallback (no session store): server-to-server exchange returning the bearer verbatim.
-    // Without this an opaque `?token=` was stored VERBATIM as the bearer and failed keep's JWKS
-    // verification → 401 on every /api call.
-    const res = await fetch(`${infra}${exchangePath}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token }),
-    }).catch(() => null);
-    if (!res) return new Response("auth upstream unreachable", { status: 502 });
-    return new Response(await res.text(), {
-      status: res.status,
-      headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
-  }
-
-  if (path === "/auth/me") {
-    if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: { allow: "GET" } });
-    const unauth = () =>
-      new Response("null", { status: 401, headers: { "content-type": "application/json", "cache-control": "no-store" } });
-    const id = decodeURIComponent(readCookie(req, SESSION_COOKIE));
-    if (!id || !keep.sessions) {
-      fwLog("auth", `GET /auth/me: session none (${!id ? "no cookie" : "no session engine"}) → 401`);
-      return unauth();
-    }
-    const rec = await keep.sessions.read(id).catch(() => null);
-    if (!rec) {
-      fwLog("auth", `GET /auth/me: session id=${id} not found → 401`);
-      return unauth();
-    }
-    fwLog("auth", `GET /auth/me: session resolved id=${id} email=${rec.email ?? "—"}`);
-    // grants are UX-only here (the guard still enforces them from the verified bearer per request).
-    return new Response(JSON.stringify({ name: rec.name ?? "", email: rec.email ?? "", grants: rec.grants ?? [] }), {
-      headers: { "content-type": "application/json", "cache-control": "no-store" },
-    });
-  }
-
-  if (path === "/auth/logout") {
-    if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { allow: "POST" } });
-    const id = decodeURIComponent(readCookie(req, SESSION_COOKIE));
-    if (id && keep.destroySession) await keep.destroySession(id).catch(() => {});
-    fwLog("auth", id && keep.destroySession ? `POST /auth/logout: destroyed id=${id} + cleared cookie` : `POST /auth/logout: cleared cookie (${id ? "no engine" : "no session"})`);
-    // Clear the cookie regardless (idempotent) — Max-Age=0 expires it immediately.
-    return new Response(null, {
-      status: 204,
-      headers: { "set-cookie": sessionCookie("", req, 0), "cache-control": "no-store" },
-    });
-  }
-
-  return null;
-}
-
-/** Standalone /auth gateway middleware for hosts WITHOUT a keep backend (sprigUi compositions,
- *  `sprig dev` on a pure-UI app). Same endpoints serveSprig mounts; with no session engine the
- *  gateway runs in legacy mode — login/exchange proxy to infra and `login()` still resolves the
- *  profile (the demo path), while /auth/me answers 401 (no server-side session store to read).
- *  Returns a Response for /auth/* or null to pass through. Infra defaults to the baked-in
- *  mrg-keystone control plane; pass `{ infraUrl: "" }` to disable. */
-export function sprigAuth(
-  config: { infraUrl?: string; exchangePath?: string; keep?: SessionEngine } = {},
-): (req: Request) => Promise<Response | null> {
-  const infraUrl = config.infraUrl ?? Deno.env.get("INFRA_URL") ?? DEFAULT_INFRA_URL;
-  const exchangePath = config.exchangePath ?? Deno.env.get("INFRA_EXCHANGE_PATH") ?? DEFAULT_EXCHANGE_PATH;
-  const engine = config.keep ?? {};
-  fwLog("compose", infraUrl ? `sprigAuth: gateway MOUNTED (infraUrl=${infraUrl}, exchangePath=${exchangePath})` : `sprigAuth: gateway NOT mounted (infraUrl empty)`);
-  fwLog(
-    "session",
-    `engine surfaced to gateway: intakeSession=${engine.intakeSession ? "yes" : "no"} ` +
-      `sessions=${engine.sessions ? "yes" : "no"} destroySession=${engine.destroySession ? "yes" : "no"}`,
-  );
-  return (req) => infraUrl ? serveAuthGateway(req, engine, infraUrl, exchangePath) : Promise.resolve(null);
-}
-
-// ─────────────────────────────── build-info <meta> provenance ───────────────────────────────
-// `sprig build` bakes the git-root deno.json's `git` block (repo/commit/branch/buildTime, stamped by
-// the deploy tooling) into `<assetsDir>/build-info.json`. serveSprig/sprigUi read it ONCE (the served
-// dir is the one thing they know reliably on Deno Deploy — same channel that makes ?v= work) and
-// splice the tags into every SSR document head. No git or repo is needed in the serving isolate.
-
-/** Read `<assetsDir>/build-info.json` once and render the provenance `<meta>` tags for the head.
- *  Memoized (constant per deployment); "" when the file is absent (local dev / not stamped). */
-function buildMetaReader(assetsDir: string): () => Promise<string> {
-  let cached: string | null = null;
-  return async () => {
-    if (cached !== null) return cached;
-    try {
-      const info = JSON.parse(await Deno.readTextFile(`${assetsDir}/build-info.json`)) as Record<string, unknown>;
-      const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-      const tag = (name: string, key: string) => {
-        const v = info[key];
-        return typeof v === "string" && v ? `  <meta name="${name}" content="${esc(v)}" />\n` : "";
-      };
-      cached = tag("git-repo", "repo") + tag("git-commit", "commit") + tag("git-branch", "branch") + tag("build-time", "buildTime");
-    } catch {
-      cached = ""; // no build-info → emit nothing
-    }
-    return cached;
-  };
-}
-
-/** Splice `meta` into an HTML response right after the opening `<head>` — streaming-safe (the head
- *  flushes as the first chunk, so the tags land immediately and the body passes through untouched).
- *  A non-HTML response, or an empty `meta`, is returned unchanged. */
-function injectHeadMeta(res: Response, meta: string): Response {
-  if (!meta) return res;
-  const type = res.headers.get("content-type") ?? "";
-  if (!type.includes("text/html") || res.body === null) return res;
-  const dec = new TextDecoder();
-  const enc = new TextEncoder();
-  const NEEDLE = "<head>";
-  let carry = "";
-  let done = false;
-  const rewrite = new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, controller) {
-      if (done) {
-        controller.enqueue(chunk);
-        return;
-      }
-      carry += dec.decode(chunk, { stream: true });
-      const at = carry.indexOf(NEEDLE);
-      if (at !== -1) {
-        const cut = at + NEEDLE.length;
-        controller.enqueue(enc.encode(carry.slice(0, cut) + "\n" + meta + carry.slice(cut)));
-        carry = "";
-        done = true;
-      } else if (carry.length > 8192) {
-        controller.enqueue(enc.encode(carry)); // no <head> in the first 8KB → pass through
-        carry = "";
-        done = true;
-      }
-    },
-    flush(controller) {
-      if (carry) controller.enqueue(enc.encode(carry));
-    },
-  });
-  const headers = new Headers(res.headers);
-  headers.delete("content-length"); // body length changed
-  return new Response(res.body.pipeThrough(rewrite), { status: res.status, statusText: res.statusText, headers });
-}
-
-// ─────────────────────────── zero-composition derivation ───────────────────────────
-// A generated `serve.ts` is `export default serveSprig({ keep: api })` — nothing else passed.
-// Everything else is DERIVED from one runtime anchor (`Deno.mainModule`, the git-root serve.ts that
-// `--rune` hoists) plus the ui/-or-app/ convention (probed on disk): srcDir = <root>/<ui|app>/src, assetsDir = <root>/<ui|app>/static
-// (falling back to <root>/src|static for a UI-at-root layout). The app is then composed from srcDir the
-// SAME way `sprig dev` does — so an app authors no composition file and can't forget `assetsDir` (the
-// cwd-relative default that shipped ?v=dev to prod). Every derived value is an override-able default:
-// pass `app`/`assetsDir` explicitly and derivation never runs (back-compat, and how `sprig dev` calls it).
-
-/** The dir of the running entrypoint (the git-root `serve.ts`), or null when `Deno.mainModule` isn't a
- *  file URL (e.g. a jsr:/https: entry, or a test harness) — then paths must be passed explicitly. */
-function entryRoot(): string | null {
-  try {
-    const m = Deno.mainModule;
-    return m.startsWith("file:") ? dirname(fromFileUrl(m)) : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The sanctioned UI package names under the project root, in preference order: `ui/` is the
- *  canonical composed layout; `app/` is the alternate name rune's structure spec sanctions. */
-const UI_PACKAGE_NAMES = ["ui", "app"] as const;
-
-/** Resolve the UI package dir under `root` by probing the sanctioned names in order — so a
- *  generated one-line serve.ts composes correctly for BOTH layouts without any passed config.
- *  Falls back to `<root>/ui` when neither exists yet (a fresh scaffold before its first build).
- *  Exported for tests. */
 export function deriveUiPackageDir(root: string): string {
   for (const name of UI_PACKAGE_NAMES) {
     try {
@@ -743,10 +441,13 @@ async function resolveAppRoutes(srcDir: string): Promise<Route[]> {
     return await loadRoutes(srcDir);
   }
   const modPath = join(srcDir, "mod.ts");
-  const mod = await import(toFileUrl(modPath).href) as { routes?: Route[]; sprigApp?: SprigApp };
+  const mod = await import(toFileUrl(modPath).href) as {
+    routes?: Route[];
+    sprigApp?: SprigApp;
+  };
   if (Array.isArray(mod.routes)) return mod.routes;
   throw new Error(
-    `serveSprig: ${modPath} exports no \`routes\` array — export \`routes = defineRoutes([...])\`, ` +
+    `sprig: ${modPath} exports no \`routes\` array — export \`routes = defineRoutes([...])\`, ` +
       `add src/routers/root/routes.json, or pass \`app\` explicitly.`,
   );
 }
@@ -755,7 +456,9 @@ async function resolveAppRoutes(srcDir: string): Promise<Route[]> {
  *  routes) — the composition `ui/src/mod.ts` used to hand-author. Async; called lazily on first request
  *  so serveSprig/sprigUi keep their synchronous `{ fetch }` return. */
 async function composeApp(srcDir: string, base: string): Promise<SprigApp> {
-  const renderer = await makeRenderer(srcDir, base, { dev: !!Deno.env.get("SPRIG_DEV") });
+  const renderer = await makeRenderer(srcDir, base, {
+    dev: !!Deno.env.get("SPRIG_DEV"),
+  });
   return bootstrap({ routes: await resolveAppRoutes(srcDir), base, renderer });
 }
 
@@ -790,197 +493,17 @@ function assetsGuard(assetsDir: string): void {
  *  app authors neither. */
 export function derivedRedirect(path: string, base: string): Response | null {
   if (base === "/" || base === "") return null; // root mount — the app IS at "/", nothing to redirect to
-  if (path === "/") return new Response(null, { status: 307, headers: { location: base } });
+  if (path === "/") {
+    return new Response(null, { status: 307, headers: { location: base } });
+  }
   if (path === "/favicon.ico") {
-    return new Response(null, { status: 307, headers: { location: `${base}/_assets/favicon.svg` } });
+    return new Response(null, {
+      status: 307,
+      headers: { location: `${base}/_assets/favicon.svg` },
+    });
   }
   return null;
 }
-
-/**
- * Dispatch order (the author writes none of this):
- *   /api/*   → keep.handler with the prefix STRIPPED, info forwarded (token-gated,
- *              NEVER backend.fetch — that would skip auth for network callers).
- *   /docs*   → keep.handler unstripped (the Swagger UI references /docs/* absolutely).
- *   else     → the sprig SSR app, with the in-process Backend threaded in.
- */
-export function serveSprig(config: ServeSprigConfig): ServeDefaultExport {
-  const base = config.base ?? "/ui";
-  const apiPrefix = config.apiPrefix ?? "/api";
-  const docsPrefix = config.docsPrefix ?? "/docs";
-  const assetsDir = config.assetsDir ?? deriveUiDir("static");
-  const assetPrefix = `${base}/_assets`;
-  assetsGuard(assetsDir);
-  // The SSR app: explicit, or composed lazily from the derived srcDir on first request (memoized) so
-  // serveSprig keeps its synchronous return. Deriving srcDir here (not per-request) pins it once.
-  const srcDir = deriveUiDir("src");
-  let appOnce: Promise<SprigApp> | undefined;
-  const getApp = (): Promise<SprigApp> => config.app ? Promise.resolve(config.app) : (appOnce ??= composeApp(srcDir, base));
-  // Firebase/Google sign-in gateway (loginWithGoogle's server half) — mounted only when an
-  // infra URL is resolvable; else /auth is left to the app (backward compatible).
-  const authInfraUrl = config.auth?.infraUrl ?? Deno.env.get("INFRA_URL") ?? DEFAULT_INFRA_URL;
-  const authExchangePath = config.auth?.exchangePath ?? Deno.env.get("INFRA_EXCHANGE_PATH") ?? DEFAULT_EXCHANGE_PATH;
-
-  if (base === apiPrefix || base === docsPrefix) {
-    throw new Error(`serveSprig: base "${base}" collides with a reserved keep prefix`);
-  }
-
-  // Framework-logging: narrate the composition once, so an integrator can see the auth mode and —
-  // the single most useful line for the silent-fallback bug — whether keep's session engine actually
-  // reached the gateway. `intakeSession=no` while KEEP_SESSION_KV is on is the "configured for
-  // cookies but the engine didn't surface" smell.
-  fwLog("compose", `serveSprig: keep backend detected; base=${base}; assetsDir=${assetsDir}`);
-  const authMounts = !!(authInfraUrl || config.keep.sessions || config.keep.destroySession);
-  fwLog(
-    "compose",
-    authMounts
-      ? `auth gateway MOUNTED (infraUrl=${authInfraUrl || "—"}, exchangePath=${authExchangePath})`
-      : `auth gateway NOT mounted (no infraUrl, no session engine)`,
-  );
-  fwLog(
-    "session",
-    `engine surfaced to gateway: intakeSession=${config.keep.intakeSession ? "yes" : "no"} ` +
-      `sessions=${config.keep.sessions ? "yes" : "no"} destroySession=${config.keep.destroySession ? "yes" : "no"}`,
-  );
-
-  const backend = backendClient(config.keep.backend.fetch);
-  // ONE source of truth for the asset version: the content hash of the dir we ACTUALLY
-  // serve. It drives both the renderer's ?v= (via env.assetsVersion) and serveAsset's
-  // immutable check, so the two can never disagree. Stat-probed memoization: steady
-  // state is cheap, and an in-place rebuild is picked up on the next request.
-  const version = assetsVersioner(assetsDir);
-  const buildMeta = buildMetaReader(assetsDir);
-
-  return {
-    async fetch(req, info): Promise<Response> {
-      const url = new URL(req.url);
-      const path = url.pathname;
-
-      // forbidden methods (TRACE/TRACK/CONNECT) can never be carried by a
-      // re-wrapped Request — reject cleanly up front instead of crashing.
-      if (FORBIDDEN_METHODS.has(req.method)) {
-        return new Response("Method Not Allowed", {
-          status: 405,
-          headers: { "allow": "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS" },
-        });
-      }
-
-      // bare-root + favicon redirects, DERIVED from base (a non-root UI's "/" means "go to the app",
-      // /favicon.ico is served from the built assets). No option, no hand-owned wrapper.
-      const redirect = derivedRedirect(path, base);
-      if (redirect) return redirect;
-
-      // same-origin /auth gateway (the server half of sprig's client auth). Active when an infra
-      // URL is configured (login/exchange/firebase-config) OR keep exposes the cookie-session engine
-      // (me/logout work without infra). Returns null for non-/auth paths → falls through.
-      if (authInfraUrl || config.keep.sessions || config.keep.destroySession) {
-        const authRes = await serveAuthGateway(req, config.keep, authInfraUrl, authExchangePath);
-        if (authRes) return authRes;
-      }
-      // framework-vendored libs (apexcharts, …) → the shared vendor route. This is what
-      // "ship it to the client" means: the server hands over its own bundled copy; the
-      // app never emits it.
-      const vendorRes = serveVendorAsset(path, assetPrefix);
-      if (vendorRes) return vendorRes;
-      // built assets → static dir (immutable only for content-addressed requests)
-      if (path.startsWith(assetPrefix + "/")) {
-        return serveAsset(assetsDir, path.slice(assetPrefix.length + 1), req, version);
-      }
-      // network /api/* → keep (auth-gated), prefix stripped, info forwarded
-      if (path === apiPrefix || path.startsWith(apiPrefix + "/")) {
-        const strippedPath = path.slice(apiPrefix.length) || "/";
-        // the api channel must NOT alias the human /docs Swagger surface
-        if (strippedPath === docsPrefix || strippedPath.startsWith(docsPrefix + "/")) {
-          return new Response("Not Found", { status: 404 });
-        }
-        const stripped = new URL(req.url);
-        stripped.pathname = strippedPath;
-
-        // request-validation gateway: a body-bearing /api request is pre-checked
-        // here so malformed/oversized/over-nested/wrong-media-type bodies become a
-        // clean 4xx instead of a 500 leaking a parser/stack error from the pipeline.
-        if (req.body !== null) {
-          const body = await req.text();
-          if (body.length > 0) {
-            const ct = (req.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
-            if (ct !== "application/json") {
-              return new Response("Unsupported Media Type", { status: 415 });
-            }
-            if (new TextEncoder().encode(body).byteLength > MAX_BODY_BYTES || jsonDepth(body) > MAX_JSON_DEPTH) {
-              return new Response("Bad Request", { status: 400 });
-            }
-            try {
-              JSON.parse(body);
-            } catch {
-              return new Response("Bad Request", { status: 400 });
-            }
-          }
-          const rebuilt = new Request(stripped, {
-            method: req.method,
-            headers: req.headers,
-            body: body.length > 0 ? body : undefined,
-          });
-          return Promise.resolve(config.keep.handler(rebuilt, info));
-        }
-        return Promise.resolve(config.keep.handler(new Request(stripped, req), info));
-      }
-      // /docs* → keep, unstripped
-      if (path === docsPrefix || path.startsWith(docsPrefix + "/")) {
-        return Promise.resolve(config.keep.handler(req, info));
-      }
-      // everything else → sprig SSR, in-process Backend threaded in (no globalThis),
-      // plus the served-assets content hash so the rendered ?v= is content-addressed.
-      // Session mode: resolve the httpOnly session cookie → profile and thread it in as env.session
-      // so the SSR guard reads ctx.session instead of re-verifying a bearer. Legacy mode (no
-      // keep.sessions) → session stays null and a guard parses the headers itself, as before.
-      let session: SessionProfile | null = null;
-      if (config.keep.sessions) {
-        const raw = readCookie(req, SESSION_COOKIE);
-        if (raw) session = await config.keep.sessions.read(decodeURIComponent(raw)).catch(() => null);
-      }
-      if (fwOn("guard")) {
-        const cookiePresent = !!readCookie(req, SESSION_COOKIE);
-        fwLog(
-          "guard",
-          `path=${path}: session=${
-            session ? `present email=${session.email ?? "—"} grants=[${(session.grants ?? []).join(",")}]` : "absent"
-          }${!session && cookiePresent ? " (cookie present but unresolved)" : ""}${
-            !config.keep.sessions ? " (no session engine — guard parses headers itself)" : ""
-          }`,
-        );
-      }
-      const app = await getApp();
-      return injectHeadMeta(await app.fetch(req, info, { backend, assetsVersion: (await version()) ?? undefined, session }), await buildMeta());
-    },
-  };
-}
-
-export interface SprigUiConfig {
-  /** The SSR app. OPTIONAL: composed from the derived srcDir (`<entry root>/<ui|app>/src`) when omitted. */
-  app?: SprigApp;
-  /** where the UI mounts (default "/ui"); the build's assets live at <base>/_assets/*. */
-  base?: string;
-  /** directory the built assets are read from. OPTIONAL: derived from the entry anchor when omitted. */
-  assetsDir?: string;
-  /** the HOST's in-process backend, threaded into resolve.ts for SSR data loading. */
-  backend?: { fetch: typeof fetch };
-}
-
-/**
- * A framework-agnostic middleware CORE for mounting the sprig UI inside ANY host server.
- * Returns a Response for any request under `base` (the assets + the SSR app), or `null`
- * to pass through (not ours). Compose it however your host wants:
- *
- *   Deno:      Deno.serve((req, info) => ui(req, info).then(r => r ?? host(req)))
- *   Danet/Oak: app.use(async (ctx, next) => {
- *                const r = await ui(ctx.request.source);            // the raw Request
- *                if (r) { ctx.response.status = r.status; ctx.response.headers = r.headers; ctx.response.body = r.body; }
- *                else await next();
- *              })
- *   Hono:      app.use(async (c, next) => (await ui(c.req.raw)) ?? (await next()))
- *
- * The host owns /api, /docs, and every other route; the sprig middleware owns /ui/**.
- */
 
 /** Configuration for {@link Frontend}. Everything is derivable from the
  *  ui/-convention app the CLI scaffolds; pass overrides only off the path. */
@@ -994,32 +517,31 @@ export interface FrontendConfig {
 }
 
 /**
- * The composed app's FRONTEND — a directly-servable fetch handler that accepts
- * the provisioned in-process client as an OPTIONAL THIRD ARGUMENT. The third
- * argument IS the entire seam: a fetch-shaped client the composing backend
- * layer mints per request; sprig binds it into the request-scoped `Backend`
- * DI token, so `inject(Backend)` in SSR reads in-process with zero cookie
- * plumbing. With no third argument (`Deno.serve(Frontend())` — UI-only), the
- * token stays unbound and `inject(Backend)` fails loud; islands' `/api/*`
- * calls simply have nothing serving them.
+ * The app's UI half, as a bedrock `Unit`.
  *
- * The three canonical serving shapes:
+ *   export default Bedrock({ ui: Frontend(), backend: api, auth: Infra() });
  *
- *   Deno.serve(Backend(appName, module))                            // backend alone
- *   Deno.serve(Backend(appName, module, { frontend: Frontend() }))  // full-stack
- *   Deno.serve(Frontend())                                          // frontend alone
+ * The handler takes the BAG as its third argument — `{ fetch, app, policy }`,
+ * provisioned per dispatch by the composition root. Its `fetch` is the one
+ * in-process client, request-bound in scope: sprig binds it into the
+ * request-scoped `Backend` DI token, so `inject(Backend)` in SSR reads
+ * in-process carrying this request's own cookies, and `Set-Cookie` from those
+ * reads lands on the outer browser response. With no bag (a bare
+ * `Deno.serve(Frontend().handler)`), the token stays unbound and
+ * `inject(Backend)` fails loud.
  *
- * Frontend owns everything the backend layer does not intercept: the SSR pages
- * under `base`, their assets, the root redirect, and a 404 for the rest —
- * total coverage, never a hang or a throw.
+ * The unit also declares its POLICY: the routes a caller with no credential
+ * must still reach, or a signed-out browser cannot load the page that would
+ * let it sign in. Those are the assets, the favicon, and the root redirect.
+ * Everything else follows the `ui` slot's default — open — unless the app
+ * declares otherwise.
+ *
+ * Session comes from the ENVELOPE: whoever the auth unit's `verify` returned
+ * for this dispatch is stamped on the request by the root and read back here,
+ * on both channels, with nothing for the app to plumb. sprig used to have no
+ * way to know who the caller was at all.
  */
-export function Frontend(
-  config: FrontendConfig = {},
-): (
-  req: Request,
-  info?: Deno.ServeHandlerInfo,
-  backend?: { fetch: typeof fetch },
-) => Promise<Response> {
+export function Frontend(config: FrontendConfig = {}): Unit {
   const base = config.base ?? "/ui";
   const assetsDir = config.assetsDir ?? deriveUiDir("static");
   const assetPrefix = `${base}/_assets`;
@@ -1029,11 +551,17 @@ export function Frontend(
   const srcDir = deriveUiDir("src");
   let appOnce: Promise<SprigApp> | undefined;
   const getApp = (): Promise<SprigApp> =>
-    config.app ? Promise.resolve(config.app) : (appOnce ??= composeApp(srcDir, base));
+    config.app
+      ? Promise.resolve(config.app)
+      : (appOnce ??= composeApp(srcDir, base));
 
-  fwLog("compose", `Frontend: base=${base}; assetsDir=${assetsDir}`);
+  logger.debug("sprig: Frontend composed", { base, assetsDir });
 
-  return async (req, _info, backendArg) => {
+  const handler = async (
+    req: Request,
+    _info?: Deno.ServeHandlerInfo,
+    bag?: Bag,
+  ): Promise<Response> => {
     const url = new URL(req.url);
     const path = url.pathname;
     if (path === "/" || path === "") {
@@ -1055,53 +583,38 @@ export function Frontend(
     const vendorRes = serveVendorAsset(path, assetPrefix);
     if (vendorRes) return vendorRes;
     if (path.startsWith(assetPrefix + "/")) {
-      return await serveAsset(assetsDir, path.slice(assetPrefix.length + 1), req, version) ??
+      return await serveAsset(
+        assetsDir,
+        path.slice(assetPrefix.length + 1),
+        req,
+        version,
+      ) ??
         new Response("Not Found", { status: 404 });
     }
     const app = await getApp();
     // The REQUEST-SCOPED binding of the cardinal invariant: the third-argument
     // client is minted per request by the composing layer; wrap it fresh here,
     // per call — never captured into module scope or a singleton provider.
-    const backend = backendArg ? backendClient(backendArg.fetch) : undefined;
+    const backend = bag ? backendClient(bag.fetch) : undefined;
     const res = await app.fetch(req, _info, {
       backend,
       assetsVersion: (await version()) ?? undefined,
+      // The envelope, not a cookie the app has to parse: whoever this dispatch
+      // was allowed as. `null` means the route was reached openly.
+      session: of(req).identity ?? null,
     });
     return injectHeadMeta(res, await buildMeta());
   };
-}
 
-export function sprigUi(
-  config: SprigUiConfig,
-): (req: Request, info?: Deno.ServeHandlerInfo) => Promise<Response | null> {
-  const base = config.base ?? "/ui";
-  const assetsDir = config.assetsDir ?? deriveUiDir("static");
-  const assetPrefix = `${base}/_assets`;
-  const backend = config.backend ? backendClient(config.backend.fetch) : undefined;
-  assetsGuard(assetsDir);
-  // same single source of truth as serveSprig: the served dir's content hash drives
-  // the renderer's ?v= AND the immutable check (stat-probed, tracks in-place rebuilds).
-  const version = assetsVersioner(assetsDir);
-  const buildMeta = buildMetaReader(assetsDir);
-  // explicit app, or lazily composed from the derived srcDir (memoized) — same as serveSprig.
-  const srcDir = deriveUiDir("src");
-  let appOnce: Promise<SprigApp> | undefined;
-  const getApp = (): Promise<SprigApp> => config.app ? Promise.resolve(config.app) : (appOnce ??= composeApp(srcDir, base));
-
-  return async (req, info) => {
-    const path = new URL(req.url).pathname;
-    // not under <base> → not ours; the host handles it (next()).
-    if (path !== base && !path.startsWith(base + "/")) return null;
-    if (FORBIDDEN_METHODS.has(req.method)) {
-      return new Response("Method Not Allowed", { status: 405, headers: { "allow": "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS" } });
-    }
-    // framework-vendored libs → the shared vendor route (the build output never has them)
-    const vendorRes = serveVendorAsset(path, assetPrefix);
-    if (vendorRes) return vendorRes;
-    if (path.startsWith(assetPrefix + "/")) {
-      return serveAsset(assetsDir, path.slice(assetPrefix.length + 1), req, version);
-    }
-    const app = await getApp();
-    return injectHeadMeta(await app.fetch(req, info, { backend, assetsVersion: (await version()) ?? undefined }), await buildMeta());
+  return {
+    handler,
+    policy: [
+      // A signed-out browser must be able to load the page that lets it sign in
+      // — which means its assets, too. Declared here rather than assumed,
+      // because the `ui` slot's default only holds until an app narrows it.
+      { path: `${assetPrefix}/*`, access: "open" },
+      { path: "/favicon.ico", access: "open" },
+      { path: "/", access: "open" },
+    ],
   };
 }

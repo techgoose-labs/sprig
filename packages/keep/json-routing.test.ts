@@ -18,14 +18,18 @@ const scaffold = async (files: Record<string, string>): Promise<string> => {
 Deno.test("loadRoutes: routers/root entry + guards/<name>/mod.ts + nested routers/<name>/routes.json", async () => {
   const tmp = await scaffold({
     // a guard is a folder — mod.ts (+ test.ts); it default-exports a Guard
-    "guards/loggedIn/mod.ts": `export default (ctx: { path: string[] }) => ctx.path;`,
+    "guards/loggedIn/mod.ts":
+      `export default (ctx: { path: string[] }) => ctx.path;`,
     // the entrypoint router's table: a public page + a guarded nested router
     "routers/root/routes.json": JSON.stringify([
       { path: "login", load: "pages/login" },
       { path: "", load: "routers/app", guards: ["loggedIn"] },
     ]),
     // the nested router's own children table
-    "routers/app/routes.json": JSON.stringify([{ path: "overview", load: "pages/overview" }]),
+    "routers/app/routes.json": JSON.stringify([{
+      path: "overview",
+      load: "pages/overview",
+    }]),
   });
   try {
     const routes = await loadRoutes(tmp);
@@ -33,7 +37,10 @@ Deno.test("loadRoutes: routers/root entry + guards/<name>/mod.ts + nested router
     assertEquals(routes.length, 1);
     assertEquals(routes[0].load, "routers/root");
     const kids = routes[0].children ?? [];
-    assertEquals(kids.map((r) => r.load).sort(), ["pages/login", "routers/app"]);
+    assertEquals(kids.map((r) => r.load).sort(), [
+      "pages/login",
+      "routers/app",
+    ]);
     // "loggedIn" resolved from guards/loggedIn/mod.ts onto the guarded route
     const app = kids.find((r) => r.load === "routers/app")!;
     assertEquals(app.guards?.length, 1);
@@ -47,8 +54,13 @@ Deno.test("loadRoutes: routers/root entry + guards/<name>/mod.ts + nested router
 
 Deno.test("loadRoutes: legacy src/root.json + guards/<name>/guard.ts still resolve (back-compat)", async () => {
   const tmp = await scaffold({
-    "guards/gate/guard.ts": `export default (ctx: { path: string[] }) => ctx.path;`,
-    "root.json": JSON.stringify([{ path: "x", load: "pages/x", guards: ["gate"] }]),
+    "guards/gate/guard.ts":
+      `export default (ctx: { path: string[] }) => ctx.path;`,
+    "root.json": JSON.stringify([{
+      path: "x",
+      load: "pages/x",
+      guards: ["gate"],
+    }]),
   });
   try {
     const routes = await loadRoutes(tmp);

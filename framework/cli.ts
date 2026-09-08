@@ -14,25 +14,52 @@
  *
  * The framework runtime lives next to this file at ./.sprig (core + compiler).
  */
-import { basename, dirname, join, relative, resolve, toFileUrl } from "@std/path";
+import {
+  basename,
+  dirname,
+  join,
+  relative,
+  resolve,
+  toFileUrl,
+} from "@std/path";
 // static relative imports of the package's own modules (computed-path dynamic imports
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
-import { analyzeWiring, renderWiringMap, type WiringDiagnostic } from "./.sprig/compiler/wiring-lint.ts";
+import {
+  analyzeWiring,
+  renderWiringMap,
+  type WiringDiagnostic,
+} from "./.sprig/compiler/wiring-lint.ts";
 import { createDevServer } from "./.sprig/compiler/dev.ts";
-import { createRenderer, Frontend, loadRoutes, serveSprig, sprigAuth, sprigUi } from "../packages/keep/mod.ts";
+import { createRenderer, Frontend, loadRoutes } from "../packages/keep/mod.ts";
+import { Bedrock } from "@mrg-keystone/bedrock";
 // The runtime via the BARE specifier, not "./.sprig/core.ts": in the merged-config dev child the
 // import map resolves @mrg-keystone/sprig to the APP'S stamped pin, so the CLI's bootstrap and the
 // app's own modules share ONE core (dev == prod resolution; a relative import here would load a
 // second, local copy and split the module-global DI).
 import { bootstrap, type Route } from "@mrg-keystone/sprig";
-import { assertWorkbench, installRuntimeFromDeployment, installRuntimeFromWorkingTree, latestRuntimeRelease } from "./.sprig/install.ts";
-import { specRootOf } from "./.sprig/spec-root.ts";
-import { migrateImports, migrateVal, stampImports } from "./.sprig/pin-stamp.ts";
+import {
+  assertWorkbench,
+  installRuntimeFromDeployment,
+  installRuntimeFromWorkingTree,
+  latestRuntimeRelease,
+} from "./.sprig/install.ts";
+import {
+  BEDROCK_SERVE_MARKER,
+  ensureWorkspace,
+  renderServe,
+  specRootOf,
+} from "@mrg-keystone/bedrock/artifact";
+import {
+  migrateImports,
+  migrateVal,
+  stampImports,
+} from "./.sprig/pin-stamp.ts";
 import {
   checkArtifactVersion,
   ensureSpecSkeleton,
   registerManifestEntries,
+  SPRIG_MANIFEST_ENTRIES,
   verifyContractFreshness,
 } from "./.sprig/artifact.ts";
 // NOTE: `./.sprig/annotate.ts` is imported LAZILY (a dynamic `import(...)` inside the `dev`
@@ -51,7 +78,9 @@ function cliVersion(): string | null {
   const fwDir = import.meta.dirname; // undefined on a remote jsr:/https: run — no disk, no version
   if (!fwDir) return null;
   try {
-    const { version } = JSON.parse(Deno.readTextFileSync(join(fwDir, "..", "deno.json"))) as { version?: string };
+    const { version } = JSON.parse(
+      Deno.readTextFileSync(join(fwDir, "..", "deno.json")),
+    ) as { version?: string };
     return (typeof version === "string" && version) ? version : null;
   } catch {
     return null;
@@ -76,13 +105,16 @@ function runeRange(): string {
   // Direct import.meta.dirname, NOT installRoot(): its jsr guard Deno.exit(1)s
   // (uncatchable) — this read must degrade to the floor on a remote jsr: run.
   const fwDir = import.meta.dirname;
-  if (!fwDir) return "^6";
+  if (!fwDir) return "^7";
   try {
-    const cfg = JSON.parse(Deno.readTextFileSync(join(fwDir, "..", "server", "deno.json"))) as { imports?: Record<string, string> };
-    const range = cfg.imports?.["@mrg-keystone/rune"]?.match(/\/rune@([^"/]+)$/)?.[1];
+    const cfg = JSON.parse(
+      Deno.readTextFileSync(join(fwDir, "..", "server", "deno.json")),
+    ) as { imports?: Record<string, string> };
+    const range = cfg.imports?.["@mrg-keystone/rune"]?.match(/\/rune@([^"/]+)$/)
+      ?.[1];
     if (range) return range;
   } catch { /* fall through to a sane floor */ }
-  return "^6";
+  return "^7";
 }
 
 /** This CLI's on-disk install root — the dir holding `framework/` (a repo checkout or `~/.sprig`).
@@ -128,9 +160,13 @@ function freePort(start: number): number {
 /** Identify an annotate server already answering on `port` (its mode + file), or null. Lets a
  *  relaunch REUSE the running one (same URL) instead of drifting to a new port — the fix for
  *  "the annotate port keeps switching." */
-async function annotatePing(port: number): Promise<{ ok: true; mode?: string; file?: string; notes?: string } | null> {
+async function annotatePing(
+  port: number,
+): Promise<{ ok: true; mode?: string; file?: string; notes?: string } | null> {
   try {
-    const r = await fetch(`http://localhost:${port}/__annotate/ping`, { signal: AbortSignal.timeout(500) });
+    const r = await fetch(`http://localhost:${port}/__annotate/ping`, {
+      signal: AbortSignal.timeout(500),
+    });
     if (!r.ok) return null;
     const j = await r.json().catch(() => null);
     return j && j.ok === true ? j : null;
@@ -163,9 +199,14 @@ function appPort(seed: string): number {
 
 /** Open a URL in the default browser (best-effort; silent on headless/CI). */
 function openUrl(url: string): void {
-  const cmd = Deno.build.os === "darwin" ? "open" : Deno.build.os === "windows" ? "explorer" : "xdg-open";
+  const cmd = Deno.build.os === "darwin"
+    ? "open"
+    : Deno.build.os === "windows"
+    ? "explorer"
+    : "xdg-open";
   try {
-    new Deno.Command(cmd, { args: [url], stdout: "null", stderr: "null" }).spawn();
+    new Deno.Command(cmd, { args: [url], stdout: "null", stderr: "null" })
+      .spawn();
   } catch { /* ignore */ }
 }
 
@@ -176,21 +217,29 @@ function openUrl(url: string): void {
  *  carrying a leaked local-path rewrite; this heals it once and removes the backup dir. */
 async function healLegacyLocalPins(appDir: string): Promise<void> {
   const tmp = Deno.env.get("TMPDIR") ?? "/tmp";
-  const key = resolve(appDir).replace(/[^A-Za-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "app";
+  const key =
+    resolve(appDir).replace(/[^A-Za-z0-9]+/g, "-").replace(/(^-|-$)/g, "") ||
+    "app";
   const dir = join(tmp, "sprig-dev", key, "pins");
   let healed = 0;
   try {
     for await (const e of Deno.readDir(dir)) {
       if (!e.isFile || !e.name.endsWith(".json")) continue;
       try {
-        const { path, original } = JSON.parse(await Deno.readTextFile(join(dir, e.name))) as { path: string; original: string };
+        const { path, original } = JSON.parse(
+          await Deno.readTextFile(join(dir, e.name)),
+        ) as { path: string; original: string };
         await Deno.writeTextFile(path, original);
         healed++;
       } catch { /* skip a corrupt/partial backup */ }
     }
     await Deno.remove(dir, { recursive: true }).catch(() => {});
   } catch { /* no backup dir → nothing to heal */ }
-  if (healed) console.log(`sprig: restored ${healed} deno.json file(s) from an interrupted previous \`sprig dev\`.`);
+  if (healed) {
+    console.log(
+      `sprig: restored ${healed} deno.json file(s) from an interrupted previous \`sprig dev\`.`,
+    );
+  }
 }
 
 // ── shared dev-process registry (~/.sprig/dev.json) ──────────────────────────
@@ -218,17 +267,23 @@ function devLockPath(): string {
   return join(sprigStateRoot(), "dev.json");
 }
 
-/** Nearest `.git` ancestor of `startAbs` (a real clone has a `.git` dir, a worktree a `.git` file — test existence, not type), or null outside any repo. */
+/** Nearest `.git` ancestor of `startAbs` (a real clone has a `.git` dir, a
+ *  worktree a `.git` file — existence, not type), or null outside any repo.
+ *
+ *  The walk is the artifact format's ONE implementation (D-9). This file used to
+ *  carry three more copies of it; a copy that drifts resolves `spec/` to a
+ *  different directory than the sibling toolchain does, and the shared artifact
+ *  splits in half. */
 function gitRepoRoot(startAbs: string): string | null {
-  let d = startAbs;
-  for (;;) {
-    try {
-      Deno.statSync(join(d, ".git"));
-      return d;
-    } catch { /* keep walking up */ }
-    const parent = dirname(d);
-    if (parent === d) return null;
-    d = parent;
+  const root = specRootOf(startAbs);
+  if (root !== startAbs) return root;
+  // The walk returned the start: either it IS the repo root, or there is no
+  // repo. One lstat tells them apart.
+  try {
+    Deno.lstatSync(join(startAbs, ".git"));
+    return startAbs;
+  } catch {
+    return null;
   }
 }
 /** The current git branch of `root`, sanitized (empty outside a repo / on detached HEAD). Keys the
@@ -262,7 +317,10 @@ function repoKey(target: string): string {
 
 async function readDevLock(): Promise<Record<string, DevLockEntry>> {
   try {
-    return (JSON.parse(await Deno.readTextFile(devLockPath())) as Record<string, DevLockEntry>) ?? {};
+    return (JSON.parse(await Deno.readTextFile(devLockPath())) as Record<
+      string,
+      DevLockEntry
+    >) ?? {};
   } catch {
     return {};
   }
@@ -280,7 +338,11 @@ async function writeDevLock(map: Record<string, DevLockEntry>): Promise<void> {
 async function pidAlive(pid: number): Promise<boolean> {
   if (!Number.isInteger(pid) || pid <= 1) return false;
   try {
-    const { success } = await new Deno.Command("ps", { args: ["-p", String(pid)], stdout: "null", stderr: "null" }).output();
+    const { success } = await new Deno.Command("ps", {
+      args: ["-p", String(pid)],
+      stdout: "null",
+      stderr: "null",
+    }).output();
     return success;
   } catch {
     return false;
@@ -292,16 +354,27 @@ async function killPort(port: number): Promise<void> {
     // LISTEN only: a bare `tcp:<port>` also matches CLIENT sockets on that port —
     // including the probe fetch the CALLER just made, i.e. killPort would SIGKILL
     // the very process doing the reclaiming (silent self-kill mid-boot).
-    const out = await new Deno.Command("lsof", { args: ["-ti", `tcp:${port}`, "-sTCP:LISTEN"], stdout: "piped", stderr: "null" }).output();
+    const out = await new Deno.Command("lsof", {
+      args: ["-ti", `tcp:${port}`, "-sTCP:LISTEN"],
+      stdout: "piped",
+      stderr: "null",
+    }).output();
     for (const s of new TextDecoder().decode(out.stdout).split("\n")) {
       const p = Number(s.trim());
-      if (p > 1) try { Deno.kill(p, "SIGKILL"); } catch { /* already gone */ }
+      if (p > 1) {
+        try {
+          Deno.kill(p, "SIGKILL");
+        } catch { /* already gone */ }
+      }
     }
   } catch { /* no lsof → skip (best-effort) */ }
 }
 /** The two stable ports a repo's shared process owns (app+annotate, and the isolate workbench). */
 function devPorts(repo: string): { app: number; iso: number } {
-  return { app: Number(Deno.env.get("PORT")) || appPort(repo), iso: appPort(`isolate:${repo}`) };
+  return {
+    app: Number(Deno.env.get("PORT")) || appPort(repo),
+    iso: appPort(`isolate:${repo}`),
+  };
 }
 
 /** Tee the shared dev process's output to the terminal AND to a rotating log folder:
@@ -317,14 +390,23 @@ class DevLog {
     this.#maxFiles = maxFiles;
   }
   async #roll(): Promise<void> {
-    try { this.#file?.close(); } catch { /* */ }
+    try {
+      this.#file?.close();
+    } catch { /* */ }
     const name = new Date().toISOString().replace(/[:.]/g, "-") + ".log";
-    this.#file = await Deno.open(join(this.#folder, name), { create: true, append: true });
+    this.#file = await Deno.open(join(this.#folder, name), {
+      create: true,
+      append: true,
+    });
     this.#lines = 0;
     const files: string[] = [];
-    for await (const e of Deno.readDir(this.#folder)) if (e.isFile && e.name.endsWith(".log")) files.push(e.name);
+    for await (const e of Deno.readDir(this.#folder)) {
+      if (e.isFile && e.name.endsWith(".log")) files.push(e.name);
+    }
     files.sort(); // timestamp names sort chronologically
-    for (const old of files.slice(0, Math.max(0, files.length - this.#maxFiles))) {
+    for (
+      const old of files.slice(0, Math.max(0, files.length - this.#maxFiles))
+    ) {
       await Deno.remove(join(this.#folder, old)).catch(() => {});
     }
   }
@@ -339,7 +421,9 @@ class DevLog {
     if (this.#lines >= MAX_LOG_LINES) await this.#roll();
   }
   close(): void {
-    try { this.#file?.close(); } catch { /* */ }
+    try {
+      this.#file?.close();
+    } catch { /* */ }
   }
 }
 
@@ -365,19 +449,26 @@ async function attachShared(repo: string, e: DevLockEntry): Promise<void> {
   const newest = async (): Promise<string> => {
     let best = "";
     try {
-      for await (const f of Deno.readDir(folder)) if (f.isFile && f.name.endsWith(".log") && f.name > best) best = f.name;
+      for await (const f of Deno.readDir(folder)) {
+        if (f.isFile && f.name.endsWith(".log") && f.name > best) best = f.name;
+      }
     } catch { /* folder gone */ }
     return best ? join(folder, best) : "";
   };
   let detached = false;
-  const stop = () => { detached = true; };
+  const stop = () => {
+    detached = true;
+  };
   Deno.addSignalListener("SIGINT", stop);
   Deno.addSignalListener("SIGTERM", stop);
   let cur = "";
   let pos = 0;
   while (!detached) {
     const latest = await newest();
-    if (latest && latest !== cur) { cur = latest; pos = 0; } // first file, or rotated → follow the new one
+    if (latest && latest !== cur) {
+      cur = latest;
+      pos = 0;
+    } // first file, or rotated → follow the new one
     if (cur) {
       try {
         const st = await Deno.stat(cur);
@@ -397,7 +488,11 @@ async function attachShared(repo: string, e: DevLockEntry): Promise<void> {
       } catch { /* file vanished mid-rotate → re-detect next tick */ }
     }
     if (!(await pidAlive(e.pid))) {
-      console.log(`\n%c⟶ the shared process (pid ${e.pid}) exited — run \`sprig dev\` again to start a fresh one.%c`, "color:#a00", "");
+      console.log(
+        `\n%c⟶ the shared process (pid ${e.pid}) exited — run \`sprig dev\` again to start a fresh one.%c`,
+        "color:#a00",
+        "",
+      );
       break;
     }
     await new Promise((r) => setTimeout(r, 400));
@@ -429,14 +524,17 @@ async function withMergedConfig(appDir: string): Promise<void> {
   const rtCfgPath = join(installDir, "deno.json");
   if (!(await fileExists(appCfgPath)) || !(await fileExists(rtCfgPath))) return;
   await healLegacyLocalPins(appDir); // recover a deno.json an OLD sprig's killed dev left rewritten
-  let appCfg: { imports?: Record<string, string> }, rtCfg: Record<string, unknown>;
+  let appCfg: { imports?: Record<string, string> },
+    rtCfg: Record<string, unknown>;
   try {
     appCfg = JSON.parse(await Deno.readTextFile(appCfgPath));
     rtCfg = JSON.parse(await Deno.readTextFile(rtCfgPath));
   } catch {
     return; // unparseable config → run as-is
   }
-  const imports: Record<string, unknown> = { ...(rtCfg.imports as Record<string, unknown> ?? {}) };
+  const imports: Record<string, unknown> = {
+    ...(rtCfg.imports as Record<string, unknown> ?? {}),
+  };
   for (const [k, v] of Object.entries(appCfg.imports ?? {})) {
     if (typeof v === "string" && /^\.\.?\//.test(v)) {
       let abs = toFileUrl(join(appAbs, v)).href;
@@ -447,14 +545,25 @@ async function withMergedConfig(appDir: string): Promise<void> {
     }
   }
   const mergedPath = join(installDir, ".sprig-app.json");
-  await Deno.writeTextFile(mergedPath, JSON.stringify({ ...rtCfg, imports }, null, 2));
+  await Deno.writeTextFile(
+    mergedPath,
+    JSON.stringify({ ...rtCfg, imports }, null, 2),
+  );
   const { code } = await new Deno.Command(Deno.execPath(), {
     // import.meta.filename is the file:// path of THIS module — defined here because the early
     // `!import.meta.url.startsWith("file:")` guard already returned for a remote module.
     // --unstable-kv: this merged-config child is the process that ends up running the server
     // (it re-enters dev() past the SPRIG_MERGED guard), so it — not just the supervisor — needs
     // Deno KV enabled for a keep backend that calls Deno.openKv.
-    args: ["run", "-A", "--unstable-kv", "--config", mergedPath, import.meta.filename!, ...Deno.args],
+    args: [
+      "run",
+      "-A",
+      "--unstable-kv",
+      "--config",
+      mergedPath,
+      import.meta.filename!,
+      ...Deno.args,
+    ],
     env: { ...Deno.env.toObject(), SPRIG_MERGED: "1" },
     stdin: "inherit",
     stdout: "inherit",
@@ -468,14 +577,17 @@ async function withMergedConfig(appDir: string): Promise<void> {
  *  (`sprig build` keeps writing <cwd>/static — the deploy artifact serveSprig reads.) */
 function devCacheDir(appDir: string): string {
   const tmp = Deno.env.get("TMPDIR") ?? "/tmp";
-  const key = resolve(appDir).replace(/[^A-Za-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "app";
+  const key =
+    resolve(appDir).replace(/[^A-Za-z0-9]+/g, "-").replace(/(^-|-$)/g, "") ||
+    "app";
   return join(tmp, "sprig-dev", key, "static");
 }
 
-/** The banner `sprig build --rune` writes into a generated serve.ts. Both writeRuneServe (which
- *  refuses to clobber a serve.ts WITHOUT it) and `sprig clean` (which only removes one WITH it) key
- *  off this exact string, so a hand-written serve.ts is never overwritten nor deleted. */
-const RUNE_SERVE_MARKER = "GENERATED by `sprig build --rune`";
+// The generated-serve.ts marker is BEDROCK_SERVE_MARKER now — one string both
+// toolchains write and both recognize, replacing the two private markers that
+// each had to know about the other. `writeRuneServe` refuses to clobber a
+// serve.ts without it; `sprig clean` only removes one with it. So a
+// hand-written serve.ts is never overwritten nor deleted, whichever CLI ran.
 
 /** Print the template-wiring lint findings (spec §6 — required, not optional) in the
  *  house file:line style; returns whether any ERROR fired (the caller decides to exit).
@@ -488,12 +600,20 @@ function reportWiringDiags(label: string, diags: WiringDiagnostic[]): boolean {
     else console.warn(line);
   }
   if (diags.length) {
-    console.log(`${label}: template wiring lint — ${errors} error(s), ${diags.length - errors} warning(s).`);
+    console.log(
+      `${label}: template wiring lint — ${errors} error(s), ${
+        diags.length - errors
+      } warning(s).`,
+    );
   }
   return errors > 0;
 }
 
-async function build(appDir = ".", outDir = join(Deno.cwd(), "static"), rune = false): Promise<void> {
+async function build(
+  appDir = ".",
+  outDir = join(Deno.cwd(), "static"),
+  rune = false,
+): Promise<void> {
   // --rune: consolidate the workspace config FIRST (pin @mrg-keystone/sprig at the root, strip it from every
   // member) so the client build sees pin-free members that inherit the ONE root runtime — a
   // member's own pin would scope its islands to a second copy (dual-core). Must precede buildClient.
@@ -505,8 +625,15 @@ async function build(appDir = ".", outDir = join(Deno.cwd(), "static"), rune = f
   // TEMPLATE WIRING lint (spec §6 — required, not optional): errors fail the build.
   // A template that lies about its dataflow (a verb naming a signal the component
   // doesn't declare, a channel with no origin) must not ship; warnings print but pass.
-  if (reportWiringDiags("sprig build", (await analyzeWiring(resolve(appDir))).diagnostics)) {
-    console.error(`sprig build: fix the wiring errors above (template-wiring-spec.md §6), or run \`sprig map\` to see the channels.`);
+  if (
+    reportWiringDiags(
+      "sprig build",
+      (await analyzeWiring(resolve(appDir))).diagnostics,
+    )
+  ) {
+    console.error(
+      `sprig build: fix the wiring errors above (template-wiring-spec.md §6), or run \`sprig map\` to see the channels.`,
+    );
     Deno.exit(1);
   }
   // ONE build — `sprig dev` serves exactly these bytes (no dev variant). HMR rides on top as a
@@ -515,7 +642,9 @@ async function build(appDir = ".", outDir = join(Deno.cwd(), "static"), rune = f
   await writeBuildInfo(resolve(appDir), outDir);
   console.log(
     `sprig build: ${r.islands.length} island chunk(s) ` +
-      `[${r.islands.join(", ")}] + ${r.chunks.length} shared chunk(s) → ${outDir} ` +
+      `[${
+        r.islands.join(", ")
+      }] + ${r.chunks.length} shared chunk(s) → ${outDir} ` +
       `(${(r.bytes / 1024).toFixed(1)}kb, v=${r.hash})`,
   );
 }
@@ -534,19 +663,29 @@ async function writeBuildInfo(appDir: string, outDir: string): Promise<void> {
   for (;;) {
     // current stamp location: .infra/git.json (the whole file IS the block)
     try {
-      const stamp = JSON.parse(await Deno.readTextFile(join(dir, ".infra", "git.json")));
-      if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) git = stamp;
+      const stamp = JSON.parse(
+        await Deno.readTextFile(join(dir, ".infra", "git.json")),
+      );
+      if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) {
+        git = stamp;
+      }
     } catch { /* absent / unparseable → try the legacy location */ }
     // legacy location: a `git` key inside deno.json(c)
     if (!git) {
       for (const name of ["deno.json", "deno.jsonc"]) {
         try {
-          const cfg = JSON.parse(await Deno.readTextFile(join(dir, name))) as { git?: unknown };
-          if (cfg.git && typeof cfg.git === "object" && !Array.isArray(cfg.git)) {
+          const cfg = JSON.parse(await Deno.readTextFile(join(dir, name))) as {
+            git?: unknown;
+          };
+          if (
+            cfg.git && typeof cfg.git === "object" && !Array.isArray(cfg.git)
+          ) {
             git = cfg.git;
             break;
           }
-        } catch { /* absent / JSONC-with-comments / unparseable → keep walking up */ }
+        } catch {
+          /* absent / JSONC-with-comments / unparseable → keep walking up */
+        }
       }
     }
     if (git) break;
@@ -556,7 +695,10 @@ async function writeBuildInfo(appDir: string, outDir: string): Promise<void> {
   }
   if (!git) return;
   await Deno.mkdir(outDir, { recursive: true }).catch(() => {});
-  await Deno.writeTextFile(join(outDir, "build-info.json"), JSON.stringify(git) + "\n");
+  await Deno.writeTextFile(
+    join(outDir, "build-info.json"),
+    JSON.stringify(git) + "\n",
+  );
   console.log(`sprig: baked build-info.json (git provenance) → ${outDir}`);
 }
 
@@ -626,7 +768,10 @@ async function stamp(appDir: string): Promise<void> {
 /** Files whose imports the legacy-name migration rewrites — every runtime-importing source in the app
  *  tree (islands, pages, services, tests), skipping build output + vendored/scaffold dirs. Broader than
  *  `collectTs`: tests import the runtime too, and `.tsx/.js/.jsx/.mjs` can carry an island. */
-async function collectSource(dir: string, out: string[] = []): Promise<string[]> {
+async function collectSource(
+  dir: string,
+  out: string[] = [],
+): Promise<string[]> {
   let entries: Deno.DirEntry[];
   try {
     entries = [];
@@ -638,7 +783,11 @@ async function collectSource(dir: string, out: string[] = []): Promise<string[]>
     const p = join(dir, e.name);
     if (e.isDirectory) {
       // static/ is build output (regenerated); the rest are vendored/scaffold/VCS — never source.
-      if (["node_modules", ".git", "static", "isolate", "_isolate"].includes(e.name)) continue;
+      if (
+        ["node_modules", ".git", "static", "isolate", "_isolate"].includes(
+          e.name,
+        )
+      ) continue;
       await collectSource(p, out);
     } else if (/\.(?:tsx?|jsx?|mjs)$/.test(e.name)) {
       out.push(p);
@@ -685,7 +834,10 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
       const tasks = (cfg as { tasks?: Record<string, unknown> }).tasks;
       if (tasks) {
         for (const [tk, tv] of Object.entries(tasks)) {
-          if (typeof tv === "string" && (tv.includes("@sprig/core") || tv.includes("@sprig/keep"))) {
+          if (
+            typeof tv === "string" &&
+            (tv.includes("@sprig/core") || tv.includes("@sprig/keep"))
+          ) {
             tasks[tk] = migrateVal(tv, v);
             changed = true;
           }
@@ -712,7 +864,8 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
       continue;
     }
     if (!src.includes("@sprig/core") && !src.includes("@sprig/keep")) continue;
-    const out = src.replaceAll("@sprig/keep", "@mrg-keystone/sprig/keep").replaceAll("@sprig/core", "@mrg-keystone/sprig");
+    const out = src.replaceAll("@sprig/keep", "@mrg-keystone/sprig/keep")
+      .replaceAll("@sprig/core", "@mrg-keystone/sprig");
     if (out !== src) {
       await Deno.writeTextFile(f, out);
       files++;
@@ -720,7 +873,9 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
   }
 
   if (configs || files) {
-    console.log(`sprig: migrated legacy @sprig/core → @mrg-keystone/sprig (${configs} config(s), ${files} source file(s))`);
+    console.log(
+      `sprig: migrated legacy @sprig/core → @mrg-keystone/sprig (${configs} config(s), ${files} source file(s))`,
+    );
   }
 }
 
@@ -728,7 +883,7 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
  *  source untouched. That is exactly two things:
  *    1. the build output dir <ui>/static/ — chunks, app.css, templates.json, .gen/, and the
  *       COPIES of assets/** (the authored originals under <ui>/assets/ stay put).
- *    2. a `--rune`-generated <git root>/serve.ts — only when it carries RUNE_SERVE_MARKER, so a
+ *    2. a generated <git root>/serve.ts — only when it carries BEDROCK_SERVE_MARKER, so a
  *       hand-written serve.ts is never deleted.
  *  It deliberately does NOT touch the shared ~/.cache/sprig-tailwind cache (cross-project, not an
  *  artifact of THIS build) nor revert the deno.json/.gitignore edits `--rune` makes (those are
@@ -749,7 +904,7 @@ async function clean(appArg?: string): Promise<void> {
     const servePath = join(gitRoot, "serve.ts");
     if (await pathExists(servePath)) {
       const cur = await Deno.readTextFile(servePath).catch(() => "");
-      if (cur.includes(RUNE_SERVE_MARKER)) {
+      if (cur.includes(BEDROCK_SERVE_MARKER)) {
         await Deno.remove(servePath);
         removed.push(rel(servePath));
       }
@@ -757,9 +912,16 @@ async function clean(appArg?: string): Promise<void> {
   }
 
   if (removed.length) {
-    console.log(`sprig clean: removed ${removed.length} build artifact(s):\n` + removed.map((r) => `  ${r}`).join("\n"));
+    console.log(
+      `sprig clean: removed ${removed.length} build artifact(s):\n` +
+        removed.map((r) => `  ${r}`).join("\n"),
+    );
   } else {
-    console.log(`sprig clean: nothing to remove — no build output under ${rel(ui) || "."}.`);
+    console.log(
+      `sprig clean: nothing to remove — no build output under ${
+        rel(ui) || "."
+      }.`,
+    );
   }
 }
 
@@ -769,9 +931,14 @@ async function collectTs(dir: string, out: string[] = []): Promise<string[]> {
   for await (const e of Deno.readDir(dir)) {
     const p = join(dir, e.name);
     if (e.isDirectory) {
-      if (e.name === "isolate" || e.name === "_isolate" || e.name === "node_modules") continue;
+      if (
+        e.name === "isolate" || e.name === "_isolate" ||
+        e.name === "node_modules"
+      ) continue;
       await collectTs(p, out);
-    } else if (e.isFile && e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")) {
+    } else if (
+      e.isFile && e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")
+    ) {
       out.push(p);
     }
   }
@@ -814,7 +981,9 @@ async function check(appDir = "."): Promise<void> {
       stderr: "inherit",
     }).output();
     if (!res.success) Deno.exit(1);
-    console.log(`sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`);
+    console.log(
+      `sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`,
+    );
   } finally {
     await Deno.remove(tmp, { recursive: true }).catch(() => {});
   }
@@ -823,7 +992,9 @@ async function check(appDir = "."): Promise<void> {
   const wiring = await analyzeWiring(resolve(appDir));
   if (reportWiringDiags("sprig check", wiring.diagnostics)) Deno.exit(1);
   if (wiring.channels.length && !wiring.diagnostics.length) {
-    console.log(`sprig check: ${wiring.channels.length} wiring channel(s) lint clean (\`sprig map\` draws them).`);
+    console.log(
+      `sprig check: ${wiring.channels.length} wiring channel(s) lint clean (\`sprig map\` draws them).`,
+    );
   }
 }
 
@@ -840,7 +1011,9 @@ async function mapCmd(appArg = "."): Promise<void> {
   }
   const analysis = await analyzeWiring(app);
   if (!analysis.channels.length) {
-    console.log("sprig map: no wiring channels — no sets:/reads:/edits: verbs in the templates.");
+    console.log(
+      "sprig map: no wiring channels — no sets:/reads:/edits: verbs in the templates.",
+    );
     return;
   }
   for (const line of renderWiringMap(analysis)) console.log(line);
@@ -848,14 +1021,18 @@ async function mapCmd(appArg = "."): Promise<void> {
 
 /** The app's `compilerOptions` (nearest deno.json up from `srcDir`) — islands need the app's
  *  `lib`/decorator settings to typecheck the way they'll run. Empty when none is declared. */
-async function appCompilerOptions(srcDir: string): Promise<Record<string, unknown>> {
+async function appCompilerOptions(
+  srcDir: string,
+): Promise<Record<string, unknown>> {
   let dir = resolve(srcDir);
   for (;;) {
     for (const name of ["deno.json", "deno.jsonc"]) {
       const p = join(dir, name);
       if (await pathExists(p)) {
         const cfg = await readJson(p);
-        if (cfg?.compilerOptions) return cfg.compilerOptions as Record<string, unknown>;
+        if (cfg?.compilerOptions) {
+          return cfg.compilerOptions as Record<string, unknown>;
+        }
         break;
       }
     }
@@ -889,20 +1066,14 @@ async function readJson(p: string): Promise<Record<string, unknown> | null> {
  *  parent is the project root. Errors only when there is neither a `.git` ancestor NOR a `./ui`
  *  to anchor on (never errors just because `.git` is missing). */
 function findProjectRoot(uiAbs: string): string {
-  // 1. nearest `.git` ancestor — a real clone has a `.git` dir, a worktree a `.git` FILE, so
-  //    test for existence, not type (mirrors specRootOf, but it's fine if there is none).
-  let d = uiAbs;
-  while (true) {
-    try {
-      Deno.statSync(join(d, ".git"));
-      return d;
-    } catch { /* no `.git` here — keep walking up */ }
-    const parent = dirname(d);
-    if (parent === d) break; // reached the filesystem root with no `.git`
-    d = parent;
-  }
+  // 1. nearest `.git` ancestor — the shared walk, not a private copy of it, so
+  //    serve.ts and the workspace land where `spec/` resolves.
+  const gitRoot = gitRepoRoot(uiAbs);
+  if (gitRoot) return gitRoot;
   // 2. no `.git` at all (deploy env): the parent of a `./ui` (or `./app`) package is the project root.
-  if (basename(uiAbs) === "ui" || basename(uiAbs) === "app") return dirname(uiAbs);
+  if (basename(uiAbs) === "ui" || basename(uiAbs) === "app") {
+    return dirname(uiAbs);
+  }
   // 3. nothing to anchor on — this is the only case that errors.
   console.error(
     `sprig build --rune: cannot locate the project root for\n  ${uiAbs}\n` +
@@ -918,7 +1089,10 @@ function findProjectRoot(uiAbs: string): string {
  *  (the serveSprig { fetch } default export) plus a Deno workspace in the root deno.json so
  *  each half keeps its own import map. serveSprig binds keep's in-process Backend, so the
  *  UI's resolve.ts reads data with no TCP and no token. Idempotent: safe after every build. */
-async function emitRuneComposition(appDir: string, outDir: string): Promise<void> {
+async function emitRuneComposition(
+  appDir: string,
+  outDir: string,
+): Promise<void> {
   const uiAbs = resolve(appDir);
   const gitRoot = findProjectRoot(uiAbs);
   if (gitRoot === uiAbs) {
@@ -935,12 +1109,18 @@ async function emitRuneComposition(appDir: string, outDir: string): Promise<void
   // The backend is the canonical `server/` package — no scan, no fallback.
   await assertServerBackend(gitRoot);
   const serverRel = "server";
-  await writeRuneServe(gitRoot, uiRel, serverRel, assetsRel);
+  await writeRuneServe(gitRoot, serverRel, assetsRel);
   await ensureRuneWorkspace(gitRoot, uiRel, serverRel);
-  const envHint = (await pathExists(join(gitRoot, ".env"))) ? " --env-file=.env" : "";
+  const envHint = (await pathExists(join(gitRoot, ".env")))
+    ? " --env-file=.env"
+    : "";
   console.log(
-    `sprig build --rune: composed ${serverRel}/ (keep) + ${uiRel}/ (sprig) → ${join(gitRoot, "serve.ts")}\n` +
-      `  + Deno workspace in ${join(gitRoot, "deno.json")} (members ./${uiRel}, ./${serverRel})\n` +
+    `sprig build --rune: composed ${serverRel}/ (keep) + ${uiRel}/ (sprig) → ${
+      join(gitRoot, "serve.ts")
+    }\n` +
+      `  + Deno workspace in ${
+        join(gitRoot, "deno.json")
+      } (members ./${uiRel}, ./${serverRel})\n` +
       `  run it from the git root:  deno serve -A${envHint} serve.ts`,
   );
 }
@@ -972,7 +1152,9 @@ async function resolveBuildAppDir(appArg?: string): Promise<string> {
   }
   console.error(
     `sprig build: not a ui/+server/ project.\n` +
-      `  Expected the sprig UI package at ${join(root, "ui")} or ${join(root, "app")}\n` +
+      `  Expected the sprig UI package at ${join(root, "ui")} or ${
+        join(root, "app")
+      }\n` +
       `  (a dir with src/mod.ts or bootstrap/template.html).\n` +
       `  The composed layout is ui/ (or app/) + server/ under the git root — run \`sprig init\` /\n` +
       `  \`rune init\` to scaffold it, or pass the UI package path: sprig build <dir>`,
@@ -990,19 +1172,27 @@ async function resolveSprigUiDir(appArg: string, cmd: string): Promise<string> {
   if (await isSprigUiDir(abs)) return abs;
   const found: string[] = [];
   const cfg = await readJson(join(abs, "deno.json"));
-  const members = Array.isArray(cfg?.workspace) ? cfg!.workspace as string[] : [];
+  const members = Array.isArray(cfg?.workspace)
+    ? cfg!.workspace as string[]
+    : [];
   const scan = members.length ? members.map((m) => resolve(abs, m)) : [];
   if (!scan.length) {
     for await (const e of Deno.readDir(abs)) {
-      if (e.isDirectory && !e.name.startsWith(".")) scan.push(join(abs, e.name));
+      if (e.isDirectory && !e.name.startsWith(".")) {
+        scan.push(join(abs, e.name));
+      }
     }
   }
   for (const d of scan) if (await isSprigUiDir(d)) found.push(d);
   if (found.length === 1) return found[0];
   if (found.length > 1) {
     console.error(
-      `sprig ${cmd}: found ${found.length} sprig UI packages (${found.map((c) => relative(abs, c)).join(", ")}).\n` +
-        `  Run it from the one you mean, e.g.  cd ${relative(abs, found[0]) || "."} && sprig ${cmd}`,
+      `sprig ${cmd}: found ${found.length} sprig UI packages (${
+        found.map((c) => relative(abs, c)).join(", ")
+      }).\n` +
+        `  Run it from the one you mean, e.g.  cd ${
+          relative(abs, found[0]) || "."
+        } && sprig ${cmd}`,
     );
     Deno.exit(1);
   }
@@ -1037,19 +1227,8 @@ async function assertServerBackend(gitRoot: string): Promise<void> {
 async function detectRuneComposition(
   uiAbs: string,
 ): Promise<{ gitRoot: string; serverRel: string } | null> {
-  // nearest `.git` ancestor STRICTLY ABOVE the app (mirrors findProjectRoot, soft)
-  let gitRoot = "";
-  let d = uiAbs;
-  while (true) {
-    try {
-      Deno.statSync(join(d, ".git"));
-      gitRoot = d;
-      break;
-    } catch { /* keep walking up */ }
-    const parent = dirname(d);
-    if (parent === d) break;
-    d = parent;
-  }
+  // nearest `.git` ancestor STRICTLY ABOVE the app — the shared walk (D-9), soft.
+  const gitRoot = gitRepoRoot(uiAbs);
   if (!gitRoot || gitRoot === uiAbs) return null;
   // The backend is the canonical `server/` package: probe <gitRoot>/server/bootstrap/mod.ts
   // for a real keep bootstrapServer. No sibling scan, no arbitrary name — a UI-only app (no
@@ -1067,10 +1246,15 @@ async function detectRuneComposition(
 async function loadDotEnv(path: string): Promise<void> {
   const text = await Deno.readTextFile(path).catch(() => "");
   for (const line of text.split("\n")) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    const m = line.match(
+      /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/,
+    );
     if (!m || m[2] === undefined) continue;
     let v = m[2];
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
       v = v.slice(1, -1);
     }
     if (Deno.env.get(m[1]) === undefined) Deno.env.set(m[1], v);
@@ -1099,7 +1283,11 @@ async function loadDefaultDevEnv(fromAbs: string): Promise<void> {
  *  specs (annotate writes build-notes.json on every click), dot-paths (.git),
  *  node_modules, test output, and logs, else dev would restart-storm itself.
  *  No-op when the app IS the project root (the compiler's watcher already owns it). */
-function watchProjectForRestart(rootAbs: string, appAbs: string, restart: (why: string) => void): void {
+function watchProjectForRestart(
+  rootAbs: string,
+  appAbs: string,
+  restart: (why: string) => void,
+): void {
   if (rootAbs === appAbs) return;
   const appRel = relative(rootAbs, appAbs).replace(/\\/g, "/");
   const ignored = (p: string): boolean => {
@@ -1115,9 +1303,13 @@ function watchProjectForRestart(rootAbs: string, appAbs: string, restart: (why: 
       seg === "deno.lock" || seg.endsWith(".tmp")
     );
   };
-  console.log(`[sprig dev] watching ${rootAbs} — changes outside ${appRel}/ restart the server`);
+  console.log(
+    `[sprig dev] watching ${rootAbs} — changes outside ${appRel}/ restart the server`,
+  );
   (async () => {
-    let timer: number | undefined;
+    // `ReturnType<typeof setTimeout>` rather than `number`: the CLI's graph now
+    // spans configs with and without the DOM lib, where the two disagree.
+    let timer: ReturnType<typeof setTimeout> | undefined;
     for await (const ev of Deno.watchFs(rootAbs, { recursive: true })) {
       const hit = ev.paths.find((p) => !ignored(p));
       if (hit === undefined) continue;
@@ -1125,7 +1317,9 @@ function watchProjectForRestart(rootAbs: string, appAbs: string, restart: (why: 
       timer = setTimeout(() => restart(relative(rootAbs, hit)), 300);
     }
   })().catch((e) => {
-    console.error(`[sprig dev] repo watcher lost (${e}) — app-dir HMR still active; repo-wide restarts are not`);
+    console.error(
+      `[sprig dev] repo watcher lost (${e}) — app-dir HMR still active; repo-wide restarts are not`,
+    );
   });
 }
 
@@ -1135,149 +1329,108 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
   const cur = await Deno.readTextFile(p).catch(() => "");
   const lines = cur.split("\n").map((l) => l.trim());
   if (lines.includes(entry) || lines.includes(entry.replace(/^\//, ""))) return;
-  await Deno.writeTextFile(p, cur.length && !cur.endsWith("\n") ? `${cur}\n${entry}\n` : `${cur}${entry}\n`);
+  await Deno.writeTextFile(
+    p,
+    cur.length && !cur.endsWith("\n")
+      ? `${cur}\n${entry}\n`
+      : `${cur}${entry}\n`,
+  );
 }
 
-/** Write <gitRoot>/serve.ts — the serveSprig composition root. Refuses to clobber a
- *  hand-written serve.ts (one without the generated marker). The root is a BUILD
- *  ARTIFACT — a CLI concern, kept out of git (see the .gitignore entry below):
- *  deploy builds regenerate it, and `sprig dev` composes the same thing in-process. */
-async function writeRuneServe(gitRoot: string, uiRel: string, serverRel: string, assetsRel: string): Promise<void> {
+/** Write <gitRoot>/serve.ts — THE COMPOSITION ROOT. Rendered by bedrock's own
+ *  `renderServe`, so the file is byte-identical whichever toolchain's init
+ *  emitted it (D-18) and each recognizes the other's by the ONE shared marker
+ *  instead of hunting for a private one. Refuses to clobber a hand-written
+ *  serve.ts. The root is a BUILD ARTIFACT — a CLI concern, kept out of git:
+ *  deploy builds regenerate it, and `sprig dev` composes the same thing
+ *  in-process. */
+async function writeRuneServe(
+  gitRoot: string,
+  serverRel: string,
+  assetsRel: string,
+): Promise<void> {
   const servePath = join(gitRoot, "serve.ts");
-  const MARKER = RUNE_SERVE_MARKER;
   if (await pathExists(servePath)) {
     const cur = await Deno.readTextFile(servePath);
-    if (!cur.includes(MARKER)) {
+    if (!cur.includes(BEDROCK_SERVE_MARKER)) {
       console.error(
-        `sprig build --rune: ${servePath} already exists and was NOT generated by --rune.\n` +
+        `sprig build --rune: ${servePath} already exists and was NOT generated.\n` +
           `  Refusing to overwrite a hand-written file — move it aside (or delete it) and re-run.`,
       );
       Deno.exit(1);
     }
   }
-  // The CANONICAL composition (the three serving shapes): the backend layer —
-  // intrinsic /api/ mount, docs under /api/docs/* — wraps the directly-servable
-  // Frontend, provisioning a fresh REQUEST-BOUND in-process client per request
-  // (SSR reads carry the request's own cookies; Set-Cookie from in-process
-  // calls lands on the outer browser response). The backend root stays the
-  // dev-owned bootstrap `api`, so `rune dev` and the headless runner keep their
-  // single boot; BackendFrom applies the layer to it.
-  const src = [
-    `// ${MARKER} — the single-origin composition root at the git root.`,
-    `//`,
-    `// The canonical composed shape: the backend layer (intrinsic /api/ mount) wraps`,
-    `// the directly-servable Frontend and provisions the request-bound in-process`,
-    `// client into it per request — SSR's inject(Backend) reads with no TCP and the`,
-    `// request's own cookies; islands call /api/* over the wire; both channels are`,
-    `// byte-identical by contract (the parity suite gates it).`,
-    `//`,
-    `//   deno serve -A serve.ts            (add --env-file=.env if your backend reads one)`,
-    `//`,
-    `//   /ui → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
-    `//`,
-    `// Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-    `import { Frontend } from "@mrg-keystone/sprig/keep";`,
-    `import { api } from "./${serverRel}/bootstrap/mod.ts";`,
-    ``,
-    `export default { fetch: api.compose({ frontend: Frontend() }) };`,
-    ``,
-  ].join("\n");
+  const src = renderServe({
+    ui: {
+      from: "@mrg-keystone/sprig/bedrock",
+      symbol: "Frontend",
+      expression: "Frontend()",
+    },
+    backend: { from: `./${serverRel}/bootstrap/mod.ts`, symbol: "api" },
+    notes: [
+      `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
+      `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
+      `Add an auth unit as the third slot when the app needs one.`,
+    ],
+  });
   await Deno.writeTextFile(servePath, src);
   // the composition root is never committed — the deploy build regenerates it and
   // dev composes it in-process, so keep it out of the repo's history entirely.
   await ensureGitignore(gitRoot, "/serve.ts");
 }
 
-/** Make the git-root deno.json a Deno workspace over the UI + backend packages, and give it
- *  the two imports serve.ts itself needs (@mrg-keystone/sprig/keep + @std/path) — matched to the UI's
- *  versions so keep's `Backend` token is the SAME module instance (a version skew → "Backend
- *  is not bound"). Merges into an existing config; never drops the user's other fields. */
-async function ensureRuneWorkspace(gitRoot: string, uiRel: string, serverRel: string): Promise<void> {
-  const cfgPath = join(gitRoot, "deno.json");
-  let cfg: Record<string, unknown> = {};
-  if (await pathExists(cfgPath)) {
-    const parsed = await readJson(cfgPath);
-    if (!parsed) {
-      console.error(`sprig build --rune: ${cfgPath} is not valid JSON. Fix it and re-run.`);
-      Deno.exit(1);
-    }
-    cfg = parsed;
-  }
-  // 1. workspace members (the UI package + the backend package)
-  const ws = Array.isArray(cfg.workspace) ? cfg.workspace as string[] : [];
-  for (const m of [`./${uiRel}`, `./${serverRel}`]) if (!ws.includes(m)) ws.push(m);
-  cfg.workspace = ws;
-  // 1b. root compilerOptions: booting serve.ts from the git root resolves REMOTE modules
-  //     against THIS config, and keep's danet graph needs legacy decorators — without
-  //     experimentalDecorators at the root, danet's parameter decorators hit the TC39
-  //     parser and the composed boot dies ("Uncaught SyntaxError" in @danet/core throttler/guard.ts).
-  const rootCo = (cfg.compilerOptions && typeof cfg.compilerOptions === "object")
-    ? cfg.compilerOptions as Record<string, unknown>
-    : {};
-  rootCo.experimentalDecorators ??= true;
-  rootCo.emitDecoratorMetadata ??= true;
-  cfg.compilerOptions = rootCo;
-  // 2. workspace-root imports, matched to the UI member's exact versions so keep's `Backend`
-  //    token is the SAME module instance (a version skew → "Backend is not bound"):
-  //      · @mrg-keystone/sprig/keep + @std/path — what serve.ts itself imports.
-  //      · @mrg-keystone/sprig + @preact/signals-core — needed only when the build runs from a
-  //        working-tree (dev-installed) sprig: the generated island entries import the
-  //        compiler's hydrate.ts by a file:// path OUTSIDE every member, so its `@mrg-keystone/sprig`
-  //        resolves against the ROOT map, not a member's. (Harmless under a JSR sprig, where
-  //        hydrate.ts resolves @mrg-keystone/sprig within its own package.)
+/** Make the git-root deno.json a Deno workspace over the UI + backend packages,
+ *  via bedrock's ONE additive writer. The pins it hoists are the point: a member
+ *  with its own `@mrg-keystone/sprig` copy scopes its files to that copy, and a
+ *  drift from the root ships TWO runtimes — dead islands on the client, and on
+ *  the server an old core whose bootstrap silently ignored route guards (an auth
+ *  bypass we hit in practice). Same for `@mrg-keystone/bedrock`: two copies mean
+ *  two composition roots, two envelopes, two clients. Root-only, both. */
+async function ensureRuneWorkspace(
+  gitRoot: string,
+  uiRel: string,
+  serverRel: string,
+): Promise<void> {
   const uiCfg = await readJson(join(gitRoot, uiRel, "deno.json"));
   const uiImports = (uiCfg?.imports ?? {}) as Record<string, string>;
-  const imports = (cfg.imports && typeof cfg.imports === "object") ? cfg.imports as Record<string, string> : {};
-  const fallbackSprigV = cliVersion() ?? "0.20";
-  imports["@mrg-keystone/sprig"] ??= uiImports["@mrg-keystone/sprig"] ??
-    `jsr:@mrg-keystone/sprig@${fallbackSprigV}`;
-  imports["@mrg-keystone/sprig/keep"] ??= uiImports["@mrg-keystone/sprig/keep"] ??
-    `jsr:@mrg-keystone/sprig@${fallbackSprigV}/keep`;
-  imports["@std/path"] ??= uiImports["@std/path"] ?? "jsr:@std/path@^1";
-  imports["@preact/signals-core"] ??= uiImports["@preact/signals-core"] ?? "npm:@preact/signals-core@^1";
-  cfg.imports = imports;
-  // 2b. @mrg-keystone/sprig/* belongs at the ROOT only — strip it from every member (like `unstable` below).
-  //     A workspace member with its OWN @mrg-keystone/sprig pin scopes its files to that copy; if it
-  //     drifts from the root, the client bundle carries TWO runtimes (dead islands) AND, on the
-  //     server, an OLD core whose bootstrap silently ignores route guards — an auth bypass we hit
-  //     in practice. With the pin at the root only, members INHERIT the one runtime: single-core,
-  //     guards intact. (The build.ts gate is the backstop if a stray member pin ever returns.)
-  for (const member of [uiRel, serverRel]) {
-    const mPath = join(gitRoot, member, "deno.json");
-    const mCfg = await readJson(mPath);
-    if (!mCfg || typeof mCfg.imports !== "object") continue;
-    const mImports = mCfg.imports as Record<string, string>;
-    let changed = false;
-    for (const k of ["@mrg-keystone/sprig", "@mrg-keystone/sprig/", "@mrg-keystone/sprig/keep"]) {
-      if (k in mImports) {
-        delete mImports[k];
-        changed = true;
-      }
-    }
-    if (changed) await Deno.writeTextFile(mPath, JSON.stringify(mCfg, null, 2) + "\n");
-  }
-  // 3. a working `start` task — replace a stale `deno run … server.ts`, keep a good one
-  const tasks = (cfg.tasks && typeof cfg.tasks === "object") ? cfg.tasks as Record<string, string> : {};
-  const envFlag = (await pathExists(join(gitRoot, ".env"))) ? " --env-file=.env" : "";
-  const start = `deno serve -A${envFlag} serve.ts`;
-  if (!tasks.start || /\bdeno run\b/.test(tasks.start) || /\bserver\.ts\b/.test(tasks.start)) tasks.start = start;
-  cfg.tasks = tasks;
-  // 4. Deno KV is unstable on the CLI — keep backends commonly use it. The `unstable`
-  //    field is honored ONLY in the workspace root, so hoist any the members declared up
-  //    here and strip them from the members (else Deno warns on every run).
-  const unstable = Array.isArray(cfg.unstable) ? cfg.unstable as string[] : [];
-  for (const member of [uiRel, serverRel]) {
-    const mPath = join(gitRoot, member, "deno.json");
-    const mCfg = await readJson(mPath);
-    if (mCfg && Array.isArray(mCfg.unstable)) {
-      for (const u of mCfg.unstable as string[]) if (!unstable.includes(u)) unstable.push(u);
-      delete mCfg.unstable;
-      await Deno.writeTextFile(mPath, JSON.stringify(mCfg, null, 2) + "\n");
-    }
-  }
-  if (!unstable.includes("kv")) unstable.push("kv");
-  cfg.unstable = unstable;
-  await Deno.writeTextFile(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
+  const fallbackSprigV = cliVersion() ?? "2.0";
+  const envFlag = (await pathExists(join(gitRoot, ".env")))
+    ? " --env-file=.env"
+    : "";
+
+  await ensureWorkspace(gitRoot, {
+    members: [`./${uiRel}`, `./${serverRel}`],
+    // Booting serve.ts from the git root resolves REMOTE modules against THIS
+    // config, and keep's danet graph needs legacy decorators — without them the
+    // composed boot dies in @danet/core's parameter decorators.
+    compilerOptions: {
+      experimentalDecorators: true,
+      emitDecoratorMetadata: true,
+    },
+    imports: {
+      "@mrg-keystone/bedrock": uiImports["@mrg-keystone/bedrock"] ??
+        "jsr:@mrg-keystone/bedrock@^1",
+      "@mrg-keystone/sprig": uiImports["@mrg-keystone/sprig"] ??
+        `jsr:@mrg-keystone/sprig@${fallbackSprigV}`,
+      "@mrg-keystone/sprig/bedrock": uiImports["@mrg-keystone/sprig/bedrock"] ??
+        `jsr:@mrg-keystone/sprig@${fallbackSprigV}/bedrock`,
+      "@std/path": uiImports["@std/path"] ?? "jsr:@std/path@^1",
+      "@preact/signals-core": uiImports["@preact/signals-core"] ??
+        "npm:@preact/signals-core@^1",
+    },
+    hoistOnly: [
+      "@mrg-keystone/bedrock",
+      "@mrg-keystone/sprig",
+      "@mrg-keystone/sprig/",
+      "@mrg-keystone/sprig/keep",
+      "@mrg-keystone/sprig/bedrock",
+    ],
+    // Deno KV is unstable on the CLI and keep backends commonly use it; the
+    // field is honored ONLY in the workspace root.
+    unstable: ["kv"],
+    tasks: { start: `deno${" "}serve -A${envFlag} serve.ts` },
+    replaceTasks: ["start"],
+  });
 }
 
 async function serve(entry = "serve.ts"): Promise<void> {
@@ -1328,7 +1481,11 @@ async function devAnnotateHtml(htmlPath: string, open = true): Promise<void> {
     }
     console.error(
       `sprig dev --annotate: an annotate server is already on port ${want} ` +
-        `(${running.mode === "prototype" ? "serving " + running.file : "the build app"}).\n` +
+        `(${
+          running.mode === "prototype"
+            ? "serving " + running.file
+            : "the build app"
+        }).\n` +
         `  Stop it (Ctrl-C in its terminal) to annotate ${here}, or run with a different PORT, ` +
         `e.g. PORT=8010 sprig dev --annotate ${here}.`,
     );
@@ -1350,7 +1507,12 @@ async function devAnnotateHtml(htmlPath: string, open = true): Promise<void> {
       `  Rewrite the file to iterate — the open view hot-reloads (no relaunch). Leave this running.\n` +
       `  feedback: ${abs.replace(/\.html?$/i, "")}.feedback.json`,
   );
-  Deno.serve({ port: want, onListen: () => { if (open) openUrl(pageURL); } }, (req: Request) => proto.fetch(req));
+  Deno.serve({
+    port: want,
+    onListen: () => {
+      if (open) openUrl(pageURL);
+    },
+  }, (req: Request) => proto.fetch(req));
 }
 
 /** Exit code the dev child uses to ask the supervisor for a fresh restart (a server .ts change). */
@@ -1369,8 +1531,13 @@ async function devStandalone(rawArgs: string[], repo: string): Promise<void> {
     // A supervisor kill doesn't always cascade to re-exec'd grandchildren (the app server + the
     // workbench), so reap anything still bound to OUR ports first — THEN drop the ephemeral dir
     // (removing it while a child still runs would pull files out from under it). OS-reaps as backstop.
-    try { await killPort(appPortN); await killPort(isoPortN); } catch { /* best effort */ }
-    try { Deno.removeSync(wbRoot, { recursive: true }); } catch { /* already gone */ }
+    try {
+      await killPort(appPortN);
+      await killPort(isoPortN);
+    } catch { /* best effort */ }
+    try {
+      Deno.removeSync(wbRoot, { recursive: true });
+    } catch { /* already gone */ }
   };
   const entry = Deno.mainModule;
   console.log(
@@ -1394,7 +1561,9 @@ async function devStandalone(rawArgs: string[], repo: string): Promise<void> {
         stderr: "inherit",
       }).spawn();
       const fwd = () => {
-        try { child.kill("SIGTERM"); } catch { /* already gone */ }
+        try {
+          child.kill("SIGTERM");
+        } catch { /* already gone */ }
       };
       Deno.addSignalListener("SIGINT", fwd);
       Deno.addSignalListener("SIGTERM", fwd);
@@ -1419,7 +1588,9 @@ async function devStandalone(rawArgs: string[], repo: string): Promise<void> {
  *  Ctrl-C / a crash passes through; a dead owner's stale entry is reclaimed (ports freed) next run. */
 async function devSupervisor(rawArgs: string[]): Promise<void> {
   // The registry key is the git repo, so any subdir of a monorepo maps to the one shared process.
-  const positionals = rawArgs.filter((a) => !a.startsWith("-") && !/\.html?$/i.test(a));
+  const positionals = rawArgs.filter((a) =>
+    !a.startsWith("-") && !/\.html?$/i.test(a)
+  );
   const repo = repoKey(resolve(positionals[0] ?? "."));
 
   // `--no-cache`: a STANDALONE dev process — never attach, never register, its OWN free ports and
@@ -1454,7 +1625,11 @@ async function devSupervisor(rawArgs: string[]): Promise<void> {
   await Deno.mkdir(logFolder, { recursive: true });
   const log = new DevLog(logFolder, MAX_LOG_FILES);
   const map = await readDevLock();
-  map[repo] = { pid: Deno.pid, "log-size": MAX_LOG_FILES, "log-folder": logFolder };
+  map[repo] = {
+    pid: Deno.pid,
+    "log-size": MAX_LOG_FILES,
+    "log-folder": logFolder,
+  };
   await writeDevLock(map);
   console.log(
     `%c⟶ sprig dev — shared process for "${repo}" (pid ${Deno.pid}).%c Re-running \`sprig dev\` in this repo attaches here.\n  logs: ${logFolder}`,
@@ -1469,7 +1644,10 @@ async function devSupervisor(rawArgs: string[]): Promise<void> {
     cleaned = true;
     log.close();
     try {
-      const m = JSON.parse(Deno.readTextFileSync(devLockPath())) as Record<string, DevLockEntry>;
+      const m = JSON.parse(Deno.readTextFileSync(devLockPath())) as Record<
+        string,
+        DevLockEntry
+      >;
       if (m[repo]?.pid === Deno.pid) {
         delete m[repo];
         Deno.writeTextFileSync(devLockPath(), JSON.stringify(m, null, 2));
@@ -1484,7 +1662,12 @@ async function devSupervisor(rawArgs: string[]): Promise<void> {
         // --unstable-kv: a keep backend may use Deno.openKv. PORT/SPRIG_DEV_ISO_PORT pin the repo's
         // stable ports (so reclaim can free them); stdout/stderr are PIPED so we tee → DevLog.
         args: ["run", "-A", "--unstable-kv", entry, "dev", ...rawArgs],
-        env: { ...Deno.env.toObject(), SPRIG_DEV_CHILD: "1", PORT: String(ports.app), SPRIG_DEV_ISO_PORT: String(ports.iso) },
+        env: {
+          ...Deno.env.toObject(),
+          SPRIG_DEV_CHILD: "1",
+          PORT: String(ports.app),
+          SPRIG_DEV_ISO_PORT: String(ports.iso),
+        },
         stdin: "inherit",
         stdout: "piped",
         stderr: "piped",
@@ -1492,9 +1675,13 @@ async function devSupervisor(rawArgs: string[]): Promise<void> {
       const pump = async (r: ReadableStream<Uint8Array>) => {
         for await (const c of r) await log.write(c); // DevLog tees to this terminal itself
       };
-      const pumps = Promise.all([pump(child.stdout), pump(child.stderr)]).catch(() => {});
+      const pumps = Promise.all([pump(child.stdout), pump(child.stderr)]).catch(
+        () => {},
+      );
       const fwd = () => {
-        try { child.kill("SIGTERM"); } catch { /* already gone */ }
+        try {
+          child.kill("SIGTERM");
+        } catch { /* already gone */ }
       };
       Deno.addSignalListener("SIGINT", fwd);
       Deno.addSignalListener("SIGTERM", fwd);
@@ -1509,7 +1696,9 @@ async function devSupervisor(rawArgs: string[]): Promise<void> {
         cleanup();
         Deno.exit(status.code);
       }
-      await log.write(new TextEncoder().encode(`\n[sprig dev] server change → restarting…\n`));
+      await log.write(
+        new TextEncoder().encode(`\n[sprig dev] server change → restarting…\n`),
+      );
     }
   } finally {
     cleanup();
@@ -1552,14 +1741,20 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   const ai = rawArgs.indexOf("--annotate");
   const open = rawArgs.includes("--open"); // opt-in: only pop the browser when --open is passed (a stray --no-open stays a harmless no-op)
   let annotateHtml = "";
-  if (ai >= 0 && rawArgs[ai + 1] && /\.html?$/i.test(rawArgs[ai + 1])) annotateHtml = rawArgs[ai + 1];
+  if (ai >= 0 && rawArgs[ai + 1] && /\.html?$/i.test(rawArgs[ai + 1])) {
+    annotateHtml = rawArgs[ai + 1];
+  }
   if (annotateHtml) return await devAnnotateHtml(annotateHtml, open);
   // SUPERVISOR: the real dev server runs as a child; a `.ts` change makes it exit with
   // DEV_RESTART_CODE (createDevServer.onServerReload), and we respawn a FRESH process so the app's
   // server (guards/resolve/mod/logic — all import()ed at boot) is re-read. Template/CSS/island
   // edits stay in-process HMR and never restart. Skipped once we're already the child.
-  if (Deno.env.get("SPRIG_DEV_CHILD") !== "1") return await devSupervisor(rawArgs);
-  const positionals = rawArgs.filter((a) => !a.startsWith("-") && a !== annotateHtml);
+  if (Deno.env.get("SPRIG_DEV_CHILD") !== "1") {
+    return await devSupervisor(rawArgs);
+  }
+  const positionals = rawArgs.filter((a) =>
+    !a.startsWith("-") && a !== annotateHtml
+  );
   // Resolve the sprig UI package so `sprig dev` runs from EITHER the UI folder OR the monorepo
   // git root — parity with `build --rune`. If the arg isn't itself a UI package (a dir with
   // src/mod.ts), locate the one under it (workspace members / subdirs). Everything below keys off
@@ -1570,7 +1765,8 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // Annotate gets a STABLE port hashed from the app folder name (PORT overrides) — same app, same
   // URL, every run; different apps don't collide. Reuse a same-app server; error on a foreign one
   // or a busy port — never silently drift.
-  const wantPort = Number(Deno.env.get("PORT")) || appPort(basename(resolve(appDir)));
+  const wantPort = Number(Deno.env.get("PORT")) ||
+    appPort(basename(resolve(appDir)));
   const ping = await annotatePing(wantPort);
   if (ping) {
     // A registered shared process never reaches here — the supervisor attaches
@@ -1580,7 +1776,12 @@ async function dev(rawArgs: string[] = []): Promise<void> {
     // with no reload path and no error, the worst failure mode) or a different
     // app entirely. Reclaim the former, refuse the latter loudly.
     // Same derivation as makeAnnotate's notesPath: <specRoot>/spec/ui/build-notes.json.
-    const expectedNotes = join(specRootOf(resolve(appDir)), "spec", "ui", "build-notes.json");
+    const expectedNotes = join(
+      specRootOf(resolve(appDir)),
+      "spec",
+      "ui",
+      "build-notes.json",
+    );
     if (ping.mode !== "prototype" && ping.notes === expectedNotes) {
       console.log(
         `sprig dev: port ${wantPort} was held by an unmanaged dev server for this app — reclaiming it.`,
@@ -1590,7 +1791,9 @@ async function dev(rawArgs: string[] = []): Promise<void> {
     } else {
       console.error(
         `sprig dev: port ${wantPort} is already serving ${
-          ping.mode === "prototype" ? "a prototype annotate server" : `a DIFFERENT app${ping.notes ? ` (${ping.notes})` : ""}`
+          ping.mode === "prototype"
+            ? "a prototype annotate server"
+            : `a DIFFERENT app${ping.notes ? ` (${ping.notes})` : ""}`
         }. Stop it, or set a different PORT.`,
       );
       Deno.exit(1);
@@ -1639,7 +1842,9 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // environment. Loaded after .env (loadDotEnv never overrides, so .env wins).
   await loadDefaultDevEnv(resolve(appDir));
   const keepPromise = rune
-    ? import(toFileUrl(join(rune.gitRoot, rune.serverRel, "bootstrap", "mod.ts")).href)
+    ? import(
+      toFileUrl(join(rune.gitRoot, rune.serverRel, "bootstrap", "mod.ts")).href
+    )
     : null;
   // mark it "handled" so a reject in the window before we await it isn't flagged as unhandled;
   // the real error still surfaces at `await keepPromise!` below (both handlers fire).
@@ -1650,7 +1855,8 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   const appAbs = resolve(appDir);
   // The supervisor pins the isolate port (reused across restarts + freeable on reclaim); standalone
   // `sprig dev` falls back to a free one.
-  const isoPort = Number(Deno.env.get("SPRIG_DEV_ISO_PORT")) || freePort(port + 1);
+  const isoPort = Number(Deno.env.get("SPRIG_DEV_ISO_PORT")) ||
+    freePort(port + 1);
   const isoBase = `http://localhost:${isoPort}`;
   // Hoisted so onServerReload / the signal handler can kill the workbench before this process exits.
   let wb: Deno.ChildProcess | null = null;
@@ -1664,7 +1870,11 @@ async function dev(rawArgs: string[] = []): Promise<void> {
     await assertWorkbench(root); // throws on an old slim install lacking the workbench
     wb = spawnWorkbench(appAbs, isoPort, open); // workbench opens its own tab when ready
   } catch (e) {
-    console.error(`sprig: isolate workbench unavailable (${e instanceof Error ? e.message : e}) — annotate overlay still running.`);
+    console.error(
+      `sprig: isolate workbench unavailable (${
+        e instanceof Error ? e.message : e
+      }) — annotate overlay still running.`,
+    );
   }
 
   await build(appDir, outDir);
@@ -1676,31 +1886,21 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // the folder table alone made `sprig dev` crash at boot on a freshly-scaffolded app.
   const srcDir = join(resolve(appDir), "src");
   const renderer = await createRenderer(srcDir, base, { dev: true });
-  const sprigApp = bootstrap({ routes: await appRoutes(srcDir), base, renderer });
-  let hostFetch: (req: Request, info: Deno.ServeHandlerInfo) => Promise<Response>;
-  if (rune) {
-    const { api } = await keepPromise!; // was loading concurrently since above
-    if (typeof api.compose === "function") {
-      // Dev serves EXACTLY the prod composition: the backend layer (intrinsic
-      // /api/ mount, docs at /api/docs/*) wrapping the Frontend with the
-      // request-bound in-process client provisioned per request.
-      const frontend = Frontend({ app: sprigApp, base, assetsDir: outDir });
-      const layer = api.compose({ frontend });
-      hostFetch = (req, info) => Promise.resolve(layer(req, info));
-    } else {
-      // Legacy keep (<5.1): the serveSprig shape (UI /ui, /api, /docs).
-      const composed = serveSprig({ keep: api, app: sprigApp, base, assetsDir: outDir });
-      hostFetch = (req, info) => composed.fetch(req, info);
-    }
-  } else {
-    // pure-UI app: the sprig middleware + the standalone /auth gateway (sessionless legacy mode),
-    // so the built-in login()/warmAuth() client works without a keep backend.
-    const ui = sprigUi({ app: sprigApp, base, assetsDir: outDir });
-    const auth = sprigAuth();
-    hostFetch = async (req, info) =>
-      (await auth(req)) ?? (await ui(req, info)) ?? new Response("Not Found", { status: 404 });
-  }
-  const handler = { fetch: hostFetch };
+  const sprigApp = bootstrap({
+    routes: await appRoutes(srcDir),
+    base,
+    renderer,
+  });
+  // Dev serves EXACTLY the prod composition — the same one call, over the same
+  // units. There is no dev-only serving path left to drift from production, and
+  // no per-keep-version fork: `api` is a unit or it is not composed at all.
+  const ui = Frontend({ app: sprigApp, base, assetsDir: outDir });
+  const app = rune
+    ? Bedrock({ ui, backend: (await keepPromise!).api })
+    : Bedrock({ ui });
+  const handler = {
+    fetch: (req: Request, info: Deno.ServeHandlerInfo) => app(req, info),
+  };
   const devSrv = createDevServer({
     renderer,
     base,
@@ -1719,7 +1919,11 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // to appAbs outside a git repo. `srcDir` stays per-app (component discovery is NOT a spec concern).
   const specRoot = specRootOf(appAbs);
   const { makeAnnotate } = await import("./.sprig/annotate.ts");
-  const annotate = await makeAnnotate({ specRoot, srcDir: join(appAbs, "src"), isolateBase: isoBase });
+  const annotate = await makeAnnotate({
+    specRoot,
+    srcDir: join(appAbs, "src"),
+    isolateBase: isoBase,
+  });
   // Monorepo watch: any change under the project root OUTSIDE the app dir (the
   // keep/server half, shared config) restarts this child via the supervisor.
   // The workbench MUST die with us (same as onServerReload): it inherits this
@@ -1741,10 +1945,22 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   Deno.addSignalListener("SIGINT", onSig);
   Deno.addSignalListener("SIGTERM", onSig);
   console.log("sprig dev (annotate):");
-  console.log(`  app + annotate → http://localhost:${port}${base}   (⌘/Ctrl+click → spec/ui/build-notes.json)`);
-  if (rune) console.log(`  keep composed  → /api + /docs from ${rune.serverRel}/ — dev serves the PROD composition`);
-  console.log(`  isolate        → ${isoBase}/   (verify each component here; ${wb ? "starting…" : "unavailable"})`);
-  console.log(`  ${annotate.size} component(s) mapped from src/ · stable port · HMR on · build cache: ${outDir}`);
+  console.log(
+    `  app + annotate → http://localhost:${port}${base}   (⌘/Ctrl+click → spec/ui/build-notes.json)`,
+  );
+  if (rune) {
+    console.log(
+      `  keep composed  → /api + /docs from ${rune.serverRel}/ — dev serves the PROD composition`,
+    );
+  }
+  console.log(
+    `  isolate        → ${isoBase}/   (verify each component here; ${
+      wb ? "starting…" : "unavailable"
+    })`,
+  );
+  console.log(
+    `  ${annotate.size} component(s) mapped from src/ · stable port · HMR on · build cache: ${outDir}`,
+  );
 
   Deno.serve({
     port,
@@ -1768,7 +1984,9 @@ async function init(dir = "."): Promise<void> {
   // exists). Any other existing target is refused: never scaffold OVER a
   // project that isn't a composed-app repo.
   let laterInit = false;
-  const hasSpec = await Deno.stat(join(appAbs, "spec")).then(() => true).catch(() => false);
+  const hasSpec = await Deno.stat(join(appAbs, "spec")).then(() => true).catch(
+    () => false,
+  );
   if (dir === ".") {
     if (hasSpec) {
       laterInit = true;
@@ -1795,7 +2013,8 @@ async function init(dir = "."): Promise<void> {
       if (!(e instanceof Deno.errors.NotFound)) throw e;
     }
   }
-  const name = (dir === "." ? "sprig-app" : dir.split("/").pop()) || "sprig-app";
+  const name = (dir === "." ? "sprig-app" : dir.split("/").pop()) ||
+    "sprig-app";
 
   const range = sprigRange();
   const runeSpec = runeRange();
@@ -1987,14 +2206,16 @@ async function init(dir = "."): Promise<void> {
     await Deno.writeTextFile(abs, content);
   }
   // the `$.shared-components/` alias points here — create it (empty) so the dir exists.
-  await Deno.mkdir(join(appAbs, "ui", "src", "shared-components"), { recursive: true });
+  await Deno.mkdir(join(appAbs, "ui", "src", "shared-components"), {
+    recursive: true,
+  });
   // Compose the git root: the generated serve.ts (serveSprig, importing api from
   // ./server/bootstrap/mod.ts) + the Deno workspace over [./ui, ./server]. writeRuneServe
   // derives srcDir/assetsDir from the ui/ convention; ensureRuneWorkspace hoists
   // @mrg-keystone/sprig to the root so both members share ONE runtime, adds the `start`
   // task, and merges the imports serve.ts needs. Same code `sprig build` runs, so the
   // scaffold and every later build agree on the composition.
-  await writeRuneServe(appAbs, "ui", "server", "ui/static");
+  await writeRuneServe(appAbs, "server", "ui/static");
   await ensureRuneWorkspace(appAbs, "ui", "server");
   // The shared spec/ artifact: skeleton (atomic, iff absent — whichever
   // toolchain's init runs first writes it, vendoring the conformance vectors),
@@ -2007,7 +2228,7 @@ async function init(dir = "."): Promise<void> {
       Deno.exit(1);
     }
   }
-  await registerManifestEntries(appAbs);
+  await registerManifestEntries(appAbs, SPRIG_MANIFEST_ENTRIES);
   // Enforce the exact sprig pin (the template already writes it; this is the same stamp build/dev
   // apply, so init and every later build agree on the key + format). No-op when already current.
   await stamp(appAbs);
@@ -2044,17 +2265,32 @@ function workbenchRoot(appAbs: string): string {
   return join(ephemeralWorkBase(), repoKey(appAbs));
 }
 
-function spawnWorkbench(appAbs: string, port: number, open: boolean): Deno.ChildProcess {
+function spawnWorkbench(
+  appAbs: string,
+  port: number,
+  open: boolean,
+): Deno.ChildProcess {
   const root = installRoot();
   return new Deno.Command(Deno.execPath(), {
     args: [
-      "run", "-A", "--config", join(root, "deno.json"), join(root, "cli", "main.ts"),
-      "dev", "--root", appAbs, ...(open ? [] : ["--no-open"]),
+      "run",
+      "-A",
+      "--config",
+      join(root, "deno.json"),
+      join(root, "cli", "main.ts"),
+      "dev",
+      "--root",
+      appAbs,
+      ...(open ? [] : ["--no-open"]),
     ],
     cwd: root,
     // respect a pre-set SPRIG_WB_ROOT (the --no-cache supervisor pins a unique ephemeral one so it
     // can't collide with the shared owner); otherwise the default per-repo-branch ephemeral dir.
-    env: { ...Deno.env.toObject(), PORT: String(port), SPRIG_WB_ROOT: Deno.env.get("SPRIG_WB_ROOT") ?? workbenchRoot(appAbs) },
+    env: {
+      ...Deno.env.toObject(),
+      PORT: String(port),
+      SPRIG_WB_ROOT: Deno.env.get("SPRIG_WB_ROOT") ?? workbenchRoot(appAbs),
+    },
     stdin: "inherit",
     stdout: "inherit",
     stderr: "inherit",
@@ -2076,7 +2312,9 @@ async function isolate(appDir = ".", open = true): Promise<void> {
  *  install (no bundle stamp) or an older runtime that predates the stamp. `version` is "?" if it
  *  can't be read. The local stamp is authoritative for "when was THE version I'm running shipped"
  *  — unlike the rolling `runtime-latest` GitHub timestamp, which only matches when up to date. */
-async function localMeta(): Promise<{ version: string; publishedAt: string | null }> {
+async function localMeta(): Promise<
+  { version: string; publishedAt: string | null }
+> {
   // `sprig -v` can legitimately run straight from `jsr:` (before `sprig install` sets up ~/.sprig),
   // where there's no on-disk bundle — `import.meta.dirname` is `undefined` then (never throws).
   // The version is embedded in the module URL (https://jsr.io/@scope/name/<version>/…/cli.ts), so
@@ -2084,17 +2322,22 @@ async function localMeta(): Promise<{ version: string; publishedAt: string | nul
   // version() falls back to the GitHub release timestamp when local === latest.
   const fwDir = import.meta.dirname; // <install root>/framework, or undefined when loaded remotely
   if (!fwDir) {
-    const v = import.meta.url.match(/\/@[^/]+\/[^/]+\/(\d+\.\d+\.\d+[^/]*)\//)?.[1];
+    const v = import.meta.url.match(/\/@[^/]+\/[^/]+\/(\d+\.\d+\.\d+[^/]*)\//)
+      ?.[1];
     return { version: v ?? "?", publishedAt: null };
   }
   let version = "?";
   try {
-    const cfg = JSON.parse(await Deno.readTextFile(join(fwDir, "..", "deno.json")));
+    const cfg = JSON.parse(
+      await Deno.readTextFile(join(fwDir, "..", "deno.json")),
+    );
     if (typeof cfg.version === "string") version = cfg.version;
   } catch { /* unreadable → "?" */ }
   let publishedAt: string | null = null;
   try {
-    const info = JSON.parse(await Deno.readTextFile(join(fwDir, ".sprig", "build-info.json")));
+    const info = JSON.parse(
+      await Deno.readTextFile(join(fwDir, ".sprig", "build-info.json")),
+    );
     if (typeof info.publishedAt === "string") publishedAt = info.publishedAt;
   } catch { /* dev install / pre-stamp runtime → no sidecar */ }
   return { version, publishedAt };
@@ -2118,7 +2361,9 @@ function fmtPublished(iso: string): string {
     timeZoneName: "short",
   }).formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${get("timeZoneName")}`;
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${
+    get("minute")
+  } ${get("timeZoneName")}`;
 }
 
 /** Compare two semver-ish `a.b.c` strings. Returns >0 if `a` is newer than `b`. */
@@ -2147,7 +2392,9 @@ async function version(): Promise<void> {
     (rel && rel.version === local ? rel.publishedAt : null);
   const when = published ? `  (published ${fmtPublished(published)})` : "";
   console.log(`sprig ${local}${when}`);
-  if (rel?.version && local !== "?" && compareVersions(rel.version, local) > 0) {
+  if (
+    rel?.version && local !== "?" && compareVersions(rel.version, local) > 0
+  ) {
     const G = "\x1b[32m", B = "\x1b[1m", C = "\x1b[36m", R = "\x1b[0m";
     console.log(
       `\n${G}${B}A new version of sprig is available: ${local} → ${rel.version}${R}\n` +
@@ -2161,7 +2408,9 @@ async function version(): Promise<void> {
  *  launcher — NOT from any local checkout. */
 async function update(): Promise<void> {
   await installRuntimeFromDeployment();
-  console.log("✓ sprig is up to date (runtime + skills + agents). Run 'sprig --help'.");
+  console.log(
+    "✓ sprig is up to date (runtime + skills + agents). Run 'sprig --help'.",
+  );
 }
 
 /** First-time install. `--dev` wires the launcher to THIS checkout (for repo devs, e.g.
@@ -2175,7 +2424,9 @@ async function install(dev: boolean): Promise<void> {
   } else {
     await installRuntimeFromDeployment();
   }
-  console.log("✓ sprig installed (runtime + skills + agents). Run 'sprig --help'.");
+  console.log(
+    "✓ sprig installed (runtime + skills + agents). Run 'sprig --help'.",
+  );
 }
 
 const USAGE = `sprig — the framework CLI
@@ -2247,10 +2498,12 @@ switch (cmd) {
     // must match the committed openapi.json it claims to come from.
     {
       const gitRoot = dirname(ui);
-      for (const err of [
-        await checkArtifactVersion(gitRoot),
-        await verifyContractFreshness(gitRoot),
-      ]) {
+      for (
+        const err of [
+          await checkArtifactVersion(gitRoot),
+          await verifyContractFreshness(gitRoot),
+        ]
+      ) {
         if (err) {
           console.error(`sprig build: ${err}`);
           Deno.exit(1);
@@ -2261,7 +2514,7 @@ switch (cmd) {
       // touches another toolchain's entries).
       try {
         await Deno.stat(join(gitRoot, "spec"));
-        await registerManifestEntries(gitRoot);
+        await registerManifestEntries(gitRoot, SPRIG_MANIFEST_ENTRIES);
       } catch { /* no artifact — nothing to register */ }
     }
     await build(ui, join(ui, "static"), true);
@@ -2289,13 +2542,17 @@ switch (cmd) {
       console.log(`sprig: no shared dev process registered for "${repo}".`);
       break;
     }
-    try { Deno.kill(e.pid, "SIGTERM"); } catch { /* already gone */ }
+    try {
+      Deno.kill(e.pid, "SIGTERM");
+    } catch { /* already gone */ }
     const ports = devPorts(repo);
     await killPort(ports.app);
     await killPort(ports.iso);
     delete map[repo];
     await writeDevLock(map);
-    console.log(`sprig: stopped the shared dev process for "${repo}" (pid ${e.pid}).`);
+    console.log(
+      `sprig: stopped the shared dev process for "${repo}" (pid ${e.pid}).`,
+    );
     break;
   }
   case "serve":

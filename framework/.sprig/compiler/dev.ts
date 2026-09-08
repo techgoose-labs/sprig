@@ -14,7 +14,12 @@ export interface DevConfig {
   renderer: SsrRenderer;
   base: string;
   outDir: string;
-  handler: { fetch(req: Request, info: Deno.ServeHandlerInfo): Promise<Response> | Response };
+  handler: {
+    fetch(
+      req: Request,
+      info: Deno.ServeHandlerInfo,
+    ): Promise<Response> | Response;
+  };
   /** Called when a `.ts` change lands — the app's server (renderer, guards, resolve, page/island
    *  logic) was import()ed at boot, so an in-process rebuild leaves it STALE. The dev supervisor
    *  passes a fn that restarts the process (re-import everything fresh, "eat the ~1s"); absent
@@ -23,7 +28,10 @@ export interface DevConfig {
 }
 
 export function createDevServer(cfg: DevConfig): {
-  fetch(req: Request, info: Deno.ServeHandlerInfo): Promise<Response> | Response;
+  fetch(
+    req: Request,
+    info: Deno.ServeHandlerInfo,
+  ): Promise<Response> | Response;
   close(): void;
 } {
   const enc = new TextEncoder();
@@ -35,7 +43,9 @@ export function createDevServer(cfg: DevConfig): {
     // build failed the prod deploy.
     if ((msg as { type?: string })?.type === "error") {
       console.error(
-        `%c[sprig dev]%c build/reload error:\n${(msg as { message?: string }).message ?? msg}`,
+        `%c[sprig dev]%c build/reload error:\n${
+          (msg as { message?: string }).message ?? msg
+        }`,
         "color:#dc2626;font-weight:bold",
         "",
       );
@@ -97,9 +107,10 @@ export function createDevServer(cfg: DevConfig): {
       // than a same-basename global one. The relDir flows through reparse/astFor and the
       // SSE "template" message (and the ast endpoint resolves it the same way).
       if (p.endsWith("template.html")) {
-        templates.push(relative(cfg.renderer.srcDir, dirname(p)).replace(/\\/g, "/"));
-      }
-      else if (p.endsWith("styles.css")) css = true;
+        templates.push(
+          relative(cfg.renderer.srcDir, dirname(p)).replace(/\\/g, "/"),
+        );
+      } else if (p.endsWith("styles.css")) css = true;
       else if (p.endsWith("css-variables.json")) css = true; // design tokens → rebuild app.css
       else if (p.endsWith(".ts")) reload = true;
     }
@@ -115,8 +126,16 @@ export function createDevServer(cfg: DevConfig): {
         // rendered page only one same-basename component is present (page-local shadows
         // global per page) — so the SSE `sel` stays the bare selector for the client.
         if (await cfg.renderer.reparse(relDir)) {
-          send({ type: "template", sel: basename(relDir), template: cfg.renderer.astFor(relDir) });
-          console.log(`%c[sprig dev]%c template ↻ ${relDir}`, "color:#7c3aed", "");
+          send({
+            type: "template",
+            sel: basename(relDir),
+            template: cfg.renderer.astFor(relDir),
+          });
+          console.log(
+            `%c[sprig dev]%c template ↻ ${relDir}`,
+            "color:#7c3aed",
+            "",
+          );
         }
       } catch (e) {
         send({ type: "error", message: String(e) });
@@ -139,7 +158,11 @@ export function createDevServer(cfg: DevConfig): {
     // Unsupervised (tests) → the old client-only rebuild + reload.
     if (reload) {
       if (cfg.onServerReload) {
-        console.log(`%c[sprig dev]%c .ts change → restarting (fresh server)…`, "color:#7c3aed", "");
+        console.log(
+          `%c[sprig dev]%c .ts change → restarting (fresh server)…`,
+          "color:#7c3aed",
+          "",
+        );
         cfg.onServerReload();
         return;
       }
@@ -171,7 +194,10 @@ export function createDevServer(cfg: DevConfig): {
           },
         });
         return new Response(body, {
-          headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
+          headers: {
+            "content-type": "text/event-stream",
+            "cache-control": "no-cache",
+          },
         });
       }
       if (path.startsWith(astPrefix)) {

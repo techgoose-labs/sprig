@@ -14,7 +14,9 @@ export default class Greeter {
     this.greeting = "Hello from the server";
   }
 
-  inc() { this.count.set(this.count() + 1); }
+  inc() {
+    this.count.set(this.count() + 1);
+  }
 
   onBrowserInit() {
     // deno-lint-ignore no-explicit-any

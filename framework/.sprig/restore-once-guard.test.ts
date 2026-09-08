@@ -50,11 +50,19 @@ Deno.test("BUG AH: a SECOND restore() does NOT revert a live in-memory mutation"
     // a DEFERRED-trigger island hydrates LATER → restoreState() runs again over the
     // same root singleton. It MUST NOT clobber the live mutation.
     c.restore();
-    assertEquals(c.count, 12, "a second restore() must NOT revert the live mutation back to 5");
+    assertEquals(
+      c.count,
+      12,
+      "a second restore() must NOT revert the live mutation back to 5",
+    );
 
     // also via the global restoreState() (the exact path hydrate.ts uses per island).
     restoreState();
-    assertEquals(c.count, 12, "restoreState() (global) is also a no-op after the first restore");
+    assertEquals(
+      c.count,
+      12,
+      "restoreState() (global) is also a no-op after the first restore",
+    );
   } finally {
     unmock();
   }
@@ -70,7 +78,11 @@ Deno.test("BUG AH: the FIRST restore still applies the persisted value (fresh in
     }
     const c = new Cart();
     c.restore();
-    assertEquals(c.count, 5, "a fresh instance's first restore overlays the persisted value");
+    assertEquals(
+      c.count,
+      5,
+      "a fresh instance's first restore overlays the persisted value",
+    );
   } finally {
     unmock();
   }
@@ -91,7 +103,11 @@ Deno.test("BUG AH: an empty-localStorage first restore still counts as 'restored
     // a stale value appears in localStorage AFTER load (e.g. a sibling persisted it).
     store.set("sprig:state:Cart", JSON.stringify({ count: 5 }));
     c.restore(); // must be a no-op — the first restore already counted.
-    assertEquals(c.count, 12, "an empty-storage first restore still locks out later overlays");
+    assertEquals(
+      c.count,
+      12,
+      "an empty-storage first restore still locks out later overlays",
+    );
   } finally {
     unmock();
   }

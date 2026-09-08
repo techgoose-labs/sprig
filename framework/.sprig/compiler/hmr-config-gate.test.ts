@@ -12,10 +12,12 @@ import { createRenderer } from "./mod.ts";
 
 async function makeRenderer(dev: boolean) {
   const tmp = await Deno.makeTempDir({ prefix: "sprig-hmr-gate-" });
-  for (const [rel, body] of Object.entries({
-    "shell/template.html": `<div><router-outlet></router-outlet></div>`,
-    "pages/home/template.html": `<p>hi</p>`,
-  })) {
+  for (
+    const [rel, body] of Object.entries({
+      "shell/template.html": `<div><router-outlet></router-outlet></div>`,
+      "pages/home/template.html": `<p>hi</p>`,
+    })
+  ) {
     const path = joinPath(tmp, ...rel.split("/"));
     await Deno.mkdir(dirname(path), { recursive: true });
     await Deno.writeTextFile(path, body);
@@ -28,7 +30,10 @@ Deno.test("PROD (dev:false): renderDocument omits cfg.hmr — the dormant receiv
   const { r, cleanup } = await makeRenderer(false);
   try {
     const html = await r.renderDocument("pages/home", {});
-    assert(!html.includes(`"hmr"`), `prod document must NOT carry an hmr flag; got:\n${configOf(html)}`);
+    assert(
+      !html.includes(`"hmr"`),
+      `prod document must NOT carry an hmr flag; got:\n${configOf(html)}`,
+    );
   } finally {
     await cleanup();
   }
@@ -38,7 +43,10 @@ Deno.test("DEV (dev:true): renderDocument emits cfg.hmr:true — activates the c
   const { r, cleanup } = await makeRenderer(true);
   try {
     const html = await r.renderDocument("pages/home", {});
-    assert(html.includes(`"hmr":true`), `dev document must carry hmr:true; got:\n${configOf(html)}`);
+    assert(
+      html.includes(`"hmr":true`),
+      `dev document must carry hmr:true; got:\n${configOf(html)}`,
+    );
   } finally {
     await cleanup();
   }
@@ -47,15 +55,23 @@ Deno.test("DEV (dev:true): renderDocument emits cfg.hmr:true — activates the c
 Deno.test("renderStream matches renderDocument on the hmr gate (head+tail concat is transparent)", async () => {
   const prod = await makeRenderer(false);
   try {
-    const html = await new Response(prod.r.renderStream("pages/home", {})).text();
-    assert(!html.includes(`"hmr"`), "streamed prod document must NOT carry an hmr flag");
+    const html = await new Response(prod.r.renderStream("pages/home", {}))
+      .text();
+    assert(
+      !html.includes(`"hmr"`),
+      "streamed prod document must NOT carry an hmr flag",
+    );
   } finally {
     await prod.cleanup();
   }
   const dev = await makeRenderer(true);
   try {
-    const html = await new Response(dev.r.renderStream("pages/home", {})).text();
-    assert(html.includes(`"hmr":true`), "streamed dev document must carry hmr:true");
+    const html = await new Response(dev.r.renderStream("pages/home", {}))
+      .text();
+    assert(
+      html.includes(`"hmr":true`),
+      "streamed dev document must carry hmr:true",
+    );
   } finally {
     await dev.cleanup();
   }
@@ -63,5 +79,6 @@ Deno.test("renderStream matches renderDocument on the hmr gate (head+tail concat
 
 /** The __sprig_config JSON blob, for a legible assertion message. */
 function configOf(html: string): string {
-  return html.match(/id="__sprig_config">([^<]*)</)?.[1] ?? "(no __sprig_config found)";
+  return html.match(/id="__sprig_config">([^<]*)</)?.[1] ??
+    "(no __sprig_config found)";
 }

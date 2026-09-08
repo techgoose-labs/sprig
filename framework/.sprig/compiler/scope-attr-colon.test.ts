@@ -60,5 +60,8 @@ Deno.test("scope: namespaced attr [xml:lang] is scoped after the brackets", () =
 Deno.test("scope: common pseudo/attr cases stay correct", () => {
   assertEquals(prelude(s(".a:hover { x: 1 }")), ".a[sX]:hover");
   assertEquals(prelude(s("[data-x]:hover { x: 1 }")), "[data-x][sX]:hover");
-  assertEquals(prelude(s('input[type="text"]:focus { x: 1 }')), 'input[type="text"][sX]:focus');
+  assertEquals(
+    prelude(s('input[type="text"]:focus { x: 1 }')),
+    'input[type="text"][sX]:focus',
+  );
 });

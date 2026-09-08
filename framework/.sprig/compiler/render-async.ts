@@ -74,7 +74,12 @@ export async function renderStreaming(
   await onServerInit(root); // the shell's own data — usually instant
   const kids = root.children ?? [];
   // FIRST BYTE: the shell + placeholders go out immediately, before any child resolves
-  emit(`<${root.name}>` + kids.map((k, i) => `<slot id="${root.name}.${i}" data-for="${k.name}"></slot>`).join("") + `</${root.name}>`);
+  emit(
+    `<${root.name}>` +
+      kids.map((k, i) =>
+        `<slot id="${root.name}.${i}" data-for="${k.name}"></slot>`
+      ).join("") + `</${root.name}>`,
+  );
 
   // resolve every child subtree concurrently; stream each in the instant it's ready
   await Promise.all(kids.map(async (k, i) => {

@@ -32,8 +32,14 @@ Deno.test("boolean control writes/reads the live .disabled property", () => {
 Deno.test("text control writes the live .value (the old bug: attribute didn't reflect)", () => {
   const input = fakeEl({ value: "" });
   writeDomControl(input, "value", "hello@example.com");
-  assertEquals((input as unknown as { value: string }).value, "hello@example.com");
-  assertEquals(readDomControl(input, "value", { type: "text" }), "hello@example.com");
+  assertEquals(
+    (input as unknown as { value: string }).value,
+    "hello@example.com",
+  );
+  assertEquals(
+    readDomControl(input, "value", { type: "text" }),
+    "hello@example.com",
+  );
 });
 
 Deno.test("checkbox control writes the live .checked property", () => {
@@ -54,10 +60,21 @@ Deno.test("a read-only property key falls back to setAttribute instead of throwi
   // a fixture typo could target a getter-only DOM property (tagName, parentElement);
   // writeDomControl must NOT crash applySet (which would skip publish) — best-effort.
   const el = fakeEl({});
-  Object.defineProperty(el, "tagName", { get: () => "DIV", configurable: true });
+  Object.defineProperty(el, "tagName", {
+    get: () => "DIV",
+    configurable: true,
+  });
   writeDomControl(el, "tagName", "SPAN"); // must not throw
-  assertEquals((el as unknown as { tagName: string }).tagName, "DIV", "read-only prop unchanged");
-  assertEquals(el.getAttribute("tagName"), "SPAN", "fell back to the attribute, no crash");
+  assertEquals(
+    (el as unknown as { tagName: string }).tagName,
+    "DIV",
+    "read-only prop unchanged",
+  );
+  assertEquals(
+    el.getAttribute("tagName"),
+    "SPAN",
+    "fell back to the attribute, no crash",
+  );
 });
 
 Deno.test("custom key with no matching property uses attributes", () => {

@@ -6,8 +6,18 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(s).replace(
+    /[&<>"']/g,
+    (
+      c,
+    ) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c]),
+  );
 }
 
 // "Jane Doe" -> "JD" ; "Pilar" -> "P" ; "" / whitespace -> "?"
@@ -47,7 +57,9 @@ function avatarHtml(m) {
   const tint = AVATAR_TINTS[m.id % AVATAR_TINTS.length];
   return `<div class="avatar avatar-placeholder">
     <div class="${tint} w-12 rounded-full">
-      <span class="text-base font-semibold">${escapeHtml(initials(m.name))}</span>
+      <span class="text-base font-semibold">${
+    escapeHtml(initials(m.name))
+  }</span>
     </div>
   </div>`;
 }
@@ -56,7 +68,9 @@ function avatarHtml(m) {
 // Empty/blank name renders as "Anonymous guest".
 function cardHtml(m, isNew) {
   const name = (m.name || "").trim() || "Anonymous guest";
-  return `<article class="card bg-base-100 border border-base-300 shadow-sm ${isNew ? "animate-rise" : ""}">
+  return `<article class="card bg-base-100 border border-base-300 shadow-sm ${
+    isNew ? "animate-rise" : ""
+  }">
     <div class="card-body gap-3 p-5">
       <div class="flex items-start gap-3">
         ${avatarHtml(m)}
@@ -64,10 +78,14 @@ function cardHtml(m, isNew) {
           <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span class="font-semibold break-words">${escapeHtml(name)}</span>
             <span class="badge badge-soft badge-secondary badge-sm shrink-0">
-              <i data-lucide="clock" class="size-[0.85em]"></i> ${timeAgo(m.minutesAgo)}
+              <i data-lucide="clock" class="size-[0.85em]"></i> ${
+    timeAgo(m.minutesAgo)
+  }
             </span>
           </div>
-          <p class="mt-1.5 text-base-content/85 leading-relaxed break-words [overflow-wrap:anywhere]">${escapeHtml(m.message)}</p>
+          <p class="mt-1.5 text-base-content/85 leading-relaxed break-words [overflow-wrap:anywhere]">${
+    escapeHtml(m.message)
+  }</p>
         </div>
       </div>
     </div>

@@ -14,23 +14,27 @@ Deno.test("REGRESSION: morph PRESERVES the hydrated nested-island host even when
   // The child <sprig-island data-sel="counter-badge"> has been hydrated: it carries a
   // data-sprig-hydrated marker and we stash an identity tag + a fake "scope" on the node
   // so we can detect whether the SAME node survives the morph or is replaced.
-  const html =
-    `<html><body>` +
+  const html = `<html><body>` +
     `<sprig-island data-sel="parent-a" data-trigger="load">` +
-      `<div aisl>` +
-        `<sprig-island badge data-sel="counter-badge" data-trigger="load" data-sprig-hydrated="1" id="theChild">` +
-          `<script class="sprig-props" type="application/json">{"n":3}</script>` +
-          `<span badge>3</span>` +
-        `</sprig-island>` +
-      `</div>` +
+    `<div aisl>` +
+    `<sprig-island badge data-sel="counter-badge" data-trigger="load" data-sprig-hydrated="1" id="theChild">` +
+    `<script class="sprig-props" type="application/json">{"n":3}</script>` +
+    `<span badge>3</span>` +
+    `</sprig-island>` +
+    `</div>` +
     `</sprig-island>` +
     `</body></html>`;
   const doc = new DOMParser().parseFromString(html, "text/html")!;
   // deno-lint-ignore no-explicit-any
-  Object.defineProperty(globalThis, "document", { configurable: true, value: doc });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: doc,
+  });
 
   try {
-    const parentHost = doc.querySelector(`sprig-island[data-sel="parent-a"]`)! as unknown as HTMLElement;
+    const parentHost = doc.querySelector(
+      `sprig-island[data-sel="parent-a"]`,
+    )! as unknown as HTMLElement;
     const childBefore = doc.getElementById("theChild");
     // tag the hydrated child host with a unique identity object so we can prove node identity.
     // deno-lint-ignore no-explicit-any
@@ -38,7 +42,8 @@ Deno.test("REGRESSION: morph PRESERVES the hydrated nested-island host even when
 
     // The worst-case (fallback) re-render shape: a bare <counter-badge> (e.g. a chunk that
     // didn't get the island-aware registry). Even this must NOT destroy the hydrated host.
-    const reRenderHtml = `<div aisl><counter-badge aisl n="3"></counter-badge></div>`;
+    const reRenderHtml =
+      `<div aisl><counter-badge aisl n="3"></counter-badge></div>`;
 
     patchInnerHtml(parentHost, reRenderHtml);
 
@@ -53,17 +58,43 @@ Deno.test("REGRESSION: morph PRESERVES the hydrated nested-island host even when
     );
 
     console.log("child node survived (by id):", !!childAfter);
-    console.log("still a hydrated <sprig-island data-sel=counter-badge>:", stillSprigIsland);
+    console.log(
+      "still a hydrated <sprig-island data-sel=counter-badge>:",
+      stillSprigIsland,
+    );
     console.log("replaced by a bare <counter-badge>:", nowBareBadge);
-    console.log("parent innerHTML after morph:\n" + (parentHost as unknown as { innerHTML: string }).innerHTML);
+    console.log(
+      "parent innerHTML after morph:\n" +
+        (parentHost as unknown as { innerHTML: string }).innerHTML,
+    );
 
     // The fix: the hydrated host SURVIVES (same node, marker + scope intact).
-    assertEquals(childAfter !== null, true, "the hydrated <sprig-island> child host survives the morph");
-    assertEquals(stillSprigIsland, true, "the <sprig-island data-sel=counter-badge> host is preserved");
-    assertEquals(nowBareBadge, false, "it was NOT replaced by a fresh, un-hydrated <counter-badge>");
+    assertEquals(
+      childAfter !== null,
+      true,
+      "the hydrated <sprig-island> child host survives the morph",
+    );
+    assertEquals(
+      stillSprigIsland,
+      true,
+      "the <sprig-island data-sel=counter-badge> host is preserved",
+    );
+    assertEquals(
+      nowBareBadge,
+      false,
+      "it was NOT replaced by a fresh, un-hydrated <counter-badge>",
+    );
     // deno-lint-ignore no-explicit-any
-    assertEquals((childAfter as any).__sprigScope?.iAmTheHydratedChild, true, "same node identity preserved");
-    assertEquals(childAfter!.getAttribute("data-sprig-hydrated"), "1", "hydration marker intact");
+    assertEquals(
+      (childAfter as any).__sprigScope?.iAmTheHydratedChild,
+      true,
+      "same node identity preserved",
+    );
+    assertEquals(
+      childAfter!.getAttribute("data-sprig-hydrated"),
+      "1",
+      "hydration marker intact",
+    );
   } finally {
     // deno-lint-ignore no-explicit-any
     delete (globalThis as any).document;

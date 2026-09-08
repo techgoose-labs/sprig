@@ -3,13 +3,25 @@
 // there. Guards run on the request's route injector (inject() works), BEFORE
 // resolve, parent-first along the matched chain.
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { bootstrap, defineRoutes, type Guard, inject, Injectable, matchRoute, type Route } from "./core.ts";
+import {
+  bootstrap,
+  defineRoutes,
+  type Guard,
+  inject,
+  Injectable,
+  matchRoute,
+  type Route,
+} from "./core.ts";
 
 Deno.test("guard returning the target route proceeds to the page", async () => {
   let resolved = 0;
   const allow: Guard = (ctx) => ctx.path;
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [allow] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [allow],
+    }]),
     modules: {
       "./pages/admin": {
         resolve: () => {
@@ -54,7 +66,11 @@ Deno.test("async guard is awaited", async () => {
     return ["login"];
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [deny] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [deny],
+    }]),
   });
   const res = await app.fetch(new Request("http://localhost/admin"));
   assertEquals(res.status, 302);
@@ -75,7 +91,11 @@ Deno.test("parent guards run for child routes, parent-first, and see the full ta
     routes: defineRoutes([{
       path: "admin",
       guards: [parentGuard],
-      children: [{ path: "users", load: "./pages/users", guards: [childGuard] }],
+      children: [{
+        path: "users",
+        load: "./pages/users",
+        guards: [childGuard],
+      }],
     }]),
   });
   const res = await app.fetch(new Request("http://localhost/admin/users"));
@@ -99,7 +119,11 @@ Deno.test("first redirecting guard wins; later guards don't run", async () => {
     return ctx.path;
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [g1, g2, g3] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [g1, g2, g3],
+    }]),
   });
   const res = await app.fetch(new Request("http://localhost/admin"));
   assertEquals(res.status, 302);
@@ -118,8 +142,14 @@ Deno.test("inject() works inside a guard and shares the route injector with reso
     return ctx.path;
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [guard] }]),
-    modules: { "./pages/admin": { resolve: () => ({ who: inject(Session).user }) } },
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [guard],
+    }]),
+    modules: {
+      "./pages/admin": { resolve: () => ({ who: inject(Session).user }) },
+    },
   });
   const res = await app.fetch(new Request("http://localhost/admin"));
   assertEquals(res.status, 200);
@@ -158,7 +188,11 @@ Deno.test("[] is the root route: allow on root, redirect-to-/ elsewhere", async 
 Deno.test("redirect Location is prefixed with the app base", async () => {
   const deny: Guard = () => ["login"];
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [deny] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [deny],
+    }]),
     base: "/ui",
   });
   const res = await app.fetch(new Request("http://localhost/ui/admin"));
@@ -171,7 +205,11 @@ Deno.test("a throwing guard fails closed with a controlled 500", async () => {
     throw new Error("nope");
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [boom] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [boom],
+    }]),
   });
   const res = await app.fetch(new Request("http://localhost/admin"));
   assertEquals(res.status, 500);
@@ -187,7 +225,11 @@ Deno.test("guard receives decoded params and the raw URL segments", async () => 
     return ctx.path;
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "issues/:id", load: "./pages/issue", guards: [check] }]),
+    routes: defineRoutes([{
+      path: "issues/:id",
+      load: "./pages/issue",
+      guards: [check],
+    }]),
   });
   const res = await app.fetch(new Request("http://localhost/issues/a%20b"));
   assertEquals(res.status, 200);
@@ -203,9 +245,15 @@ Deno.test("guards don't run for disallowed methods (405 wins)", async () => {
     return ctx.path;
   };
   const app = bootstrap({
-    routes: defineRoutes([{ path: "admin", load: "./pages/admin", guards: [spy] }]),
+    routes: defineRoutes([{
+      path: "admin",
+      load: "./pages/admin",
+      guards: [spy],
+    }]),
   });
-  const res = await app.fetch(new Request("http://localhost/admin", { method: "POST" }));
+  const res = await app.fetch(
+    new Request("http://localhost/admin", { method: "POST" }),
+  );
   assertEquals(res.status, 405);
   await res.text();
   assertEquals(calls, []);
@@ -214,7 +262,9 @@ Deno.test("guards don't run for disallowed methods (405 wins)", async () => {
 Deno.test("guard receives the request headers — a cookie-based auth guard works", async () => {
   const requireLogin: Guard = (ctx) => {
     const cookies = ctx.headers.get("cookie") ?? "";
-    return cookies.split(/;\s*/).some((c) => c.startsWith("auth=")) ? ctx.path : ["login"];
+    return cookies.split(/;\s*/).some((c) => c.startsWith("auth="))
+      ? ctx.path
+      : ["login"];
   };
   const app = bootstrap({
     routes: defineRoutes([
@@ -225,8 +275,16 @@ Deno.test("guard receives the request headers — a cookie-based auth guard work
   const anon = await app.fetch(new Request("http://localhost/admin"));
   assertEquals(anon.status, 302, "no cookie → back to login");
   assertEquals(anon.headers.get("location"), "/login");
-  const authed = await app.fetch(new Request("http://localhost/admin", { headers: { "cookie": "theme=dark; auth=1" } }));
-  assertEquals(authed.status, 200, "the browser's cookie header reaches the guard");
+  const authed = await app.fetch(
+    new Request("http://localhost/admin", {
+      headers: { "cookie": "theme=dark; auth=1" },
+    }),
+  );
+  assertEquals(
+    authed.status,
+    200,
+    "the browser's cookie header reaches the guard",
+  );
   await authed.text();
 });
 
@@ -239,7 +297,11 @@ Deno.test("matchRoute collects the guard chain parent-first, without sibling lea
       path: "admin",
       guards: [g1],
       children: [
-        { path: "users", guards: [g2], children: [{ path: ":id", load: "./pages/user", guards: [g3] }] },
+        {
+          path: "users",
+          guards: [g2],
+          children: [{ path: ":id", load: "./pages/user", guards: [g3] }],
+        },
       ],
     },
     // sibling that also matches under /admin/* — must NOT inherit g1 from the

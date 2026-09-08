@@ -24,6 +24,8 @@ test("capture() receives stage events headlessly", async ({ page }) => {
   await waitHydrated(page);
 
   await page.locator("#increment").click();
-  const evt = await events.expect((e) => e.type === "click" && e.source.includes("increment"));
+  const evt = await events.expect((e) =>
+    e.type === "click" && e.source.includes("increment")
+  );
   expect(evt.type).toBe("click");
 });

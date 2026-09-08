@@ -61,7 +61,10 @@ export function snapshotOf(inst: AnyInstance): Record<string, unknown> {
 
 /** Re-seed a fresh instance from the snapshot. A signal field is re-seeded via .set()
  *  (keeping it reactive); a plain field is assigned. Runs BEFORE onBrowserInit. */
-export function restore(inst: AnyInstance, snap: Record<string, unknown>): void {
+export function restore(
+  inst: AnyInstance,
+  snap: Record<string, unknown>,
+): void {
   for (const [k, val] of Object.entries(snap)) {
     const cur = inst[k];
     if (isSignal(cur)) cur.set(val);

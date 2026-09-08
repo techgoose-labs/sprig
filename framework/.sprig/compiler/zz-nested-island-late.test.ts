@@ -18,8 +18,15 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert";
 import { DOMParser } from "jsr:@b-fuze/deno-dom";
 import { named, parseTemplate } from "./parse.ts";
-import { renderNodes, type Handler } from "./render.ts";
-import { bootstrapIslands, componentsForPage, loading, patchInnerHtml, registerIslandSelectors, rescanIslands } from "./hydrate.ts";
+import { type Handler, renderNodes } from "./render.ts";
+import {
+  bootstrapIslands,
+  componentsForPage,
+  loading,
+  patchInnerHtml,
+  registerIslandSelectors,
+  rescanIslands,
+} from "./hydrate.ts";
 import type { Scope } from "./expr.ts";
 
 /** Wait for a selector's in-flight chunk import to settle (it rejects in tests — no server —
@@ -31,15 +38,23 @@ async function settleLoad(sel: string): Promise<void> {
 }
 
 Deno.test("ISOLATE BUG 1 (render): an UNLOADED child island resolves to a <sprig-island> shell CARRYING the parent-computed props", async () => {
-  const doc = new DOMParser().parseFromString(`<html><body></body></html>`, "text/html")!;
+  const doc = new DOMParser().parseFromString(
+    `<html><body></body></html>`,
+    "text/html",
+  )!;
   // deno-lint-ignore no-explicit-any
-  Object.defineProperty(globalThis, "document", { configurable: true, value: doc });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: doc,
+  });
   try {
     // The eager loader registers every island selector the build produced — including ones
     // whose chunk hasn't loaded (this one never will in this test).
     registerIslandSelectors({ "late-chip-a": "chipscope" });
 
-    const parentTpl = await parseTemplate(`<div><late-chip-a [n]="count"></late-chip-a></div>`);
+    const parentTpl = await parseTemplate(
+      `<div><late-chip-a [n]="count"></late-chip-a></div>`,
+    );
     const handlers: Handler[] = []; // CLIENT mode
     const html = renderNodes(named(parentTpl), {
       scope: { count: 7 } as Scope,
@@ -51,11 +66,30 @@ Deno.test("ISOLATE BUG 1 (render): an UNLOADED child island resolves to a <sprig
 
     console.log("CLIENT re-render output:\n" + html);
 
-    assertStringIncludes(html, `<sprig-island`, "unloaded child island must emit a hydration boundary");
-    assertStringIncludes(html, `data-sel="late-chip-a"`, "boundary carries the child selector");
-    assertStringIncludes(html, `chipscope`, "boundary carries the island's registered scope marker");
-    assertStringIncludes(html, `"n":7`, "shell props bridge carries the parent-computed inputs");
-    assert(!/<late-chip-a[\s>]/.test(html), "must NOT fall through to a bare custom element");
+    assertStringIncludes(
+      html,
+      `<sprig-island`,
+      "unloaded child island must emit a hydration boundary",
+    );
+    assertStringIncludes(
+      html,
+      `data-sel="late-chip-a"`,
+      "boundary carries the child selector",
+    );
+    assertStringIncludes(
+      html,
+      `chipscope`,
+      "boundary carries the island's registered scope marker",
+    );
+    assertStringIncludes(
+      html,
+      `"n":7`,
+      "shell props bridge carries the parent-computed inputs",
+    );
+    assert(
+      !/<late-chip-a[\s>]/.test(html),
+      "must NOT fall through to a bare custom element",
+    );
   } finally {
     // deno-lint-ignore no-explicit-any
     delete (globalThis as any).document;
@@ -68,22 +102,37 @@ Deno.test("ISOLATE BUG 1 (hydrate): rescanIslands arms island hosts that appear 
     "text/html",
   )!;
   // deno-lint-ignore no-explicit-any
-  Object.defineProperty(globalThis, "document", { configurable: true, value: doc });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: doc,
+  });
   try {
     // bootstrap with NO islands present — the one-shot scan sees nothing.
     bootstrapIslands({ base: "", v: "t" }, doc.body as unknown as ParentNode);
 
     // a later re-render lands a new island shell (what the morph appendChild's).
     const stage = doc.getElementById("stage")! as unknown as HTMLElement;
-    stage.innerHTML = `<sprig-island data-sel="late-chip-b" data-trigger="load"></sprig-island>`;
+    stage.innerHTML =
+      `<sprig-island data-sel="late-chip-b" data-trigger="load"></sprig-island>`;
     const host = stage.querySelector("sprig-island")! as unknown as HTMLElement;
-    assertEquals(host.getAttribute("data-sprig-armed"), null, "not armed by the (already-run) bootstrap scan");
+    assertEquals(
+      host.getAttribute("data-sprig-armed"),
+      null,
+      "not armed by the (already-run) bootstrap scan",
+    );
 
     rescanIslands(stage as unknown as ParentNode);
 
-    assertEquals(host.getAttribute("data-sprig-armed"), "1", "the late host is armed by the re-scan");
+    assertEquals(
+      host.getAttribute("data-sprig-armed"),
+      "1",
+      "the late host is armed by the re-scan",
+    );
     await settleLoad("late-chip-b"); // chunk import rejects (no server) — must be caught + cleared
-    assert(!loading.has("late-chip-b"), "failed chunk load is cleared (retryable)");
+    assert(
+      !loading.has("late-chip-b"),
+      "failed chunk load is cleared (retryable)",
+    );
   } finally {
     // deno-lint-ignore no-explicit-any
     delete (globalThis as any).document;
@@ -105,12 +154,17 @@ Deno.test("ISOLATE BUG 1 (morph + rescan): a data-grown child list keeps the liv
     `</body></html>`;
   const doc = new DOMParser().parseFromString(html, "text/html")!;
   // deno-lint-ignore no-explicit-any
-  Object.defineProperty(globalThis, "document", { configurable: true, value: doc });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: doc,
+  });
   try {
     bootstrapIslands({ base: "", v: "t" }, doc.body as unknown as ParentNode);
     await settleLoad("late-chip-c"); // the hydrated marker skips it, but parent-a's arm fires a load attempt
     await settleLoad("parent-a");
-    const parentHost = doc.querySelector(`sprig-island[data-sel="parent-a"]`)! as unknown as HTMLElement;
+    const parentHost = doc.querySelector(
+      `sprig-island[data-sel="parent-a"]`,
+    )! as unknown as HTMLElement;
     const liveBefore = doc.getElementById("liveChild");
     // deno-lint-ignore no-explicit-any
     (liveBefore as any).__sprigScope = { hydrated: true };
@@ -124,14 +178,38 @@ Deno.test("ISOLATE BUG 1 (morph + rescan): a data-grown child list keeps the liv
     rescanIslands(parentHost as unknown as ParentNode); // what hydrateIsland's effect now does post-render
 
     const hosts = doc.querySelectorAll(`sprig-island[data-sel="late-chip-c"]`);
-    assertEquals(hosts.length, 2, "the NEW shell is appended alongside the live host");
-    const liveAfter = doc.getElementById("liveChild")! as unknown as HTMLElement;
+    assertEquals(
+      hosts.length,
+      2,
+      "the NEW shell is appended alongside the live host",
+    );
+    const liveAfter = doc.getElementById(
+      "liveChild",
+    )! as unknown as HTMLElement;
     // deno-lint-ignore no-explicit-any
-    assertEquals((liveAfter as any).__sprigScope?.hydrated, true, "live host survives with identity intact");
-    assertEquals(liveAfter.getAttribute("data-sprig-armed"), null, "hydrated host is NOT re-armed");
-    const fresh = [...hosts].find((h) => (h as unknown as HTMLElement).id !== "liveChild")! as unknown as HTMLElement;
-    assertEquals(fresh.getAttribute("data-sprig-hydrated"), null, "the new shell is not yet hydrated");
-    assertEquals(fresh.getAttribute("data-sprig-armed"), "1", "the new shell IS armed by the re-scan");
+    assertEquals(
+      (liveAfter as any).__sprigScope?.hydrated,
+      true,
+      "live host survives with identity intact",
+    );
+    assertEquals(
+      liveAfter.getAttribute("data-sprig-armed"),
+      null,
+      "hydrated host is NOT re-armed",
+    );
+    const fresh = [...hosts].find((h) =>
+      (h as unknown as HTMLElement).id !== "liveChild"
+    )! as unknown as HTMLElement;
+    assertEquals(
+      fresh.getAttribute("data-sprig-hydrated"),
+      null,
+      "the new shell is not yet hydrated",
+    );
+    assertEquals(
+      fresh.getAttribute("data-sprig-armed"),
+      "1",
+      "the new shell IS armed by the re-scan",
+    );
     assertStringIncludes(
       (fresh as unknown as { innerHTML: string }).innerHTML,
       `"n":2`,

@@ -22,7 +22,12 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { DOMParser, type HTMLDocument } from "jsr:@b-fuze/deno-dom";
 import { named, parseTemplate } from "./parse.ts";
 import { type ComponentDef, type Handler, renderNodes } from "./render.ts";
-import { nearestIslandRoot, resolveHandlers, scopedHandlersFor, setDevDiagnostics } from "./hydrate.ts";
+import {
+  nearestIslandRoot,
+  resolveHandlers,
+  scopedHandlersFor,
+  setDevDiagnostics,
+} from "./hydrate.ts";
 
 // deno-dom nodes stand in for lib.dom ones (the test convention across this suite).
 // deno-lint-ignore no-explicit-any
@@ -56,12 +61,18 @@ function host(stamp: string, sel: string, id: string, inner: string): string {
 }
 
 function parseDoc(body: string): HTMLDocument {
-  return new DOMParser().parseFromString(`<html><body>${body}</body></html>`, "text/html")!;
+  return new DOMParser().parseFromString(
+    `<html><body>${body}</body></html>`,
+    "text/html",
+  )!;
 }
 
 /** One island instance's delegated listener for `base`, as wire() attaches it. */
 function listener(rootEl: unknown, handlers: Handler[], base = "click") {
-  return (target: unknown, onMiss?: (token: string, el: Element) => void): Handler[] =>
+  return (
+    target: unknown,
+    onMiss?: (token: string, el: Element) => void,
+  ): Handler[] =>
     scopedHandlersFor(asEl(rootEl), asEl(target), base, handlers, ev, onMiss);
 }
 
@@ -73,10 +84,20 @@ Deno.test("spec §1 test 1: nested live islands — the infra collision (index N
     `<button id="menu" (click)="openModal()">menu</button><div class="content" id="slot"></div>`,
     "sShell",
   );
-  const page = await clientRender(`<button id="row" (click)="openRow()">row</button>`, "sPage");
+  const page = await clientRender(
+    `<button id="row" (click)="openRow()">row</button>`,
+    "sPage",
+  );
 
   const pageHost = host("sPage", "org-page", "pageRoot", page.html);
-  const doc = parseDoc(host("sShell", "app-shell", "shellRoot", shell.html.replace("</div>", pageHost + "</div>")));
+  const doc = parseDoc(
+    host(
+      "sShell",
+      "app-shell",
+      "shellRoot",
+      shell.html.replace("</div>", pageHost + "</div>"),
+    ),
+  );
   const row = doc.getElementById("row")!, menu = doc.getElementById("menu")!;
 
   // compile side: both markers carry their OWNER stamp, same numeric index.
@@ -87,28 +108,47 @@ Deno.test("spec §1 test 1: nested live islands — the infra collision (index N
   const pageListen = listener(doc.getElementById("pageRoot"), page.handlers);
 
   // a click on the page row bubbles to BOTH listeners; only the page's resolves.
-  assertEquals(shellListen(row).length, 0, "the wrapping shell must NOT fire its handler 0 for the child's element");
+  assertEquals(
+    shellListen(row).length,
+    0,
+    "the wrapping shell must NOT fire its handler 0 for the child's element",
+  );
   const fired = pageListen(row);
   assertEquals(fired.length, 1, "exactly the child island's handler fires");
   assertEquals(fired[0], page.handlers[0]);
 
   // the shell's own element still dispatches to the shell (and never to the page).
   assertEquals(shellListen(menu), [shell.handlers[0]]);
-  assertEquals(pageListen(menu).length, 0, "outside the page island's root → not its event");
+  assertEquals(
+    pageListen(menu).length,
+    0,
+    "outside the page island's root → not its event",
+  );
 });
 
 // ─── 2. live island under a static parent ───
 Deno.test("spec §1 test 2: island under a static parent — a stamped static ancestor is never a dispatch root", async () => {
-  const isle = await clientRender(`<button id="go" (click)="go()">go</button>`, "sIsle");
+  const isle = await clientRender(
+    `<button id="go" (click)="go()">go</button>`,
+    "sIsle",
+  );
   // the static parent's elements carry ITS scope stamp (unconditional stamping) but a
   // static component registers NO handler table — it is never an island root.
   const doc = parseDoc(
-    `<div sFrame class="frame" id="frame">${host("sIsle", "the-isle", "isleRoot", isle.html)}</div>`,
+    `<div sFrame class="frame" id="frame">${
+      host("sIsle", "the-isle", "isleRoot", isle.html)
+    }</div>`,
   );
   const go = doc.getElementById("go")!;
 
-  assertEquals(asEl(nearestIslandRoot(asEl(go))), asEl(doc.getElementById("isleRoot")), "the walk finds the island, not the stamped static wrapper");
-  assertEquals(listener(doc.getElementById("isleRoot"), isle.handlers)(go), [isle.handlers[0]]);
+  assertEquals(
+    asEl(nearestIslandRoot(asEl(go))),
+    asEl(doc.getElementById("isleRoot")),
+    "the walk finds the island, not the stamped static wrapper",
+  );
+  assertEquals(listener(doc.getElementById("isleRoot"), isle.handlers)(go), [
+    isle.handlers[0],
+  ]);
 });
 
 // ─── 3. static child content inside a live island: bubbling to the bound container works ───
@@ -133,7 +173,11 @@ Deno.test("spec §1 test 3: static child inside a live island — bubbles to the
   const doc = parseDoc(host("sIsland", "an-island", "isleRoot", isle.html));
   const hint = doc.getElementById("hint")!;
   const fired = listener(doc.getElementById("isleRoot"), isle.handlers)(hint);
-  assertEquals(fired, [isle.handlers[0]], "a click on unbound static content still reaches the island's bound container");
+  assertEquals(
+    fired,
+    [isle.handlers[0]],
+    "a click on unbound static content still reaches the island's bound container",
+  );
 });
 
 Deno.test("spec §1: a binding the PARENT template authors on a child's root tag is owned by the parent stamp", async () => {
@@ -146,9 +190,21 @@ Deno.test("spec §1: a binding the PARENT template authors on a child's root tag
     template: await parseTemplate(`<span class="hint">hint</span>`),
     scope: "sChild",
   };
-  const isle = await clientRender(`<info-card (click)="cardClick()"></info-card>`, "sIsland", [infoCard]);
-  assertStringIncludes(isle.html, "sChild", "child root keeps its own scope stamp");
-  assertStringIncludes(isle.html, `data-sprig-click="sIsland:0"`, "…but the marker's owner is the authoring (parent) template");
+  const isle = await clientRender(
+    `<info-card (click)="cardClick()"></info-card>`,
+    "sIsland",
+    [infoCard],
+  );
+  assertStringIncludes(
+    isle.html,
+    "sChild",
+    "child root keeps its own scope stamp",
+  );
+  assertStringIncludes(
+    isle.html,
+    `data-sprig-click="sIsland:0"`,
+    "…but the marker's owner is the authoring (parent) template",
+  );
   assertEquals(isle.handlers[0].owner, "sIsland");
 });
 
@@ -157,42 +213,75 @@ Deno.test("spec §1 test 4: two SIBLING instances of one component — each fire
   const widgetTpl = `<button class="w" id="ID" (click)="inc()">+</button>`;
   const a = await clientRender(widgetTpl.replace("ID", "btnA"), "sWidget");
   const b = await clientRender(widgetTpl.replace("ID", "btnB"), "sWidget");
-  assertEquals(parseDoc(a.html).getElementById("btnA")!.getAttribute("data-sprig-click"), "sWidget:0", "identical stamp + index on both instances");
+  assertEquals(
+    parseDoc(a.html).getElementById("btnA")!.getAttribute("data-sprig-click"),
+    "sWidget:0",
+    "identical stamp + index on both instances",
+  );
 
   const doc = parseDoc(
-    `<div>${host("sWidget", "the-widget", "wA", a.html)}${host("sWidget", "the-widget", "wB", b.html)}</div>`,
+    `<div>${host("sWidget", "the-widget", "wA", a.html)}${
+      host("sWidget", "the-widget", "wB", b.html)
+    }</div>`,
   );
   const listenA = listener(doc.getElementById("wA"), a.handlers);
   const listenB = listener(doc.getElementById("wB"), b.handlers);
   const btnA = doc.getElementById("btnA")!, btnB = doc.getElementById("btnB")!;
 
   assertEquals(listenA(btnA), [a.handlers[0]]);
-  assertEquals(listenB(btnA).length, 0, "the sibling's root doesn't contain this element");
+  assertEquals(
+    listenB(btnA).length,
+    0,
+    "the sibling's root doesn't contain this element",
+  );
   assertEquals(listenB(btnB), [b.handlers[0]]);
   assertEquals(listenA(btnB).length, 0);
 });
 
 Deno.test("spec §1 test 4 (recursive): two NESTED instances of one component — nearest root wins, not the stamp", async () => {
-  const outer = await clientRender(`<button id="btnOuter" (click)="inc()">+</button><div id="slot"></div>`, "sWidget");
-  const inner = await clientRender(`<button id="btnInner" (click)="inc()">+</button>`, "sWidget");
+  const outer = await clientRender(
+    `<button id="btnOuter" (click)="inc()">+</button><div id="slot"></div>`,
+    "sWidget",
+  );
+  const inner = await clientRender(
+    `<button id="btnInner" (click)="inc()">+</button>`,
+    "sWidget",
+  );
 
   const innerHost = host("sWidget", "tree-node", "nodeInner", inner.html);
-  const doc = parseDoc(host("sWidget", "tree-node", "nodeOuter", outer.html.replace("</div>", innerHost + "</div>")));
-  const btnInner = doc.getElementById("btnInner")!, btnOuter = doc.getElementById("btnOuter")!;
+  const doc = parseDoc(
+    host(
+      "sWidget",
+      "tree-node",
+      "nodeOuter",
+      outer.html.replace("</div>", innerHost + "</div>"),
+    ),
+  );
+  const btnInner = doc.getElementById("btnInner")!,
+    btnOuter = doc.getElementById("btnOuter")!;
   const listenOuter = listener(doc.getElementById("nodeOuter"), outer.handlers);
   const listenInner = listener(doc.getElementById("nodeInner"), inner.handlers);
 
   // both instances share the identical (stamp, index): the OUTER table WOULD resolve the
   // inner button's marker if consulted — proof the stamp alone cannot disambiguate…
   assertEquals(btnInner.getAttribute("data-sprig-click"), "sWidget:0");
-  assertEquals(resolveHandlers("sWidget:0", outer.handlers, ev), [outer.handlers[0]]);
+  assertEquals(resolveHandlers("sWidget:0", outer.handlers, ev), [
+    outer.handlers[0],
+  ]);
 
   // …so the nearest-root walk is what must keep it out: the bubbled event resolves ONLY
   // in the inner instance's table, and to the INNER instance's handler object.
-  assertEquals(listenOuter(btnInner).length, 0, "the outer instance's identical (stamp, index) entry is never reached");
+  assertEquals(
+    listenOuter(btnInner).length,
+    0,
+    "the outer instance's identical (stamp, index) entry is never reached",
+  );
   const fired = listenInner(btnInner);
   assertEquals(fired.length, 1);
-  assert(fired[0] === inner.handlers[0] && fired[0] !== outer.handlers[0], "the INNER instance's own handler fires");
+  assert(
+    fired[0] === inner.handlers[0] && fired[0] !== outer.handlers[0],
+    "the INNER instance's own handler fires",
+  );
 
   // the outer instance's own button still dispatches in the outer table only.
   assertEquals(listenOuter(btnOuter), [outer.handlers[0]]);
@@ -201,8 +290,14 @@ Deno.test("spec §1 test 4 (recursive): two NESTED instances of one component �
 
 // ─── 5. owner-stamp / nearest-root mismatch (teleported content): clean miss + dev diagnostic ───
 Deno.test("spec §1 test 5: teleported content — the lookup misses cleanly, no ancestor fallback, dev diagnostic", async () => {
-  const outer = await clientRender(`<button id="tele" (click)="outerClick()">tele</button>`, "sOuter");
-  const inner = await clientRender(`<button id="in" (click)="innerClick()">in</button>`, "sInner");
+  const outer = await clientRender(
+    `<button id="tele" (click)="outerClick()">tele</button>`,
+    "sOuter",
+  );
+  const inner = await clientRender(
+    `<button id="in" (click)="innerClick()">in</button>`,
+    "sInner",
+  );
 
   // simulate the teleport: the OUTER-owned button now lives INSIDE the inner island.
   const doc = parseDoc(host(
@@ -220,12 +315,22 @@ Deno.test("spec §1 test 5: teleported content — the lookup misses cleanly, no
   const misses: string[] = [];
   const fired = listenInner(tele, (token) => misses.push(token));
   assertEquals(fired.length, 0, "no handler runs on a miss");
-  assertEquals(misses, ["sOuter:0"], "the miss reports the element's owner token");
+  assertEquals(
+    misses,
+    ["sOuter:0"],
+    "the miss reports the element's owner token",
+  );
 
   // the outer island's table HOLDS the matching entry — but the walk stopped at the
   // nearest root, so it is never consulted (that fallthrough must not exist).
-  assertEquals(resolveHandlers("sOuter:0", outer.handlers, ev), [outer.handlers[0]]);
-  assertEquals(listenOuter(tele).length, 0, "an ancestor's table is never a fallback");
+  assertEquals(resolveHandlers("sOuter:0", outer.handlers, ev), [
+    outer.handlers[0],
+  ]);
+  assertEquals(
+    listenOuter(tele).length,
+    0,
+    "an ancestor's table is never a fallback",
+  );
 
   // the dev-mode default diagnostic names the element and stamp; production stays silent.
   const warns: string[] = [];
@@ -247,17 +352,35 @@ Deno.test("spec §1 test 5: teleported content — the lookup misses cleanly, no
 });
 
 Deno.test("spec §1: an unfilled index is a miss too; a bare (unstamped) legacy token still resolves", async () => {
-  const inner = await clientRender(`<button (click)="innerClick()">in</button>`, "sInner");
+  const inner = await clientRender(
+    `<button (click)="innerClick()">in</button>`,
+    "sInner",
+  );
   // stamped token pointing at an index the table never filled → miss, no throw.
   const misses: string[] = [];
-  assertEquals(resolveHandlers("sInner:9", inner.handlers, ev, (t) => misses.push(t)).length, 0);
+  assertEquals(
+    resolveHandlers("sInner:9", inner.handlers, ev, (t) => misses.push(t))
+      .length,
+    0,
+  );
   assertEquals(misses, ["sInner:9"]);
   // a bare-index token (rendered with no component context — the pre-stamp format)
   // resolves without an owner check, keeping unstamped fragment renders working.
   assertEquals(resolveHandlers("0", inner.handlers, ev), [inner.handlers[0]]);
   // a modifier non-match is chord filtering, NOT a miss (no diagnostic).
-  const chord = await clientRender(`<input (keyup.enter)="submit()">`, "sInner");
+  const chord = await clientRender(
+    `<input (keyup.enter)="submit()">`,
+    "sInner",
+  );
   const missed: string[] = [];
-  assertEquals(resolveHandlers("sInner:0", chord.handlers, { key: "a" } as unknown as Event, (t) => missed.push(t)).length, 0);
+  assertEquals(
+    resolveHandlers(
+      "sInner:0",
+      chord.handlers,
+      { key: "a" } as unknown as Event,
+      (t) => missed.push(t),
+    ).length,
+    0,
+  );
   assertEquals(missed.length, 0);
 });

@@ -7,7 +7,9 @@ import { bootstrapServer } from "@mrg-keystone/rune";
 import { config } from "@/bootstrap/config.ts";
 import { modules } from "@/bootstrap/modules.ts";
 
-export const api = await bootstrapServer("server", modules, { port: config.port });
+export const api = await bootstrapServer("server", modules, {
+  port: config.port,
+});
 
 if (import.meta.main) {
   await api.listen();

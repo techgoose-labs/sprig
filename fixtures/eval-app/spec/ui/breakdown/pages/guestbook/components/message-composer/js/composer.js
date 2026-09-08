@@ -53,17 +53,17 @@ function post() {
     avatar: null,
     message: text,
     minutesAgo: 0,
-    isNew: true,            // -> cardHtml() tags it .animate-rise (wall unit)
+    isNew: true, // -> cardHtml() tags it .animate-rise (wall unit)
   };
   MESSAGES.unshift(entry);
   if (viewState !== "normal") viewState = "normal";
-  renderWall();             // FULL wall innerHTML rebuild + lucide.createIcons() (see jank.md)
+  renderWall(); // FULL wall innerHTML rebuild + lucide.createIcons() (see jank.md)
   showToast("success", "Message posted!", "Thanks for signing the guestbook.");
 
   // reset the composer
   nameEl.value = "";
   msgEl.value = "";
-  updateCharCount();        // back to 0/240
+  updateCharCount(); // back to 0/240
   // scroll the fresh entry into view on small screens
   $("#wall").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -71,7 +71,7 @@ function post() {
 // ---------- Wire-up (composer's listeners) ----------
 $("#postBtn").addEventListener("click", post);
 $("#msgInput").addEventListener("input", updateCharCount);
-$("#msgInput").setAttribute("maxlength", "240");   // hard clamp on typed input
+$("#msgInput").setAttribute("maxlength", "240"); // hard clamp on typed input
 
 /* ----------------------------------------------------------------------------
    showToast() — belongs to the "toast" unit; included verbatim because post()
@@ -82,9 +82,9 @@ $("#msgInput").setAttribute("maxlength", "240");   // hard clamp on typed input
 function showToast(kind, title, body) {
   const tones = {
     success: { cls: "alert-success", icon: "party-popper" },
-    error:   { cls: "alert-error",   icon: "circle-alert" },
+    error: { cls: "alert-error", icon: "circle-alert" },
     warning: { cls: "alert-warning", icon: "triangle-alert" },
-    info:    { cls: "alert-soft alert-info", icon: "info" },
+    info: { cls: "alert-soft alert-info", icon: "info" },
   };
   const t = tones[kind] || tones.info;
   const el = document.createElement("div");
@@ -107,6 +107,16 @@ function showToast(kind, title, body) {
 
 // escapeHtml() — shared helper used by showToast() (and the wall's cardHtml()).
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(s).replace(
+    /[&<>"']/g,
+    (
+      c,
+    ) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c]),
+  );
 }

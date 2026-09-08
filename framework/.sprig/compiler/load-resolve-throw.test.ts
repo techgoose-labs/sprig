@@ -26,14 +26,18 @@ Deno.test("BUG R: loadResolve — present resolve→fn, throwing resolve→propa
       "pages/good/resolve.ts": `export const resolve = () => ({ ok: true });`,
       // a resolve.ts that EXISTS but throws at import (module-init) time
       "pages/bad/template.html": `<p>bad</p>`,
-      "pages/bad/resolve.ts": `throw new Error("boom");\nexport const resolve = () => ({});`,
+      "pages/bad/resolve.ts":
+        `throw new Error("boom");\nexport const resolve = () => ({});`,
       // a page with NO resolve.ts at all
       "pages/missing/template.html": `<p>missing</p>`,
     });
     const r = await createRenderer(tmp, "/ui", { dev: true });
 
     const good = await r.loadResolve("pages/good");
-    assert(typeof good === "function", `present resolve.ts should yield a function, got ${typeof good}`);
+    assert(
+      typeof good === "function",
+      `present resolve.ts should yield a function, got ${typeof good}`,
+    );
 
     // BUG: before the fix this RESOLVES to undefined instead of throwing.
     await assertRejects(
@@ -44,7 +48,10 @@ Deno.test("BUG R: loadResolve — present resolve→fn, throwing resolve→propa
     );
 
     const missing = await r.loadResolve("pages/missing");
-    assert(missing === undefined, `a page with no resolve.ts should yield undefined, got ${typeof missing}`);
+    assert(
+      missing === undefined,
+      `a page with no resolve.ts should yield undefined, got ${typeof missing}`,
+    );
   } finally {
     await Deno.remove(tmp, { recursive: true });
   }

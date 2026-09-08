@@ -24,7 +24,9 @@ export function islandHost(
   inner: string,
 ): string {
   const props = JSON.stringify(propsObj).replace(/</g, "\\u003c");
-  return `<sprig-island ${scopeAttr} data-sel="${escapeAttr(selector)}" data-trigger="${escapeAttr(trigger)}">` +
+  return `<sprig-island ${scopeAttr} data-sel="${
+    escapeAttr(selector)
+  }" data-trigger="${escapeAttr(trigger)}">` +
     `<script type="application/json" class="sprig-props">${props}</script>${inner}</sprig-island>`;
 }
 
@@ -103,7 +105,13 @@ export interface RenderOpts {
   handlers?: Handler[];
   /** content projected into a component (the nodes between its tags), evaluated in
    *  the PARENT scope; <ng-content> renders it. */
-  projected?: { nodes: Node[]; scope: Scope; source: string; namedSelects: string[]; scopeAttr?: string };
+  projected?: {
+    nodes: Node[];
+    scope: Scope;
+    source: string;
+    namedSelects: string[];
+    scopeAttr?: string;
+  };
   /** view-encapsulation marker for the CURRENT component — every native element it
    *  emits carries this bare attribute, and the component's scoped CSS requires it. */
   scopeAttr?: string;
@@ -124,11 +132,15 @@ export interface RenderOpts {
 /** Per-instance key for `resolved`: the current instance path + the call-site node's
  *  startIndex. Two call-sites of the same component have distinct startIndex → distinct
  *  paths → the shared inner island node resolves under each instance separately. */
-const rkey = (path: string | undefined, n: Node): string => (path ?? "") + "/" + n.startIndex;
+const rkey = (path: string | undefined, n: Node): string =>
+  (path ?? "") + "/" + n.startIndex;
 
 /** A child-component override: "stub" (or { stub:true }) renders a placeholder;
  *  { props } forces those props onto every instance of that selector. */
-export type MockSpec = "stub" | { stub?: boolean; props?: Record<string, unknown> };
+export type MockSpec = "stub" | {
+  stub?: boolean;
+  props?: Record<string, unknown>;
+};
 
 // ─────────────────────────── template wiring (spec §3) ──────────────────────
 /** ONE collected wiring tether: verb, the component's FIELD (signal) name, the
@@ -154,7 +166,8 @@ const WIRE_VERB = /^(sets|reads|edits):([A-Za-z_$][\w$-]*)$/;
  *  attributes are COMPILER-CONSUMED: excluded from a component's @inputs and never
  *  emitted as literal DOM attributes. */
 export function isWiringAttrName(name: string): boolean {
-  return name.startsWith("sets:") || name.startsWith("reads:") || name.startsWith("edits:");
+  return name.startsWith("sets:") || name.startsWith("reads:") ||
+    name.startsWith("edits:");
 }
 
 // the longhand channel literal: `{channel}` — a compile-time identifier, NEVER an
@@ -163,7 +176,9 @@ const CHANNEL_LITERAL = /^\{\s*([A-Za-z_$][\w$]*)\s*\}$/;
 
 const lineOf = (source: string, idx: number): number => {
   let line = 1;
-  for (let i = 0; i < idx && i < source.length; i++) if (source[i] === "\n") line++;
+  for (let i = 0; i < idx && i < source.length; i++) {
+    if (source[i] === "\n") line++;
+  }
   return line;
 };
 
@@ -180,7 +195,11 @@ export function collectWiring(attrs: Node[], source: string): TetherSpec[] {
     const name = field(attr, "name")!.text;
     if (!isWiringAttrName(name)) continue;
     const m = WIRE_VERB.exec(name);
-    if (!m) throw new Error(`sprig: malformed wiring attribute "${name}" — expected <verb>:<signalName> (template-wiring-spec.md §3)`);
+    if (!m) {
+      throw new Error(
+        `sprig: malformed wiring attribute "${name}" — expected <verb>:<signalName> (template-wiring-spec.md §3)`,
+      );
+    }
     const v = m[1] as TetherSpec["v"];
     const f = m[2];
     let c = f;
@@ -198,11 +217,15 @@ export function collectWiring(attrs: Node[], source: string): TetherSpec[] {
       }
       // parse.ts's pre-pass carries the brace literal through the grammar entity-
       // encoded (&#123;…&#125;) — decode before matching the {channel} shape.
-      const text = decodeEntities(named(val).map((part: Node) => part.text).join("")).trim();
+      const text = decodeEntities(
+        named(val).map((part: Node) => part.text).join(""),
+      ).trim();
       const b = CHANNEL_LITERAL.exec(text);
       if (!b) {
         throw new Error(
-          `sprig: ${name}=${JSON.stringify(text)} — the longhand wiring value must be a literal ` +
+          `sprig: ${name}=${
+            JSON.stringify(text)
+          } — the longhand wiring value must be a literal ` +
             `channel identifier like ${name}={channelName} (template-wiring-spec.md §3)`,
         );
       }
@@ -214,7 +237,20 @@ export function collectWiring(attrs: Node[], source: string): TetherSpec[] {
 }
 
 const VOID = new Set([
-  "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
 ]);
 
 // Native HTML element names — these ALWAYS render as native elements and are never
@@ -222,16 +258,129 @@ const VOID = new Set([
 // (e.g. name it `ui-button`, not `button`). This is the web-component rule: it lets a
 // component safely use native <button>/<input>/… in its own template.
 const NATIVE = new Set([
-  "a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote",
-  "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist", "dd",
-  "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure",
-  "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i",
-  "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map", "mark", "menu",
-  "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output", "p", "param", "picture",
-  "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section", "select", "slot", "small",
-  "source", "span", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td", "template", "textarea",
-  "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul", "var", "video", "wbr",
-  "svg", "path", "circle", "rect", "line", "g", "polyline", "polygon", "text", "defs", "use",
+  "a",
+  "abbr",
+  "address",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "base",
+  "bdi",
+  "bdo",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "data",
+  "datalist",
+  "dd",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "embed",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hgroup",
+  "hr",
+  "html",
+  "i",
+  "iframe",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "legend",
+  "li",
+  "link",
+  "main",
+  "map",
+  "mark",
+  "menu",
+  "meta",
+  "meter",
+  "nav",
+  "noscript",
+  "object",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "param",
+  "picture",
+  "pre",
+  "progress",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "script",
+  "section",
+  "select",
+  "slot",
+  "small",
+  "source",
+  "span",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "title",
+  "tr",
+  "track",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr",
+  "svg",
+  "path",
+  "circle",
+  "rect",
+  "line",
+  "g",
+  "polyline",
+  "polygon",
+  "text",
+  "defs",
+  "use",
 ]);
 
 // Content-projection slot. Sprig accepts `<content>` (preferred — may self-close as `<content/>`)
@@ -246,7 +395,9 @@ export function renderNodes(nodes: Node[], opts: RenderOpts): string {
   let prevEnd = -1;
   for (const n of nodes) {
     // significant inter-node whitespace (collapsed to a single space, like HTML)
-    if (prevEnd >= 0 && /\s/.test(opts.source.slice(prevEnd, n.startIndex))) out += " ";
+    if (prevEnd >= 0 && /\s/.test(opts.source.slice(prevEnd, n.startIndex))) {
+      out += " ";
+    }
     out += renderNode(n, opts);
     prevEnd = n.endIndex;
   }
@@ -275,12 +426,18 @@ function renderNode(node: Node, opts: RenderOpts): string {
     case "switch_block":
       return renderSwitch(node, opts);
     case "let_declaration":
-      opts.scope[field(node, "name")!.text] = evalExpr(field(node, "value"), opts.scope);
+      opts.scope[field(node, "name")!.text] = evalExpr(
+        field(node, "value"),
+        opts.scope,
+      );
       return "";
     case "defer_block":
       // SSR renders the deferred content (client @defer triggers come with hydration).
       // Clone the scope so view-local @let bindings never leak into the parent.
-      return renderNodes(named(blockOf(node)!), { ...opts, scope: cloneScope(opts.scope) });
+      return renderNodes(named(blockOf(node)!), {
+        ...opts,
+        scope: cloneScope(opts.scope),
+      });
     case "comment":
       return "";
     default:
@@ -297,12 +454,19 @@ interface TagInfo {
 }
 function tagInfo(node: Node): TagInfo {
   if (node.type === "self_closing_element") {
-    return { tag: field(node, "name")!.text, attrs: named(node).filter((c: Node) => c.type !== "tag_name"), children: [], selfClosing: true };
+    return {
+      tag: field(node, "name")!.text,
+      attrs: named(node).filter((c: Node) => c.type !== "tag_name"),
+      children: [],
+      selfClosing: true,
+    };
   }
   const start = named(node).find((c: Node) => c.type === "start_tag");
   const tag = field(start, "name")!.text;
   const attrs = named(start).filter((c: Node) => c.type !== "tag_name");
-  const children = named(node).filter((c: Node) => c.type !== "start_tag" && c.type !== "end_tag");
+  const children = named(node).filter((c: Node) =>
+    c.type !== "start_tag" && c.type !== "end_tag"
+  );
   return { tag, attrs, children, selfClosing: false };
 }
 
@@ -312,7 +476,9 @@ function renderElement(node: Node, opts: RenderOpts): string {
   // the outlet is a persistent boundary element (the soft-nav swap target). data-level names
   // the load rendered inside it so the client can diff nesting and swap the deepest changed one.
   if (tag === "router-outlet") {
-    const key = opts.outletKey ? ` data-level="${opts.outletKey.replace(/"/g, "&quot;")}"` : "";
+    const key = opts.outletKey
+      ? ` data-level="${opts.outletKey.replace(/"/g, "&quot;")}"`
+      : "";
     // TEMPLATE WIRING (spec §3): the outlet is the framework's FORWARDING element.
     // Its wiring verbs are stamped onto the persistent <sprig-outlet> boundary
     // (verb:localName=channel tokens + the declaring template's stamp) so hydration
@@ -320,7 +486,9 @@ function renderElement(node: Node, opts: RenderOpts): string {
     // swap, which replaces only the outlet's innerHTML and keeps these attributes.
     const tethers = collectWiring(attrs, opts.source);
     const wire = tethers.length
-      ? ` data-wire="${escapeAttr(tethers.map((t) => `${t.v}:${t.f}=${t.c}`).join(" "))}"` +
+      ? ` data-wire="${
+        escapeAttr(tethers.map((t) => `${t.v}:${t.f}=${t.c}`).join(" "))
+      }"` +
         ` data-wire-owner="${escapeAttr(opts.scopeAttr ?? "")}"`
       : "";
     return `<sprig-outlet${key}${wire}>${opts.outlet ?? ""}</sprig-outlet>`;
@@ -342,7 +510,9 @@ function renderElement(node: Node, opts: RenderOpts): string {
   if (VOID.has(tag.toLowerCase()) || selfClosing) {
     return VOID.has(tag.toLowerCase()) ? open : `<${tag}${sc}${built.attrs} />`;
   }
-  const inner = built.innerHTML !== undefined ? built.innerHTML : renderNodes(children, opts);
+  const inner = built.innerHTML !== undefined
+    ? built.innerHTML
+    : renderNodes(children, opts);
   return `${open}${inner}</${tag}>`;
 }
 
@@ -352,7 +522,9 @@ function computeInputs(attrs: Node[], scope: Scope): Scope {
   for (const attr of attrs) {
     if (attr.type === "property_binding") {
       const name = field(attr, "name")!.text;
-      if (!name.includes(".") && !name.startsWith("@")) inputs[name] = evalExpr(field(attr, "value"), scope);
+      if (!name.includes(".") && !name.startsWith("@")) {
+        inputs[name] = evalExpr(field(attr, "value"), scope);
+      }
     } else if (attr.type === "two_way_binding") {
       inputs[field(attr, "name")!.text] = evalExpr(field(attr, "value"), scope);
     } else if (attr.type === "attribute") {
@@ -365,7 +537,13 @@ function computeInputs(attrs: Node[], scope: Scope): Scope {
   return inputs;
 }
 
-function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], opts: RenderOpts, node?: Node): string {
+function renderComponent(
+  comp: ComponentDef,
+  attrs: Node[],
+  children: Node[],
+  opts: RenderOpts,
+  node?: Node,
+): string {
   const childScope = comp.scope ?? scopeId(comp.selector); // this component's view-encapsulation marker
   // content the parent placed between the component's tags, projected via <ng-content>;
   // it keeps the PARENT's scope (it was authored there), like Angular emulated encapsulation.
@@ -389,7 +567,9 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
   const mock = opts.mocks?.[comp.selector];
   if (mock === "stub" || (typeof mock === "object" && mock.stub)) {
     const sc = opts.scopeAttr ? ` ${opts.scopeAttr}` : "";
-    return `<span${sc} class="iso-stub" data-stub="${escapeAttr(comp.selector)}">${escapeAttr(comp.selector)}</span>`;
+    return `<span${sc} class="iso-stub" data-stub="${
+      escapeAttr(comp.selector)
+    }">${escapeAttr(comp.selector)}</span>`;
   }
   if (typeof mock === "object" && mock.props) Object.assign(inputs, mock.props);
 
@@ -411,12 +591,24 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
       // must hydrate from these props once the post-render re-scan arms it (rescanIslands).
       const shellProps: Record<string, unknown> = { ...inputs };
       if (opts.mocks) shellProps.__mocks = opts.mocks;
-      if (tethers.length) shellProps.__wiring = { o: opts.scopeAttr, t: tethers } satisfies WiringSpec;
-      return islandHost(childScope, comp.selector, comp.island.trigger, shellProps, "");
+      if (tethers.length) {
+        shellProps.__wiring = {
+          o: opts.scopeAttr,
+          t: tethers,
+        } satisfies WiringSpec;
+      }
+      return islandHost(
+        childScope,
+        comp.selector,
+        comp.island.trigger,
+        shellProps,
+        "",
+      );
     }
     // an island: use the scope the async pre-pass already resolved for this node (its
     // onServerInit has run + awaited); else build it synchronously now.
-    const scope = (node && opts.resolved?.get(rkey(opts.resolvedPath, node))) ?? comp.island.scope(inputs);
+    const scope = (node && opts.resolved?.get(rkey(opts.resolvedPath, node))) ??
+      comp.island.scope(inputs);
     // Snapshot the post-onServerInit state NOW, BEFORE rendering the body. The body's
     // @let declarations mutate the scope object, and those template-locals must not leak
     // into the snapshot (they'd be restored as bogus instance fields on the client).
@@ -424,7 +616,16 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
       ? snapshotOf(scope as Record<string, unknown>)
       : undefined;
     const inner = renderNodes(named(tpl), {
-      scope, registry: opts.registry, outlet: opts.outlet, outletKey: opts.outletKey, source: tpl.text, handlers: opts.handlers, projected, scopeAttr: childScope, mocks: opts.mocks, resolved: opts.resolved,
+      scope,
+      registry: opts.registry,
+      outlet: opts.outlet,
+      outletKey: opts.outletKey,
+      source: tpl.text,
+      handlers: opts.handlers,
+      projected,
+      scopeAttr: childScope,
+      mocks: opts.mocks,
+      resolved: opts.resolved,
       // nested islands resolve under THIS instance (extend the path at this call-site)
       resolvedPath: node ? rkey(opts.resolvedPath, node) : opts.resolvedPath,
     });
@@ -435,8 +636,19 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
     const propsObj: Record<string, unknown> = { ...inputs };
     if (opts.mocks) propsObj.__mocks = opts.mocks;
     if (snap) propsObj.__snapshot = snap;
-    if (tethers.length) propsObj.__wiring = { o: opts.scopeAttr, t: tethers } satisfies WiringSpec;
-    return islandHost(childScope, comp.selector, comp.island.trigger, propsObj, inner);
+    if (tethers.length) {
+      propsObj.__wiring = {
+        o: opts.scopeAttr,
+        t: tethers,
+      } satisfies WiringSpec;
+    }
+    return islandHost(
+      childScope,
+      comp.selector,
+      comp.island.trigger,
+      propsObj,
+      inner,
+    );
   }
   // static child: render its template; in CLIENT mode, wire (event) bindings on the
   // component tag onto the child's root element so they delegate to the host island.
@@ -465,7 +677,10 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
       try {
         const ser = JSON.stringify(
           inputs,
-          (_k, v) => (typeof v === "number" && !Number.isFinite(v)) ? ("\u0000nf:" + String(v)) : v,
+          (_k, v) =>
+            (typeof v === "number" && !Number.isFinite(v))
+              ? ("\u0000nf:" + String(v))
+              : v,
         );
         key = `${defToken(comp)} ${comp.selector} ${childScope} ${ser}`;
         const hit = staticCache.get(key);
@@ -485,7 +700,19 @@ function renderComponent(comp: ComponentDef, attrs: Node[], children: Node[], op
   // (<ng-content> → renderContent spreads these opts) carries the parent's (event)
   // bindings, and without the collector they render unstamped — no `data-sprig-*`
   // marker — and the click is silently dropped client-side.
-  const html = renderNodes(named(tpl), { scope: inputs, registry: opts.registry, outlet: opts.outlet, outletKey: opts.outletKey, source: tpl.text, handlers: opts.handlers, projected, scopeAttr: childScope, mocks: opts.mocks, resolved: opts.resolved, resolvedPath: node ? rkey(opts.resolvedPath, node) : opts.resolvedPath });
+  const html = renderNodes(named(tpl), {
+    scope: inputs,
+    registry: opts.registry,
+    outlet: opts.outlet,
+    outletKey: opts.outletKey,
+    source: tpl.text,
+    handlers: opts.handlers,
+    projected,
+    scopeAttr: childScope,
+    mocks: opts.mocks,
+    resolved: opts.resolved,
+    resolvedPath: node ? rkey(opts.resolvedPath, node) : opts.resolvedPath,
+  });
   const out = injectRootAttrs(html, eventAttrs(attrs, opts));
   if (key) {
     if (staticCache.size >= STATIC_CACHE_MAX) staticCache.clear(); // crude bound
@@ -509,7 +736,7 @@ const defTokens = new WeakMap<ComponentDef, string>();
 let defSeq = 0;
 function defToken(comp: ComponentDef): string {
   let t = defTokens.get(comp);
-  if (t === undefined) defTokens.set(comp, (t = "d" + (defSeq++)));
+  if (t === undefined) defTokens.set(comp, t = "d" + (defSeq++));
   return t;
 }
 /** Clear the static-component HTML cache — call when a template changes (dev HMR). */
@@ -528,7 +755,11 @@ export function staticCacheStats(): { size: number; hits: number } {
 // recursively; a positive result is memoized per ComponentDef. (A negative computed mid
 // cycle-guard could be incomplete, so only `true` is memoized.)
 const impureCache = new WeakMap<ComponentDef, boolean>();
-function hasImpureDescendant(comp: ComponentDef, registry: Registry, seen = new Set<ComponentDef>()): boolean {
+function hasImpureDescendant(
+  comp: ComponentDef,
+  registry: Registry,
+  seen = new Set<ComponentDef>(),
+): boolean {
   const memo = impureCache.get(comp);
   if (memo !== undefined) return memo;
   if (seen.has(comp)) return false; // cycle guard
@@ -546,7 +777,10 @@ function hasImpureDescendant(comp: ComponentDef, registry: Registry, seen = new 
         // caches under one key). So a component referencing ANY such child tag is NOT a pure
         // function of its inputs → mark it impure (non-cacheable). This keeps caching for
         // TRUE leaves (only native elements + interpolation/bindings).
-        if (!NATIVE.has(tag) && tag !== "router-outlet" && !isContentTag(tag) && tag !== "ng-container") {
+        if (
+          !NATIVE.has(tag) && tag !== "router-outlet" && !isContentTag(tag) &&
+          tag !== "ng-container"
+        ) {
           impure = true;
           return;
         }
@@ -565,7 +799,11 @@ function hasImpureDescendant(comp: ComponentDef, registry: Registry, seen = new 
  *  parent island resolves, since its inputs may depend on it). Populates `resolved`
  *  (node → scope) for the sync render. Walks element/component structure; islands behind
  *  control-flow blocks or inside { setup } islands fall back to sync onServerInit. */
-export async function resolveIslands(nodes: Node[], opts: RenderOpts, resolved: Map<string, Scope>): Promise<void> {
+export async function resolveIslands(
+  nodes: Node[],
+  opts: RenderOpts,
+  resolved: Map<string, Scope>,
+): Promise<void> {
   // Clone the scope once so the @let evolution below (and any caller-shared scope object)
   // is never mutated. The synchronous scope-evolution within the loop must mirror the sync
   // render so a following island's computeInputs sees an earlier @let (bug AG).
@@ -576,16 +814,27 @@ export async function resolveIslands(nodes: Node[], opts: RenderOpts, resolved: 
   // render. Copying own-property DESCRIPTORS onto a clone of the same prototype keeps @let
   // isolation (a @let write adds/overrides an OWN data prop on this front clone, not the
   // shared instance) AND lets scope.method() / (name in scope) resolve through the prototype.
-  opts = { ...opts, scope: Object.create(Object.getPrototypeOf(opts.scope), Object.getOwnPropertyDescriptors(opts.scope)) };
+  opts = {
+    ...opts,
+    scope: Object.create(
+      Object.getPrototypeOf(opts.scope),
+      Object.getOwnPropertyDescriptors(opts.scope),
+    ),
+  };
   const tasks: Promise<void>[] = [];
   for (const node of nodes) {
     // @let binds in DOCUMENT ORDER (like renderNode's let_declaration case) so a following
     // sibling island's inputs see it; do this BEFORE the element-skip below.
     if (node.type === "let_declaration") {
-      opts.scope[field(node, "name")!.text] = evalExpr(field(node, "value"), opts.scope);
+      opts.scope[field(node, "name")!.text] = evalExpr(
+        field(node, "value"),
+        opts.scope,
+      );
       continue;
     }
-    if (node.type !== "element" && node.type !== "self_closing_element") continue;
+    if (node.type !== "element" && node.type !== "self_closing_element") {
+      continue;
+    }
     const { tag, attrs, children } = tagInfo(node);
     if (tag === "router-outlet") continue;
     if (isContentTag(tag) || tag === "ng-container") {
@@ -604,14 +853,26 @@ export async function resolveIslands(nodes: Node[], opts: RenderOpts, resolved: 
       tasks.push((async () => {
         const scope = await comp.island!.resolve!(inputs);
         resolved.set(childPath, scope);
-        await resolveIslands(named(comp.template), { ...opts, scope, source: comp.template.text, resolvedPath: childPath }, resolved);
+        await resolveIslands(named(comp.template), {
+          ...opts,
+          scope,
+          source: comp.template.text,
+          resolvedPath: childPath,
+        }, resolved);
       })());
     } else if (comp?.island) {
       /* { setup } island: resolved synchronously by render; don't re-run setup here */
     } else if (comp) {
       // static component: recurse into its body with its computed inputs, extending the
       // instance path at THIS call-site so nested islands resolve under this instance.
-      tasks.push(resolveIslands(named(comp.template), { ...opts, scope: computeInputs(attrs, opts.scope), source: comp.template.text, resolvedPath: rkey(opts.resolvedPath, node) }, resolved));
+      tasks.push(
+        resolveIslands(named(comp.template), {
+          ...opts,
+          scope: computeInputs(attrs, opts.scope),
+          source: comp.template.text,
+          resolvedPath: rkey(opts.resolvedPath, node),
+        }, resolved),
+      );
     } else if (children.length) {
       tasks.push(resolveIslands(children, opts, resolved)); // native element → recurse children
     }
@@ -621,7 +882,12 @@ export async function resolveIslands(nodes: Node[], opts: RenderOpts, resolved: 
     // path while keeping the PARENT scope, else a projected class island never gets its
     // resolve() awaited and the sync render falls back to its stale scope() (bug AF).
     if (comp && children.length) {
-      tasks.push(resolveIslands(children, { ...opts, resolvedPath: rkey(opts.resolvedPath, node) }, resolved));
+      tasks.push(
+        resolveIslands(children, {
+          ...opts,
+          resolvedPath: rkey(opts.resolvedPath, node),
+        }, resolved),
+      );
     }
   }
   await Promise.all(tasks);
@@ -654,7 +920,13 @@ function eventAttrs(attrs: Node[], opts: RenderOpts): string {
     const key = `data-sprig-${base}`;
     const token = handlerToken(opts.scopeAttr, opts.handlers.length);
     marks[key] = marks[key] ? `${marks[key]} ${token}` : token;
-    opts.handlers.push({ base, modifiers, body: field(attr, "handler")!, scope: opts.scope, owner: opts.scopeAttr || undefined });
+    opts.handlers.push({
+      base,
+      modifiers,
+      body: field(attr, "handler")!,
+      scope: opts.scope,
+      owner: opts.scopeAttr || undefined,
+    });
   }
   return Object.entries(marks).map(([k, v]) => ` ${k}="${v}"`).join("");
 }
@@ -667,8 +939,13 @@ function injectRootAttrs(html: string, extra: string): string {
 // Render <content>/<ng-content>: emit the projected nodes (in the PARENT's scope). When
 // nothing is projected into this slot, fall back to the slot's OWN children — the component's
 // default content, in the COMPONENT's scope (so `<content>default</content>` shows "default").
-function renderContent(attrs: Node[], children: Node[], opts: RenderOpts): string {
-  const fallback = () => renderNodes(children, { ...opts, projected: undefined });
+function renderContent(
+  attrs: Node[],
+  children: Node[],
+  opts: RenderOpts,
+): string {
+  const fallback = () =>
+    renderNodes(children, { ...opts, projected: undefined });
   const p = opts.projected;
   if (!p) return fallback();
   const sel = attrValue(attrs, "select");
@@ -677,7 +954,13 @@ function renderContent(attrs: Node[], children: Node[], opts: RenderOpts): strin
     : p.nodes.filter((n) => !p.namedSelects.some((s) => matchesSelect(n, s))); // default slot = unmatched
   if (!picked.length) return fallback();
   // projected nodes belong to the PARENT component → its scope marker, not the child's
-  return renderNodes(picked, { ...opts, scope: p.scope, source: p.source, scopeAttr: p.scopeAttr, projected: undefined });
+  return renderNodes(picked, {
+    ...opts,
+    scope: p.scope,
+    source: p.source,
+    scopeAttr: p.scopeAttr,
+    projected: undefined,
+  });
 }
 
 function collectSelects(node: Node, acc: string[] = []): string[] {
@@ -693,22 +976,32 @@ function collectSelects(node: Node, acc: string[] = []): string[] {
 }
 
 function matchesSelect(node: Node, sel: string): boolean {
-  if (node.type !== "element" && node.type !== "self_closing_element") return false;
+  if (node.type !== "element" && node.type !== "self_closing_element") {
+    return false;
+  }
   const ti = tagInfo(node);
   if (sel.startsWith("[") && sel.endsWith("]")) {
     const name = sel.slice(1, -1);
-    return ti.attrs.some((a) => a.type === "attribute" && field(a, "name")!.text === name);
+    return ti.attrs.some((a) =>
+      a.type === "attribute" && field(a, "name")!.text === name
+    );
   }
   if (sel.startsWith(".")) {
     const cls = sel.slice(1);
-    const c = ti.attrs.find((a) => a.type === "attribute" && field(a, "name")!.text === "class");
-    return c ? quotedText(field(c, "value")!, {}).split(/\s+/).includes(cls) : false;
+    const c = ti.attrs.find((a) =>
+      a.type === "attribute" && field(a, "name")!.text === "class"
+    );
+    return c
+      ? quotedText(field(c, "value")!, {}).split(/\s+/).includes(cls)
+      : false;
   }
   return ti.tag === sel; // tag selector
 }
 
 function attrValue(attrs: Node[], name: string): string | null {
-  const a = attrs.find((x) => x.type === "attribute" && field(x, "name")!.text === name);
+  const a = attrs.find((x) =>
+    x.type === "attribute" && field(x, "name")!.text === name
+  );
   const v = a ? field(a, "value") : null;
   return v ? quotedText(v, {}) : null;
 }
@@ -733,7 +1026,9 @@ function buildAttrs(attrNodes: Node[], opts: RenderOpts): BuiltAttrs {
   for (const attr of attrNodes) {
     if (attr.type === "attribute") {
       const name = field(attr, "name")!.text;
-      if (name === "i18n" || name.startsWith("i18n-") || name === "ngProjectAs") continue;
+      if (
+        name === "i18n" || name.startsWith("i18n-") || name === "ngProjectAs"
+      ) continue;
       // wiring verbs are compiler-consumed (spec §3) — they must never leak into the
       // emitted DOM (they'd ship as meaningless literal attributes and desync morphs).
       if (isWiringAttrName(name)) continue;
@@ -754,10 +1049,17 @@ function buildAttrs(attrNodes: Node[], opts: RenderOpts): BuiltAttrs {
       const name = field(attr, "name")!.text;
       const value = evalExpr(field(attr, "value"), scope);
       const before = { ...plain };
-      applyBinding(name, value, { plain, classes, styles, setInner: (h) => (innerHTML = h) });
+      applyBinding(name, value, {
+        plain,
+        classes,
+        styles,
+        setInner: (h) => (innerHTML = h),
+      });
       // any plain key a binding actually wrote (added or changed) holds raw runtime data →
       // it must be escaped at emit, even if a same-named literal attribute pre-escaped it.
-      for (const k of Object.keys(plain)) if (before[k] !== plain[k]) preEscaped.delete(k);
+      for (const k of Object.keys(plain)) {
+        if (before[k] !== plain[k]) preEscaped.delete(k);
+      }
     } else if (attr.type === "event_binding" && opts.handlers) {
       // CLIENT mode: collect the handler and tag the element for delegation
       const name = field(attr, "name")!.text; // "click" | "keyup.enter" | "@anim.done"
@@ -772,28 +1074,59 @@ function buildAttrs(attrNodes: Node[], opts: RenderOpts): BuiltAttrs {
         const prev = plain[key];
         const token = handlerToken(opts.scopeAttr, opts.handlers.length);
         plain[key] = prev ? `${prev} ${token}` : token;
-        opts.handlers.push({ base, modifiers, body: field(attr, "handler")!, scope, owner: opts.scopeAttr || undefined });
+        opts.handlers.push({
+          base,
+          modifiers,
+          body: field(attr, "handler")!,
+          scope,
+          owner: opts.scopeAttr || undefined,
+        });
       }
     }
     // two_way_binding / reference / structural_directive / template_input → no-op here
   }
 
-  if (classes.filter(Boolean).length) plain["class"] = [plain["class"], ...classes].filter(Boolean).join(" ");
-  const styleStr = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(";");
-  if (styleStr) plain["style"] = [plain["style"], styleStr].filter(Boolean).join(";");
+  if (classes.filter(Boolean).length) {
+    plain["class"] = [plain["class"], ...classes].filter(Boolean).join(" ");
+  }
+  const styleStr = Object.entries(styles).map(([k, v]) => `${k}:${v}`).join(
+    ";",
+  );
+  if (styleStr) {
+    plain["style"] = [plain["style"], styleStr].filter(Boolean).join(";");
+  }
 
   const attrs = Object.entries(plain)
-    .map(([k, v]) => (v === "" && BOOLEAN.has(k) ? ` ${k}` : ` ${k}="${preEscaped.has(k) ? v : escapeAttr(v)}"`))
+    .map((
+      [k, v],
+    ) => (v === "" && BOOLEAN.has(k)
+      ? ` ${k}`
+      : ` ${k}="${preEscaped.has(k) ? v : escapeAttr(v)}"`)
+    )
     .join("");
   return { attrs, innerHTML };
 }
 
-const BOOLEAN = new Set(["disabled", "checked", "selected", "readonly", "required", "hidden", "multiple", "open"]);
+const BOOLEAN = new Set([
+  "disabled",
+  "checked",
+  "selected",
+  "readonly",
+  "required",
+  "hidden",
+  "multiple",
+  "open",
+]);
 
 function applyBinding(
   name: string,
   value: unknown,
-  sink: { plain: Record<string, string>; classes: string[]; styles: Record<string, string>; setInner: (h: string) => void },
+  sink: {
+    plain: Record<string, string>;
+    classes: string[];
+    styles: Record<string, string>;
+    setInner: (h: string) => void;
+  },
 ): void {
   if (name === "innerHTML") {
     sink.setInner(stringify(value));
@@ -822,7 +1155,9 @@ function applyBinding(
     return;
   }
   if (name === "style" || name === "ngStyle") {
-    for (const [k, v] of Object.entries((value as Record<string, unknown>) ?? {})) sink.styles[k] = stringify(v);
+    for (
+      const [k, v] of Object.entries((value as Record<string, unknown>) ?? {})
+    ) sink.styles[k] = stringify(v);
     return;
   }
   // plain DOM property → attribute
@@ -851,8 +1186,9 @@ function classList(value: unknown): string[] {
 function quotedText(quotedValue: Node, scope: Scope): string {
   let out = "";
   for (const c of named(quotedValue)) {
-    if (c.type === "interpolation") out += escapeAttr(stringify(evalExpr(field(c, "expression"), scope)));
-    else out += c.text; // attribute_text — author literal, trusted/raw
+    if (c.type === "interpolation") {
+      out += escapeAttr(stringify(evalExpr(field(c, "expression"), scope)));
+    } else out += c.text; // attribute_text — author literal, trusted/raw
   }
   return out;
 }
@@ -861,18 +1197,25 @@ function quotedText(quotedValue: Node, scope: Scope): string {
  *  (&amp; &lt; &gt; &quot; &apos;/&#39; and numeric &#NN;/&#xHH;). Single-pass so a
  *  literal like "&amp;lt;" decodes to "&lt;" (not "<") — no cascading double-decode. */
 function decodeEntities(s: string): string {
-  return s.replace(/&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g, (_m, e: string) => {
-    if (e === "amp") return "&";
-    if (e === "lt") return "<";
-    if (e === "gt") return ">";
-    if (e === "quot") return '"';
-    if (e === "apos") return "'";
-    const code = e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-    // Only a valid Unicode scalar value is decodable. The regex allows unbounded
-    // magnitudes, so an out-of-range code point (> U+10FFFF) is finite but makes
-    // String.fromCodePoint THROW — bound-check it and fall back to the raw match.
-    return (Number.isInteger(code) && code >= 0 && code <= 0x10FFFF) ? String.fromCodePoint(code) : _m;
-  });
+  return s.replace(
+    /&(#x[0-9a-fA-F]+|#\d+|amp|lt|gt|quot|apos);/g,
+    (_m, e: string) => {
+      if (e === "amp") return "&";
+      if (e === "lt") return "<";
+      if (e === "gt") return ">";
+      if (e === "quot") return '"';
+      if (e === "apos") return "'";
+      const code = e[1] === "x" || e[1] === "X"
+        ? parseInt(e.slice(2), 16)
+        : parseInt(e.slice(1), 10);
+      // Only a valid Unicode scalar value is decodable. The regex allows unbounded
+      // magnitudes, so an out-of-range code point (> U+10FFFF) is finite but makes
+      // String.fromCodePoint THROW — bound-check it and fall back to the raw match.
+      return (Number.isInteger(code) && code >= 0 && code <= 0x10FFFF)
+        ? String.fromCodePoint(code)
+        : _m;
+    },
+  );
 }
 
 /** computeInputs-specific value builder for a component-tag attribute that becomes a
@@ -885,8 +1228,9 @@ function decodeEntities(s: string): string {
 function inputText(quotedValue: Node, scope: Scope): string {
   let out = "";
   for (const c of named(quotedValue)) {
-    if (c.type === "interpolation") out += stringify(evalExpr(field(c, "expression"), scope));
-    else out += decodeEntities(c.text); // author literal → decode (child escapes once)
+    if (c.type === "interpolation") {
+      out += stringify(evalExpr(field(c, "expression"), scope));
+    } else out += decodeEntities(c.text); // author literal → decode (child escapes once)
   }
   return out;
 }
@@ -905,7 +1249,10 @@ function blockOf(node: Node): Node | null {
  *  isolation (a @let write lands as an OWN prop on the clone, not the shared
  *  instance) AND lets scope.method() / (name in scope) resolve through the prototype. */
 function cloneScope(scope: Scope, extra?: Record<string, unknown>): Scope {
-  const clone = Object.create(Object.getPrototypeOf(scope), Object.getOwnPropertyDescriptors(scope));
+  const clone = Object.create(
+    Object.getPrototypeOf(scope),
+    Object.getOwnPropertyDescriptors(scope),
+  );
   return extra ? Object.assign(clone, extra) : clone;
 }
 
@@ -915,7 +1262,9 @@ function renderIf(node: Node, opts: RenderOpts): string {
   // and any alias stay scoped to the branch and never leak into the parent.
   if (cond) {
     const alias = field(node, "alias");
-    const scope = alias ? cloneScope(opts.scope, { [alias.text]: cond }) : cloneScope(opts.scope);
+    const scope = alias
+      ? cloneScope(opts.scope, { [alias.text]: cond })
+      : cloneScope(opts.scope);
     return renderNodes(named(field(node, "consequence")!), { ...opts, scope });
   }
   for (const alt of named(node)) {
@@ -923,11 +1272,16 @@ function renderIf(node: Node, opts: RenderOpts): string {
       const c = evalExpr(field(alt, "condition"), opts.scope);
       if (c) {
         const alias = field(alt, "alias");
-        const scope = alias ? cloneScope(opts.scope, { [alias.text]: c }) : cloneScope(opts.scope);
+        const scope = alias
+          ? cloneScope(opts.scope, { [alias.text]: c })
+          : cloneScope(opts.scope);
         return renderNodes(named(blockOf(alt)!), { ...opts, scope });
       }
     } else if (alt.type === "else_clause") {
-      return renderNodes(named(blockOf(alt)!), { ...opts, scope: cloneScope(opts.scope) });
+      return renderNodes(named(blockOf(alt)!), {
+        ...opts,
+        scope: cloneScope(opts.scope),
+      });
     }
   }
   return "";
@@ -936,26 +1290,46 @@ function renderIf(node: Node, opts: RenderOpts): string {
 function renderFor(node: Node, opts: RenderOpts): string {
   const binding = field(node, "binding")!;
   const item = field(binding, "item")!.text;
-  const collection = evalExpr(field(binding, "collection"), opts.scope) as unknown[] | null;
+  const collection = evalExpr(field(binding, "collection"), opts.scope) as
+    | unknown[]
+    | null;
   const aliases: Array<{ name: string; src: string }> = [];
   for (const g of named(binding)) {
     if (g.type === "for_alias_group") {
-      for (const a of named(g)) aliases.push({ name: field(a, "name")!.text, src: field(a, "value")!.text });
+      for (const a of named(g)) {
+        aliases.push({
+          name: field(a, "name")!.text,
+          src: field(a, "value")!.text,
+        });
+      }
     }
   }
   const arr = Array.isArray(collection) ? collection : [];
   if (arr.length === 0) {
     const empty = named(node).find((c: Node) => c.type === "empty_clause");
-    return empty ? renderNodes(named(blockOf(empty)!), { ...opts, scope: cloneScope(opts.scope) }) : "";
+    return empty
+      ? renderNodes(named(blockOf(empty)!), {
+        ...opts,
+        scope: cloneScope(opts.scope),
+      })
+      : "";
   }
   let out = "";
   for (let i = 0; i < arr.length; i++) {
     const locals: Record<string, unknown> = {
-      $index: i, $count: arr.length, $first: i === 0, $last: i === arr.length - 1, $even: i % 2 === 0, $odd: i % 2 === 1,
+      $index: i,
+      $count: arr.length,
+      $first: i === 0,
+      $last: i === arr.length - 1,
+      $even: i % 2 === 0,
+      $odd: i % 2 === 1,
     };
     const scope: Scope = cloneScope(opts.scope, { [item]: arr[i], ...locals });
     for (const a of aliases) scope[a.name] = locals[a.src];
-    out += renderNodes(named(field(node, "consequence") ?? blockOf(node)!), { ...opts, scope });
+    out += renderNodes(named(field(node, "consequence") ?? blockOf(node)!), {
+      ...opts,
+      scope,
+    });
   }
   return out;
 }
@@ -967,12 +1341,22 @@ function renderSwitch(node: Node, opts: RenderOpts): string {
     if (c.type === "case_clause") {
       // Each case body is its own view: clone the scope so a case-local @let never
       // leaks into the parent (or into a later case's condition evaluation).
-      if (evalExpr(field(c, "value"), opts.scope) === value) return renderNodes(named(blockOf(c)!), { ...opts, scope: cloneScope(opts.scope) });
+      if (evalExpr(field(c, "value"), opts.scope) === value) {
+        return renderNodes(named(blockOf(c)!), {
+          ...opts,
+          scope: cloneScope(opts.scope),
+        });
+      }
     } else if (c.type === "default_clause") {
       dflt = c;
     }
   }
-  return dflt ? renderNodes(named(blockOf(dflt)!), { ...opts, scope: cloneScope(opts.scope) }) : "";
+  return dflt
+    ? renderNodes(named(blockOf(dflt)!), {
+      ...opts,
+      scope: cloneScope(opts.scope),
+    })
+    : "";
 }
 
 // ───────────────────────────────── helpers ──────────────────────────────────

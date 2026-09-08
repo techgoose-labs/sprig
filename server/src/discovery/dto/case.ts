@@ -3,7 +3,13 @@
 
 import "reflect-metadata";
 import { Type } from "class-transformer";
-import { Allow, IsArray, IsOptional, IsString, ValidateNested } from "class-validator";
+import {
+  Allow,
+  IsArray,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 import { TestDto } from "@/src/discovery/dto/test.ts";
 
 // one preview scenario for a component
