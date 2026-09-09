@@ -4,7 +4,10 @@
 // which restamped EVERY entry's version) — resurrecting a fixed SSR bug.
 import { assert, assertEquals } from "@std/assert";
 import {
+  hasLegacyRuntimeName,
   migrateImports,
+  migrateKey,
+  migrateSource,
   pinnedSprigVersion,
   stampImports,
 } from "./pin-stamp.ts";
@@ -156,7 +159,10 @@ Deno.test("a migrated entry is RE-PINNED, not just renamed", () => {
     { "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@0.19.0" },
     "2.0.2",
   );
-  assertEquals(res.imports["@techgoose-labs/sprig"], "jsr:@techgoose-labs/sprig@2.0.2");
+  assertEquals(
+    res.imports["@techgoose-labs/sprig"],
+    "jsr:@techgoose-labs/sprig@2.0.2",
+  );
 });
 
 Deno.test("pinnedSprigVersion reads a version out of EITHER scope", () => {
@@ -166,4 +172,53 @@ Deno.test("pinnedSprigVersion reads a version out of EITHER scope", () => {
   assertEquals(pinnedSprigVersion("jsr:@techgoose-labs/sprig@2.0.2"), "2.0.2");
   assertEquals(pinnedSprigVersion("jsr:@mrg-keystone/sprig@^2"), "2");
   assertEquals(pinnedSprigVersion("../sprig/main/framework/mod.ts"), null);
+});
+
+Deno.test("a 1.x app's `@mrg-keystone/sprig/keep` KEY retires to /bedrock, not /keep", () => {
+  // The bug this pins: the @mrg-keystone rename returned before the /keep
+  // retirement ran, leaving a `@techgoose-labs/sprig/keep` key that resolves
+  // nowhere beside the `/bedrock` one the build adds.
+  assertEquals(
+    migrateKey("@mrg-keystone/sprig/keep"),
+    "@techgoose-labs/sprig/bedrock",
+  );
+  const res = migrateImports({
+    "@mrg-keystone/sprig": "jsr:@mrg-keystone/sprig@1.1.4",
+    "@mrg-keystone/sprig/keep": "jsr:@mrg-keystone/sprig@1.1.4/keep",
+  }, "2.0.5");
+  assertEquals(res.imports, {
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.0.5",
+    "@techgoose-labs/sprig/bedrock": "jsr:@techgoose-labs/sprig@2.0.5/bedrock",
+  });
+});
+
+Deno.test("migrateSource carries a 1.x app's SOURCE imports across, /keep first", () => {
+  // The bug this pins: configs migrated off @mrg-keystone, source files did
+  // not — the bundle then failed on "@mrg-keystone/sprig not in import map".
+  const src = `import { defineComponent } from "@mrg-keystone/sprig";
+import { createRenderer } from "@mrg-keystone/sprig/keep";
+import { x } from "@sprig/core";
+import { y } from "@sprig/keep";
+import { z } from "@techgoose-labs/sprig/keep";
+`;
+  assertEquals(
+    migrateSource(src),
+    `import { defineComponent } from "@techgoose-labs/sprig";
+import { createRenderer } from "@techgoose-labs/sprig/bedrock";
+import { x } from "@techgoose-labs/sprig";
+import { y } from "@techgoose-labs/sprig/bedrock";
+import { z } from "@techgoose-labs/sprig/bedrock";
+`,
+  );
+});
+
+Deno.test("migrateSource is the identity on a current file (and cheap: no rewrite pass)", () => {
+  const cur =
+    `import { Frontend } from "@techgoose-labs/sprig/bedrock";\nimport { a } from "@techgoose-labs/sprig";\n`;
+  assert(migrateSource(cur) === cur);
+  assertEquals(hasLegacyRuntimeName(cur), false);
+  assertEquals(
+    hasLegacyRuntimeName(`deno run -A jsr:@mrg-keystone/sprig@1.1.4/cli build`),
+    true,
+  );
 });

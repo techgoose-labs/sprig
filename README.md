@@ -78,6 +78,10 @@ tree-sitter-angular-template/  # grammar source → build the wasm, store it as 
 - **[docs/guide.md](docs/guide.md)** — the full guide: project layout,
   folder-components, template syntax, islands & hydration, dependency injection,
   the CLI, and hosting.
+- **[docs/sprig/migrating-1x-to-2x.md](docs/sprig/migrating-1x-to-2x.md)** —
+  coming from `@mrg-keystone/sprig@1.x`: how to get the 2.x CLI (1.x's
+  `sprig update` can't), what the first `sprig build` migrates for you, and the
+  `serve.ts` / `/api/docs` / wire-path steps that are yours.
 
 ## Test
 

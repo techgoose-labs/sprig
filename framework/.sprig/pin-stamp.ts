@@ -24,7 +24,8 @@ export function pinnedSprigVersion(value: string): string | null {
   // a readable version, and `migrateVal` below is what renames it. Reading only
   // the modern scope made every legacy pin look version-less, so the migration
   // could not tell an old pin from a local override.
-  return value.match(/@(?:mrg-keystone|techgoose-labs)\/sprig@[\^~]?([^/]+)/)?.[1] ?? null;
+  return value.match(/@(?:mrg-keystone|techgoose-labs)\/sprig@[\^~]?([^/]+)/)
+    ?.[1] ?? null;
 }
 
 /** Compare two semver-ish `a.b.c` strings. Returns >0 if `a` is newer than `b`. */
@@ -84,7 +85,12 @@ export function migrateKey(k: string): string {
   // longer receives releases.
   if (k === "@mrg-keystone/sprig") return "@techgoose-labs/sprig";
   if (k.startsWith("@mrg-keystone/sprig/")) {
-    return "@techgoose-labs/sprig/" + k.slice("@mrg-keystone/sprig/".length);
+    // Re-enter with the modern scope so the 1.x `/keep` subpath is retired
+    // too — returning here left a `@techgoose-labs/sprig/keep` KEY behind,
+    // which resolves nowhere and shadowed the `/bedrock` one the build adds.
+    return migrateKey(
+      "@techgoose-labs/sprig/" + k.slice("@mrg-keystone/sprig/".length),
+    );
   }
   return k === "@sprig/core"
     ? "@techgoose-labs/sprig"
@@ -117,6 +123,32 @@ export function migrateVal(val: string, v: string | null): string {
   // no-op: keys migrated, versions stayed behind.
   if (v) out = out.replace(/(@techgoose-labs\/sprig)@[^/"']+/g, `$1@${v}`);
   return out;
+}
+
+/** Does this text reference a runtime name the migration retires? The fast
+ *  pre-check `migrateLegacyRuntime` runs per source file and per task. */
+export function hasLegacyRuntimeName(text: string): boolean {
+  return text.includes("@sprig/core") || text.includes("@sprig/keep") ||
+    text.includes("@mrg-keystone/sprig") ||
+    text.includes("@techgoose-labs/sprig/keep");
+}
+
+/** Rewrite the module SPECIFIERS in a source file onto the current names — the
+ *  same renames `migrateVal` applies to an import-map value, minus the re-pin
+ *  (a source import carries no version). The 1.x `@mrg-keystone/sprig` scope
+ *  was handled for CONFIGS only, so `sprig build` on a 1.x app rewrote its
+ *  deno.json and left every `ui/src` import on the old name — the bundle then
+ *  died on "@mrg-keystone/sprig not in import map", half-migrated. Order
+ *  matters: retire `/keep` before the bare-scope pass so it isn't shadowed.
+ *  Returns the input unchanged when there is nothing to migrate. */
+export function migrateSource(src: string): string {
+  if (!hasLegacyRuntimeName(src)) return src;
+  return src
+    .replaceAll("@mrg-keystone/sprig/keep", "@techgoose-labs/sprig/bedrock")
+    .replaceAll("@sprig/keep", "@techgoose-labs/sprig/bedrock")
+    .replaceAll("@techgoose-labs/sprig/keep", "@techgoose-labs/sprig/bedrock")
+    .replaceAll("@mrg-keystone/sprig", "@techgoose-labs/sprig")
+    .replaceAll("@sprig/core", "@techgoose-labs/sprig");
 }
 
 export interface MigrateResult {
