@@ -79,7 +79,8 @@
       "packages/keep/vendor/apexcharts.js",
       "framework/.sprig/artifact.ts",
       "framework/.sprig/wire-paths.ts",
-      "framework/.sprig/auth-slot.ts"
+      "framework/.sprig/auth-slot.ts",
+      "framework/.sprig/composition-root.ts"
     ]
   },
   "git": {

@@ -26,6 +26,7 @@ import {
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
 import { existingAuthSlot } from "./.sprig/auth-slot.ts";
+import { compositionRootOf, ROOT_ENV } from "./.sprig/composition-root.ts";
 import {
   analyzeWiring,
   renderWiringMap,
@@ -888,7 +889,7 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
  *  source untouched. That is exactly two things:
  *    1. the build output dir <ui>/static/ — chunks, app.css, templates.json, .gen/, and the
  *       COPIES of assets/** (the authored originals under <ui>/assets/ stay put).
- *    2. a generated <git root>/serve.ts — only when it carries BEDROCK_SERVE_MARKER, so a
+ *    2. a generated <root>/serve.ts — only when it carries BEDROCK_SERVE_MARKER, so a
  *       hand-written serve.ts is never deleted.
  *  It deliberately does NOT touch the shared ~/.cache/sprig-tailwind cache (cross-project, not an
  *  artifact of THIS build) nor revert the deno.json/.gitignore edits `--rune` makes (those are
@@ -904,7 +905,8 @@ async function clean(appArg?: string): Promise<void> {
     removed.push(rel(staticDir) + "/");
   }
 
-  const gitRoot = gitRepoRoot(ui);
+  // the same root `build` wrote it to: the composition root, else the git root.
+  const gitRoot = compositionRootOf(ui, gitRepoRoot(ui)) ?? gitRepoRoot(ui);
   if (gitRoot) {
     const servePath = join(gitRoot, "serve.ts");
     if (await pathExists(servePath)) {
@@ -1065,26 +1067,35 @@ async function readJson(p: string): Promise<Record<string, unknown> | null> {
   }
 }
 
-/** Where to place serve.ts + the workspace. Prefers the nearest `.git` ancestor (a normal
- *  dev / CI checkout). With NO `.git` anywhere above — e.g. a DEPLOY build unpacked from a
- *  tarball — it falls back to the convention: the sprig UI package is a literal `./ui`, so its
- *  parent is the project root. Errors only when there is neither a `.git` ancestor NOR a `./ui`
- *  to anchor on (never errors just because `.git` is missing). */
+/** Where to place serve.ts + the workspace — the COMPOSITION root. Prefers the composed
+ *  layout's own marker (`server/bootstrap/mod.ts`, or a workspace `deno.json` listing
+ *  `./server`) nearest above the UI package, so an app folded into a subfolder of a larger
+ *  repo (`<repo>/tools/<app>/{ui,server}`) anchors on `tools/<app>`, not the git root — see
+ *  `.sprig/composition-root.ts`. `SPRIG_ROOT` overrides. Only then the nearest `.git`
+ *  ancestor (a single-app repo: its composition root IS its git root, so nothing moves).
+ *  With NO `.git` anywhere above — e.g. a DEPLOY build unpacked from a tarball — it falls
+ *  back to the convention: the sprig UI package is a literal `./ui`, so its parent is the
+ *  project root. Errors only when there is nothing at all to anchor on (never just because
+ *  `.git` is missing). */
 function findProjectRoot(uiAbs: string): string {
-  // 1. nearest `.git` ancestor — the shared walk, not a private copy of it, so
-  //    serve.ts and the workspace land where `spec/` resolves.
+  // 1. nearest `.git` ancestor — the shared walk, not a private copy of it. It bounds the
+  //    marker walk (the root can't lie outside the repo) and is the legacy anchor.
   const gitRoot = gitRepoRoot(uiAbs);
+  // 2. the composed layout's own marker, nearest above the UI package (or SPRIG_ROOT).
+  const composed = compositionRootOf(uiAbs, gitRoot);
+  if (composed) return composed;
   if (gitRoot) return gitRoot;
-  // 2. no `.git` at all (deploy env): the parent of a `./ui` (or `./app`) package is the project root.
+  // 3. no `.git` at all (deploy env): the parent of a `./ui` (or `./app`) package is the project root.
   if (basename(uiAbs) === "ui" || basename(uiAbs) === "app") {
     return dirname(uiAbs);
   }
-  // 3. nothing to anchor on — this is the only case that errors.
+  // 4. nothing to anchor on — this is the only case that errors.
   console.error(
     `sprig build --rune: cannot locate the project root for\n  ${uiAbs}\n` +
-      `  No .git ancestor, and the sprig UI package is not a ./ui or ./app. In an environment\n` +
-      `  without git, place the sprig UI in a ./ui (or ./app) directly under the project root\n` +
-      `  so --rune can put serve.ts + the workspace there.`,
+      `  No .git ancestor, no server/ beside it, and the sprig UI package is not a ./ui or\n` +
+      `  ./app. In an environment without git, place the sprig UI in a ./ui (or ./app) directly\n` +
+      `  under the project root so --rune can put serve.ts + the workspace there — or set\n` +
+      `  ${ROOT_ENV}=<project root>.`,
   );
   Deno.exit(1);
 }
@@ -1126,7 +1137,9 @@ async function emitRuneComposition(
       `  + Deno workspace in ${
         join(gitRoot, "deno.json")
       } (members ./${uiRel}, ./${serverRel})\n` +
-      `  run it from the git root:  deno serve -A${envHint} serve.ts`,
+      `  run it from ${
+        relative(Deno.cwd(), gitRoot) || "here"
+      }:  deno serve -A${envHint} serve.ts`,
   );
 }
 
@@ -1141,16 +1154,18 @@ async function isSprigUiDir(dir: string): Promise<boolean> {
 }
 
 /** Resolve the sprig UI package `sprig build` targets. An EXPLICIT appDir arg is honored as-is.
- *  With none, the composed layout pins the UI at `<git root>/ui` — or `<git root>/app`, the
- *  alternate package name rune's structure spec sanctions (the flat UI-at-root and <cwd>/ui
- *  fallbacks were removed). Works run from the git root OR from inside the UI package (the
- *  git-root walk finds the same dir either way). Exits with a clear "not a ui/+server/ project"
- *  error when neither candidate is a sprig package. */
+ *  With none, the composed layout pins the UI at `<root>/ui` — or `<root>/app`, the alternate
+ *  package name rune's structure spec sanctions (the flat UI-at-root and <cwd>/ui fallbacks
+ *  were removed) — where <root> is the COMPOSITION root: the nearest dir at or above the cwd
+ *  carrying the composed layout's marker (see findProjectRoot), else the git root. Works run
+ *  from the root, from inside the UI package, or from inside server/ (the walk finds the same
+ *  dir either way), and from a composed app folded into a subfolder of a larger repo. Exits
+ *  with a clear "not a ui/+server/ project" error when neither candidate is a sprig package. */
 async function resolveBuildAppDir(appArg?: string): Promise<string> {
   if (appArg) return resolve(appArg); // explicit path wins, as-is
   const cwd = Deno.cwd();
   const gitRoot = gitRepoRoot(cwd);
-  const root = gitRoot ?? cwd;
+  const root = compositionRootOf(cwd, gitRoot) ?? gitRoot ?? cwd;
   for (const name of ["ui", "app"]) {
     const d = join(root, name);
     if (await isSprigUiDir(d)) return d;
@@ -1161,7 +1176,8 @@ async function resolveBuildAppDir(appArg?: string): Promise<string> {
         join(root, "app")
       }\n` +
       `  (a dir with src/mod.ts or bootstrap/template.html).\n` +
-      `  The composed layout is ui/ (or app/) + server/ under the git root — run \`sprig init\` /\n` +
+      `  The composed layout is ui/ (or app/) + server/ under one root — the git root, or a\n` +
+      `  subfolder of it (run from that folder, or set ${ROOT_ENV}=<dir>). Run \`sprig init\` /\n` +
       `  \`rune init\` to scaffold it, or pass the UI package path: sprig build <dir>`,
   );
   Deno.exit(1);
@@ -1232,8 +1248,10 @@ async function assertServerBackend(gitRoot: string): Promise<void> {
 async function detectRuneComposition(
   uiAbs: string,
 ): Promise<{ gitRoot: string; serverRel: string } | null> {
-  // nearest `.git` ancestor STRICTLY ABOVE the app — the shared walk (D-9), soft.
-  const gitRoot = gitRepoRoot(uiAbs);
+  // the composition root STRICTLY ABOVE the app — the same anchor `sprig build` composes at
+  // (the layout's own marker, else the nearest `.git` ancestor via the shared walk), soft.
+  const repo = gitRepoRoot(uiAbs);
+  const gitRoot = compositionRootOf(uiAbs, repo) ?? repo;
   if (!gitRoot || gitRoot === uiAbs) return null;
   // The backend is the canonical `server/` package: probe <gitRoot>/server/bootstrap/mod.ts
   // for a real keep bootstrapServer. No sibling scan, no arbitrary name — a UI-only app (no
@@ -2453,8 +2471,10 @@ const USAGE = `sprig — the framework CLI
                                   a SEPARATE standalone process (free ports, own ephemeral workbench) that runs
                                   regardless of who else is dev'ing this repo and leaves nothing behind.
   sprig build [appDir] [--rune]  code-split islands + scope CSS + Tailwind → static/ (default: .; never annotate)
-                                  --rune also folds the sibling keep backend + this UI into a git-root
-                                  serve.ts (the Bedrock composition root) and makes the root a workspace
+                                  --rune also folds the sibling keep backend + this UI into a serve.ts
+                                  (the Bedrock composition root) and makes the root a workspace. The root
+                                  is the dir holding ui/ + server/ — the git root, or a subfolder of a
+                                  larger repo (nearest wins; SPRIG_ROOT=<dir> overrides)
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
   sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free
@@ -2511,9 +2531,10 @@ switch (cmd) {
     }
     // Composing the ui/ + server/ monorepo is the NORMAL build now — no `--rune` flag
     // needed (it's still accepted, harmlessly). Resolve the sprig UI package at
-    // <git root>/ui (works run from the root or from inside ui/), build IT to
+    // <root>/ui — the composition root: the git root, or the subfolder of a larger repo
+    // that holds ui/ + server/ (works run from the root or from inside ui/) — build IT to
     // <ui>/static (cwd-independent), then fold in the server/ keep backend + write the
-    // git-root serve.ts + workspace deno.json.
+    // root serve.ts + workspace deno.json.
     // `--ui-only` builds JUST the client bundle for the given app dir — no
     // composition, no serve.ts/workspace emission. The toolchain repo's own
     // workbench (app/) builds this way: its hand-written serve.ts is not a
