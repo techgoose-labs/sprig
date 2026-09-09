@@ -12,9 +12,9 @@
 import { basename, join } from "@std/path";
 import { copy } from "@std/fs";
 
-const REPO = "mrg-keystone/sprig";
+const REPO = "techgoose-labs/sprig"; // moved with the @techgoose-labs scope (see install.ts)
 const UA = {
-  "user-agent": "sprig-skills; https://github.com/mrg-keystone/sprig",
+  "user-agent": "sprig-skills; https://github.com/techgoose-labs/sprig",
 };
 
 function home(): string {

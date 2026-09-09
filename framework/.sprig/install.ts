@@ -10,10 +10,13 @@ import { dirname, join } from "@std/path";
 import { copy } from "@std/fs";
 import { installAgents, installSkills } from "./skills.ts";
 
-const REPO = "mrg-keystone/sprig";
+// The org release.yml publishes to — it moved with the @techgoose-labs scope. The old
+// org's `runtime-latest` is frozen at the 1.x line, so pointing here is what makes
+// `sprig update` an update rather than a downgrade.
+const REPO = "techgoose-labs/sprig";
 const RUNTIME_TAG = "runtime-latest"; // the rolling release tag release.yml maintains
 const UA = {
-  "user-agent": "sprig-install; https://github.com/mrg-keystone/sprig",
+  "user-agent": "sprig-install; https://github.com/techgoose-labs/sprig",
 };
 
 function home(): string {
