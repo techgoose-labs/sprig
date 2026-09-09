@@ -19,7 +19,7 @@ the first `sprig build`; this page is the rest.
 
 ```bash
 deno run -A --min-dep-age 0 jsr:@techgoose-labs/sprig/cli install
-sprig --version        # sprig 2.0.5 (or later)
+sprig --version        # sprig 2.1.0 (or later)
 ```
 
 - **Not `sprig update` from 1.x.** The 1.x CLI downloads its runtime from the
@@ -159,8 +159,8 @@ in the root `deno.json` (the scaffold does):
 ```
 
 **`Import "@mrg-keystone/sprig" not a dependency and not in import map`** after
-a build that said it migrated. You are on a CLI between 2.0.1 and 2.0.4, whose
-migration renamed configs but not source files. Install ≥ 2.0.5 (step 1) and
+a build that said it migrated. You are on a CLI between 2.0.1 and 2.0.5, whose
+migration renamed configs but not source files. Install ≥ 2.1.0 (step 1) and
 build again.
 
 **`serve.ts already exists and was NOT generated`** →
