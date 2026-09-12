@@ -52,6 +52,8 @@ import {
   renderServe,
   specRootOf,
 } from "@techgoose-labs/bedrock/artifact";
+import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
+import { hostArgTokens, hostLayer } from "./.sprig/host-layer.ts";
 import {
   hasLegacyRuntimeName,
   migrateImports,
@@ -1632,8 +1634,11 @@ async function devStandalone(rawArgs: string[], repo: string): Promise<void> {
  *  Ctrl-C / a crash passes through; a dead owner's stale entry is reclaimed (ports freed) next run. */
 async function devSupervisor(rawArgs: string[]): Promise<void> {
   // The registry key is the git repo, so any subdir of a monorepo maps to the one shared process.
+  // `--host <file>`'s VALUE is not a flag, so claim it here or `sprig dev --host host.ts`
+  // keys the registry on ./host.ts (the same trap `--annotate <html>` dodges next door).
+  const claimed = hostArgTokens(rawArgs);
   const positionals = rawArgs.filter((a) =>
-    !a.startsWith("-") && !/\.html?$/i.test(a)
+    !a.startsWith("-") && !/\.html?$/i.test(a) && !claimed.includes(a)
   );
   const repo = repoKey(resolve(positionals[0] ?? "."));
 
@@ -1796,8 +1801,9 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   if (Deno.env.get("SPRIG_DEV_CHILD") !== "1") {
     return await devSupervisor(rawArgs);
   }
+  const hostTokens = hostArgTokens(rawArgs); // `--host <file>` — the value is not the app dir
   const positionals = rawArgs.filter((a) =>
-    !a.startsWith("-") && a !== annotateHtml
+    !a.startsWith("-") && a !== annotateHtml && !hostTokens.includes(a)
   );
   // Resolve the sprig UI package so `sprig dev` runs from EITHER the UI folder OR the monorepo
   // git root — parity with `build --rune`. If the arg isn't itself a UI package (a dir with
@@ -1942,9 +1948,21 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   const app = rune
     ? Bedrock({ ui, backend: (await keepPromise!).api })
     : Bedrock({ ui });
-  const handler = {
-    fetch: (req: Request, info: Deno.ServeHandlerInfo) => app(req, info),
-  };
+  // …and then the app's OWN host wrapper, if it has one — `--host <file>`, or a
+  // `host.ts` beside the generated serve.ts. Prod's entry is often a thin layer
+  // around the composition (files served straight off disk for an <img src>, a
+  // WebSocket — routes a browser tag reaches with no token, so they can't sit
+  // behind the guarded /api). Without it dev 404'd every one of them and the way
+  // through was a second process reverse-proxying dev. HMR + annotate stay
+  // OUTSIDE this, so the host sees the request shape prod hands it.
+  const composed = (req: Request, info: Deno.ServeHandlerInfo) =>
+    app(req, info);
+  const host = await hostLayer(
+    rawArgs,
+    rune ? rune.gitRoot : findProjectRoot(appAbs),
+    composed,
+  );
+  const handler = { fetch: host ? host.handler : composed };
   const devSrv = createDevServer({
     renderer,
     base,
@@ -1995,6 +2013,11 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   if (rune) {
     console.log(
       `  keep composed  → /api + /docs from ${rune.serverRel}/ — dev serves the PROD composition`,
+    );
+  }
+  if (host) {
+    console.log(
+      `  host layer     → ${host.label} — your own wrapper, over the composed app`,
     );
   }
   console.log(
@@ -2479,44 +2502,16 @@ async function install(dev: boolean): Promise<void> {
   );
 }
 
-const USAGE = `sprig — the framework CLI
-
-  sprig init  [dir]              scaffold a minimal, runnable sprig app (default: .)
-  sprig dev   [appDir] [--annotate <html>] [--open] [--no-cache]  HMR dev server → /ui — ALWAYS serves the
-                                  click-to-edit overlay + the isolate workbench (full app). --annotate <html>:
-                                  annotate one prototype file instead. Annotate picks a STABLE port hashed from the
-                                  app name (PORT overrides); prints the URL and, only with --open, pops it in the
-                                  browser. Re-running attaches to the one shared process; --no-cache instead spawns
-                                  a SEPARATE standalone process (free ports, own ephemeral workbench) that runs
-                                  regardless of who else is dev'ing this repo and leaves nothing behind.
-  sprig build [appDir] [--rune]  code-split islands + scope CSS + Tailwind → static/ (default: .; never annotate)
-                                  --rune also folds the sibling keep backend + this UI into a serve.ts
-                                  (the Bedrock composition root) and makes the root a workspace. The root
-                                  is the dir holding ui/ + server/ — the git root, or a subfolder of a
-                                  larger repo (nearest wins; SPRIG_ROOT=<dir> overrides)
-  sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
-                                  serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
-  sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free
-                                  replacement for deno check — the CLI owns the one runtime)
-                                  + the template wiring lint (sets:/reads:/edits: channels)
-  sprig map   [appDir]           print the app's dataflow from its templates: one line per
-                                  wiring channel — who sets, edits, and reads it (incl. pages
-                                  joined through a forwarding <router-outlet>)
-  sprig isolate [appDir]         component/page workbench — develop in isolation (default: .)
-  sprig serve [entry]            run the app's host entry under its deno.json (default: serve.ts)
-  sprig stop  [appDir]           stop this repo's shared 'sprig dev' process + free its ports
-  sprig migrate wire-paths [appDir] [--dry-run]
-                                  the D-7 codemod: prefix /api onto in-process client calls
-                                  that still use route-space paths (backend.get("/users") →
-                                  backend.get("/api/users")). Rewrites literal paths only and
-                                  REPORTS the computed ones for you to read.
-  sprig install [--dev]          install the global sprig CLI + Claude Code skills + agents (--dev: from this checkout)
-  sprig update                   re-install the global sprig CLI + skills + agents from the latest release
-  sprig -v, --version            print the installed version + check JSR for a newer release
-  sprig help
-`;
-
 const [cmd, ...rest] = Deno.args;
+// `--help` is a QUESTION, and a question must never do the work. This switch keys
+// off argv[0] alone, so the flag fell straight through to the command: `sprig dev
+// --help` registered the shared dev process, bound the stable port and built;
+// `build --help` built; `check --help` typechecked. Answer it here, before the
+// dispatch, for EVERY subcommand — one gate, so no future command can regress it.
+if (cmd && wantsHelp(rest)) {
+  console.log(commandHelp(cmd));
+  Deno.exit(0);
+}
 switch (cmd) {
   case "init":
     await init(rest[0]);

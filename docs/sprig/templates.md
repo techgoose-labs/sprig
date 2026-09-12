@@ -7,20 +7,33 @@ pipes. They are parsed by a tree-sitter grammar (no JSX, no `new Function`) and
 evaluated by a read-only interpreter against a **scope** (the page's `@inputs` +
 loop locals + an island's `setup()` result).
 
-> ## ⚠ String literals MUST use single quotes
+> ## ⚠ Inside an ATTRIBUTE, string literals must use single quotes
 >
-> Inside any template expression (`{{ }}`, `@if`, `@for`, bindings, event
-> handlers), string literals **must be single-quoted**. Double quotes are a
+> A binding's value is already delimited by `"`, so a literal inside it needs
+> the other quote — a double-quoted literal there ends the attribute and is a
 > tree-sitter **grammar error**:
 >
 > ```html
-> {{ status() === "running" ? "running…" : "▸ run" }}   <!-- ✓ -->
-> {{ status() === "running" }}                           <!-- ✗ parse error -->
+> <button [disabled]="status() === 'running'">   <!-- ✓ -->
+> <button [disabled]="status() === "running"">   <!-- ✗ parse error -->
 > ```
 >
-> Double quotes already delimit the attribute, so the inner literal needs the
-> other quote. Keep large literal arrays/objects in `logic.ts`/`resolve.ts` and
-> iterate them.
+> In TEXT position — a `{{ }}` interpolation, an `@if (…)` / `@case (…)` header
+> — there is no delimiter to collide with, and **both quote styles work**:
+>
+> ```html
+> {{ status() === "running" ? "running…" : "▸ run" }}   <!-- ✓ -->
+> {{ status() === "running" ? "running…" : "▸ run" }}   <!-- ✓ -->
+> @if (mode() === "edit") { … }                        <!-- ✓ -->
+> ```
+>
+> (The grammar's `string` token is single-quoted only; the compiler normalizes
+> the double-quoted form in those two contexts before the grammar sees it. Until
+> 2.1.2 it did not, and the `{{ … }}` line above — the exact one — took
+> `sprig
+> dev` down at boot wherever it was written.)
+>
+> Keep large literal arrays/objects in `logic.ts`/`resolve.ts` and iterate them.
 
 ## Interpolation
 
@@ -185,8 +198,8 @@ Angular-flavoured `<ng-content>` is accepted as an alias.
 
 Compute filtered/grouped/derived view-models in `logic.ts` (`computed(...)`) or
 `resolve.ts`, return **plain arrays/objects**, and let the template iterate
-them. This keeps expressions simple and sidesteps the single-quote constraint on
-big literals.
+them. This keeps expressions simple and sidesteps the attribute quoting
+constraint on big literals.
 
 ---
 

@@ -40,6 +40,56 @@ Slot namespaces default to `/` (ui), `/api` (backend) and `/auth` (auth), and
 must be disjoint or composition fails loud. `Frontend({ base })` moves the SSR
 pages within the ui slot.
 
+## Your own wrapper — and dev honouring it
+
+Some apps' production entry is a thin layer AROUND the composition: files served
+straight off disk for an `<img src>`, a `/sim/*` surface, a WebSocket — routes a
+browser tag or a worker reaches with no token, so they cannot sit behind the
+guarded `/api`. Write that layer as a `host.ts` beside `serve.ts`:
+
+```ts
+// host.ts  (at the composition root, beside the generated serve.ts)
+import app from "./serve.ts";
+
+/** Tried BEFORE the composed app. Return null to pass it along. */
+export function routes(req: Request, _info: Deno.ServeHandlerInfo) {
+  const p = new URL(req.url).pathname;
+  if (p.startsWith("/files/")) return serveFromDisk(p);
+  return null;
+}
+
+/** Wraps the composed app. */
+export function wrap(
+  next: (r: Request, i: Deno.ServeHandlerInfo) => Response | Promise<Response>,
+) {
+  return (r: Request, i: Deno.ServeHandlerInfo) => next(r, i);
+}
+
+export default {
+  fetch: (r: Request, i: Deno.ServeHandlerInfo) => routes(r, i) ?? app(r, i),
+};
+//   deno serve -A host.ts
+```
+
+**`sprig dev` layers it too.** It picks up a `host.ts` beside the generated
+`serve.ts` with no flag, or takes `sprig dev --host <file>`, and prints the
+layer it found:
+
+```
+host layer     → host.ts (routes + wrap) — your own wrapper, over the composed app
+```
+
+`routes()` runs first, then `wrap()` around the composed app — the same order
+prod has. HMR and the annotate overlay stay OUTSIDE it, so the host sees the
+request shape production hands it. Before this, dev composed
+`Bedrock({ ui, backend })` and stopped, so every one of those routes 404'd in
+dev and the only way through was a second process reverse-proxying the dev
+server.
+
+An explicit `--host` that names a missing file, or a module exporting neither
+hook, fails loudly. An auto-detected `host.ts` that turns out not to be a host
+layer warns and is skipped — an unrelated `host.ts` must not break `sprig dev`.
+
 ## Dispatch table
 
 | path               | handler                                                                                                                                                                                                                                                                                                                                                                                    |
