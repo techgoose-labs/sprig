@@ -105,7 +105,7 @@ Valid Angular/HTML this grammar does **not** handle. None occur in `golden.html`
 
 | Construct | Why not |
 |-----------|---------|
-| Double-quoted **string literals in expressions** (`{{ "x" }}`, `@case ("a")`) | Ambiguous with the `"` attribute delimiter; Angular's idiom is `'…'`. Would need context-split expression rules. |
+| Double-quoted **string literals in expressions** (`{{ "x" }}`, `@case ("a")`) | Ambiguous with the `"` attribute delimiter; Angular's idiom is `'…'`. Would need context-split expression rules. **The compiler no longer exposes this in text position**: `parse.ts`'s `singleQuoteExprStrings` normalizes `"x"` → `'x'` inside `{{ … }}` and `@block (…)` headers before parsing (sprig's own templates wrote the double-quoted form and took `sprig dev` down at boot). Inside an attribute value the `"` really is the delimiter, so that stays a parse error — with a message that names it. |
 | **Unquoted** attribute values (`<div id=main>`) | Low value; fixture always quotes. |
 | Optional **call / keyed** safe-nav (`a?.()`, `a?.[i]`) | Niche; `a?.b` / `a?.b()` do parse. |
 | **Template literals** (`` `hi ${x}` ``) | Angular 18.2+; niche. |

@@ -8,7 +8,9 @@ The `sprig` CLI lives at `framework/cli.ts`. Run it with
 
 ```
 sprig init  [dir]               scaffold a minimal, runnable sprig app           (default: .)
-sprig dev   [appDir] [entry]    state-preserving HMR dev server (no Vite)        (default: app, serve.ts)
+sprig dev   [appDir] [entry] [--host <file>]   state-preserving HMR dev server (no Vite)
+                               --host: layer the app's own wrapper over the composed app; a
+                               host.ts beside serve.ts is picked up with no flag (see hosting.md)
 sprig build [appDir]            code-split islands + scope CSS + Tailwind → static/  (default: app)
 sprig check [appDir]            typecheck under the CLI runtime + template wiring lint  (default: .)
 sprig map   [appDir]            print the wiring channels (who sets/edits/reads)  (default: .)

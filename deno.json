@@ -80,7 +80,9 @@
       "framework/.sprig/artifact.ts",
       "framework/.sprig/wire-paths.ts",
       "framework/.sprig/auth-slot.ts",
-      "framework/.sprig/composition-root.ts"
+      "framework/.sprig/composition-root.ts",
+      "framework/.sprig/host-layer.ts",
+      "framework/.sprig/usage.ts"
     ]
   },
   "git": {
