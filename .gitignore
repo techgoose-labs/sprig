@@ -30,3 +30,6 @@ isolate-gallery.png
 
 # infra: downloaded env files (secrets — never commit)
 /env/
+
+# box shell aliases rm→trash and drops these next to the cwd; one got committed in d1f47e1
+.Trash-*/
