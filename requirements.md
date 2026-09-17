@@ -212,3 +212,33 @@ Tests:
   `SPRIG_IDLE_EXIT` makes the whole chain exit on its own with the idle message.
 - integration — n/a: the idle timer lives inside the server process; the e2e
   exercises it end to end.
+
+---
+
+## REQ-008 — a root-mounted UI serves `/` itself; it never redirects `/` to `/`
+
+> Found by the merge gate (`deno test -A` refuses any failure, pre-existing or
+> not): `app/spine.test.ts` "SSR / → 200" had been red on develop since the
+> Frontend seam (382c21a; CI runs only `framework/` + `packages/`). The
+> workbench's own `serve.ts` mounts at base `""`, and `GET /` answered
+> `302 Location: <the same URL>`. `Frontend()`'s handler redirects `/` to
+> `new URL(base, url)`; with an empty base that is the request itself — a
+> self-loop. The exported `derivedRedirect()` beside it carries the right guard
+> ("a ROOT mount means the app is already at `/`") but nothing calls it. Live:
+> every workbench answered 302 on `/` (the reporter's orphans, and the trunk
+> reproduction under REQ-004). Not part of the report; fixed here because the
+> merge gate needs the suite green.
+
+- With `base` `""` or `"/"`, `GET /` falls through to the SSR app (200, the
+  shell), with no `Location` header.
+- With any other base, `/` still 302-redirects to the base (unchanged;
+  `packages/keep/frontend.test.ts` "root redirects to base").
+
+Tests:
+
+- unit — `packages/keep/frontend.test.ts` (REQ-008): a base-`""` Frontend serves
+  `/` itself.
+- integration — `app/spine.test.ts` (REQ-008): the composed workbench `serve.ts`
+  answers `/` with the rendered shell and discovery data.
+- e2e — n/a: the same composition runs under `sprig isolate`; the spine test
+  drives the real composed handler.
