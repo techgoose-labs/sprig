@@ -161,9 +161,11 @@ export const testCmd = new Command()
       return;
     }
 
-    if (!(await ensureRunner())) {
-      const msg =
-        "Playwright runner unavailable (~/.isolate-runner) — see the warning above.";
+    const runner = await ensureRunner();
+    if (!runner.ok) {
+      const msg = `Playwright runner unavailable (${
+        runner.dir ?? "no HOME to locate it"
+      }) — see the warning above.`;
       if (o.json) {
         printJson({
           ok: false,

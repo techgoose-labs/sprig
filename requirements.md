@@ -242,3 +242,52 @@ Tests:
   answers `/` with the rendered shell and discovery data.
 - e2e — n/a: the same composition runs under `sprig isolate`; the spine test
   drives the real composed handler.
+
+---
+
+## REQ-007 — the Playwright runner lives in the cache dir, never a new dot-dir under `$HOME`
+
+> "sprig isolate keeps its Playwright runner in a NEW top-level dot-dir,
+> $HOME/.isolate-runner (main/cli/lib/runner.ts:28,
+> server/src/core/business/runner/mod.ts:11). In a box every Bash-tool command
+> runs under guardsh's Landlock backstop, whose write roots are an explicit
+> allow-list — $HOME itself cannot be one without opening sibling worktrees — so
+> 'mkdir $HOME/.isolate-runner' failed with EACCES for a ppwk-crm box today …
+> the durable fix is on your side: keep the runner under a dir sprig already
+> owns — $HOME/.sprig/isolate-runner — or honour XDG_CACHE_HOME (boxes bake
+> /opt/cache/xdg, already a write root), with the old path as a fallback for
+> existing installs. Any new dot-dir a tool invents straight under $HOME will
+> hit the same wall." — report 20260917T194625Z-w6-76929 (#sprig)
+
+The runner dir (`@playwright/test` + `rxjs` + `isolate-events`) is resolved by
+ONE rule, shared by the CLI's `ensureRunner` and the server's `runnerStatus` /
+`runTests` (`server/src/core/business/runner/dir.ts`):
+
+1. `ISOLATE_RUNNER_HOME` — the env var `testing.rune` already declared as the
+   runner's `[SRV]` — is used as given, always.
+2. `$XDG_CACHE_HOME/sprig/isolate-runner`, else `~/.cache/sprig/isolate-runner`
+   (the XDG default) — the preferred location. NOT `~/.sprig/…`: `sprig update`
+   swaps the whole `SPRIG_HOME` dir aside and deletes it (`swapIntoRuntime`),
+   which would wipe the runner on every update.
+3. The legacy `~/.isolate-runner` is used only when it is already provisioned
+   (has `node_modules/.bin/playwright`) and the preferred dir is not — existing
+   installs keep working with no re-download. It is never created.
+
+A runner dir that can't be created (EACCES) is a warning naming the dir and the
+two knobs, and `ensureRunner` reports not-ok — never an uncaught exception.
+Every message that names the runner names the RESOLVED dir, not a hardcoded
+`~/.isolate-runner`; `GET /runner-status`'s `path` is the runner dir itself.
+
+Tests:
+
+- unit — `server/src/core/business/runner/dir.test.ts` (REQ-007): the
+  resolution rule; `server/src/core/business/runner/test.ts` (REQ-007):
+  `runnerStatus` reports and `runTests` spawns from the resolved dir.
+- integration — `cli/lib/runner.test.ts` (REQ-007): `ensureRunner` on a real
+  filesystem with a stub `npm` on PATH: provisions under `XDG_CACHE_HOME` with
+  a read-only HOME, reuses a provisioned legacy dir, honours
+  `ISOLATE_RUNNER_HOME`, and reports an unwritable dir without throwing.
+- e2e — `cli/lib/runner.e2e.test.ts` (REQ-007): the real `isolate test` CLI
+  with a read-only HOME and `XDG_CACHE_HOME` set: no EACCES, the runner dir is
+  carved under XDG, nothing under `$HOME/.isolate-runner`, and the failure
+  message names that dir.

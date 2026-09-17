@@ -8,12 +8,27 @@ Copy-adaptable recipes for the capture passes. They are plain Node scripts
 Don't install anything until you've checked what's already there, in order:
 
 1. **the isolate runner** (present on any machine that has run `sprig isolate`
-   and its case tests — it provisions `~/.isolate-runner`):
+   and its case tests). Its dir is resolved the way sprig does: `ISOLATE_RUNNER_HOME`,
+   else `$XDG_CACHE_HOME/sprig/isolate-runner` (`~/.cache` default), else a legacy
+   `~/.isolate-runner` left by an older install:
 
    ```js
    const os = require("os");
+   const fs = require("fs");
+   const path = require("path");
+   const runner = [
+     process.env.ISOLATE_RUNNER_HOME,
+     path.join(
+       process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
+       "sprig",
+       "isolate-runner",
+     ),
+     path.join(os.homedir(), ".isolate-runner"),
+   ].filter(Boolean).find((d) =>
+     fs.existsSync(path.join(d, "node_modules", "playwright-core"))
+   );
    const { chromium } = require(
-     os.homedir() + "/.isolate-runner/node_modules/playwright-core",
+     path.join(runner, "node_modules", "playwright-core"),
    );
    ```
 

@@ -3,7 +3,7 @@
 
 import { IsBoolean, IsOptional, IsString } from "class-validator";
 
-// health of the ~/.isolate-runner Playwright runner
+// health of the Playwright runner; path = its resolved dir (core/business/runner/dir.ts)
 export class RunnerStatusDto {
   @IsBoolean()
   ok!: boolean;
