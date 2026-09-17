@@ -203,6 +203,48 @@ Deno.test({
 
 Deno.test({
   name:
+    "REQ-004 (e2e): SIGTERM aimed straight at the dev server ends it and finishes the chain (the live-box zombie)",
+  sanitizeOps: false,
+  sanitizeResources: false,
+  fn: async () => {
+    const home = await seedHome();
+    const wb = join(home, "wb");
+    const port = freePort();
+    const a = startIsolate({
+      HOME: home,
+      SPRIG_HOME: home,
+      SPRIG_WB_ROOT: wb,
+      PORT: String(port),
+    });
+    try {
+      await waitHealthy(a, port);
+      const [serverPid] = await servers(wb);
+      assert(serverPid > 1, "no serve-dev.ts found for the workbench");
+      // a browser attached AND the watchers running — the box's exact state
+      const sse = await fetch(`http://127.0.0.1:${port}/_sprig/hmr`);
+      const reader = sse.body!.getReader();
+      await reader.read();
+      Deno.kill(serverPid, "SIGTERM"); // what `kill <pid>` on the stray does
+      assert(
+        await waitFor(async () => (await servers(wb)).length === 0, 3_000),
+        "the dev server is a headless zombie: SIGTERM closed nothing but its port",
+      );
+      assert(
+        await exitedWithin(a, 10_000),
+        `the chain above the dead server never finished:\n${a.out.text}`,
+      );
+      assertEquals((await a.child.status).code, 0, a.out.text);
+      assert(!(await probe(port)), "port still answering");
+      reader.cancel().catch(() => {});
+    } finally {
+      await reap(wb, a);
+      await Deno.remove(home, { recursive: true }).catch(() => {});
+    }
+  },
+});
+
+Deno.test({
+  name:
     "REQ-004 (e2e): SIGKILL of the top process still takes the dev server down",
   sanitizeOps: false,
   sanitizeResources: false,
