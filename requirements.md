@@ -291,3 +291,30 @@ Tests:
   with a read-only HOME and `XDG_CACHE_HOME` set: no EACCES, the runner dir is
   carved under XDG, nothing under `$HOME/.isolate-runner`, and the failure
   message names that dir.
+
+---
+
+## REQ-004 — AMENDMENT: the e2e waits for the supervisor's "ready" line before it kills the server
+
+> Surfaced by the first `publish.yml` run after promoting REQ-004..008
+> (runs 35288438842, both attempts): "REQ-004 (e2e): SIGTERM aimed straight at
+> the dev server …" failed with exit code 1 instead of 0 — the chain printed
+> "✗ isolate: the dev server exited before it was ready (exit 0)". Green in
+> the box's merge gate, red on every CI run.
+
+The e2e's `waitHealthy` only probed the port. The supervisor (`isolate dev`)
+learns readiness from its own health poll every 250 ms, then writes the live
+record and prints `◆ isolate ready →`. A SIGTERM that lands between the
+listener coming up and that poll is, to the supervisor, a server that died
+before it was ready — exit 1, which is the correct product behaviour and not
+the scenario under test. The same window would let a second run miss the live
+record. The e2e now waits for the supervisor's ready line as well as the port
+before it acts. No product change.
+
+Tests:
+
+- e2e — `framework/.sprig/isolate-teardown.e2e.test.ts` (REQ-004): all four
+  cases sequence on the ready line; proof is the CI run going green.
+- unit / integration — n/a: the change is inside the e2e's own readiness
+  helper; the supervisor's readiness and the live record already have their
+  tests under REQ-004/005.
