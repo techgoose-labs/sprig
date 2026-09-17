@@ -96,3 +96,149 @@ Tests:
 - e2e — n/a: a full `sprig dev` e2e needs a rune monorepo with a keep backend
   (two servers, stable ports) — the layering seam is exercised above and the
   banner line is asserted at the call site.
+
+---
+
+## REQ-004 — `isolate` stops its dev server on every exit path
+
+> "sprig isolate leaks its dev server (one 'deno serve serve-dev.ts' per run,
+> never torn down) — 17 of them piled up in ONE box today and slowed the whole
+> Mac. … The server is never stopped. 7 of the 17 servers are ORPHANS
+> re-parented to podman-init — their isolate/dev parent died and left them …
+> Ask: (a) isolate stops its dev server on exit, including on error and when its
+> parent dies (kill the process group / a SIGTERM handler + a pid file per
+> workbench)" — report 20260917T203646Z-w354-31439 (#sprig)
+
+Root causes, each proven before the fix:
+
+1. `deno serve` catches SIGTERM itself (every leaked server in the box had
+   SIGTERM in its caught-signal mask): it closes the listener, then exits only
+   once the event loop drains. It never drains — the HMR event stream
+   (`/_sprig/hmr`, held open by any browser or Playwright page) never ends
+   (measured: gone in 128 ms with no stream open, still alive after 8 s with
+   one), and `serve-dev.ts`'s own file watchers run forever. Seven of the ten
+   servers inspected live were exactly this: no port, 7 threads, polling inotify
+   over virtio-fs for two hours — including the two under still-running
+   `sprig isolate` chains, which is why those runs "hung": they awaited a child
+   that would never exit. A `kill <pid>` aimed straight at the server (the
+   stray-hunt the agent brief prescribed) produced them; `isolate dev` itself
+   sent SIGTERM and exited at once.
+2. `isolate test` called `Deno.exit` inside a `try`; the `finally` that kills
+   its server never ran, so every run orphaned a server on a random 3000–6999
+   port (the report's 5685 / 4562 / 6742).
+3. `sprig isolate` had no signal handler: `kill <pid>` (the documented way to
+   stop it) ended the top process only, and the chain below it lived on. Nothing
+   anywhere noticed a dead parent.
+
+Obligations:
+
+- Every spawner in the chain (`sprig isolate` → `isolate dev` →
+  `deno serve serve-dev.ts`; `isolate test` → `deno serve`) stops its child
+  before it exits — on normal exit, on error, and on SIGINT/SIGTERM/SIGHUP:
+  SIGTERM, a bounded grace, then SIGKILL.
+- The dev server exits promptly on SIGTERM even with HMR clients attached.
+- A process whose parent dies without warning (SIGKILL, OOM) notices and tears
+  itself and its own children down (`SPRIG_PARENT_PID` + a ppid watchdog).
+- A pid file per workbench (`<SPRIG_WB_ROOT>/isolate.json`) records the live
+  server (pids, port, URL, project) and is removed at teardown.
+
+Tests:
+
+- unit — `framework/.sprig/supervise.test.ts` (REQ-004): SIGTERM→grace→SIGKILL
+  escalation, the ppid watchdog, the pid file round-trip.
+- integration — `framework/.sprig/supervise.test.ts` (REQ-004): a real
+  parent→child chain where the parent is SIGKILLed and the child exits; and
+  `isolate test` against a fixture app with a stub Playwright runner leaves no
+  server behind.
+- e2e — `framework/.sprig/isolate-teardown.e2e.test.ts` (REQ-004): the real
+  `sprig isolate` with an HMR client attached, SIGTERM'd and SIGKILL'd; the port
+  closes and no `serve-dev.ts` survives.
+
+---
+
+## REQ-005 — a workbench with a live server is reused, not duplicated
+
+> "(b) a run that already has a live server for that workbench reuses it instead
+> of starting another … Nothing is reused: the same workbench (wb-4102, wb-4106,
+> wb-4107) got a NEW server per run instead of the existing one." — report
+> 20260917T203646Z-w354-31439 (#sprig)
+
+- `sprig isolate` / `isolate dev` for a `SPRIG_WB_ROOT` whose `isolate.json`
+  names a server that still answers `GET /__sprig/isolate` for that same
+  workbench root prints that server's URL and pid and exits 0 without starting
+  anything.
+- A stale `isolate.json` (no answer, or a different server on that port) is
+  removed and a fresh server starts.
+- A live server for a different project in the same workbench root is not
+  reused; the run warns and starts its own.
+
+Tests:
+
+- unit — `framework/.sprig/supervise.test.ts` (REQ-005): live / stale /
+  foreign-server resolution of the pid file against a real listener.
+- e2e — `framework/.sprig/isolate-teardown.e2e.test.ts` (REQ-005): a second
+  `sprig isolate` on the same workbench exits 0, names the first URL, and only
+  one server listens.
+- integration — n/a: the resolution is one function over a file and a probe; the
+  unit test runs it against a real listener and the e2e runs it through the real
+  CLI.
+
+---
+
+## REQ-006 — an unattended workbench finishes on its own
+
+> "(c) the isolate run must finish — find why 8 are still alive after their test
+> run. … 8 'cli.ts isolate' processes still alive at 16:34, the oldest since
+> 15:03 (90 min), each holding a live server." — report
+> 20260917T203646Z-w354-31439 (#sprig)
+
+Finding: `sprig isolate` is the live workbench — like `sprig dev` it serves
+until stopped, and nothing in it ever ended a run. The eight were background
+workbenches started by build agents (the `isolate dev &` convention) whose
+agents never sent the documented `kill`. So:
+
+- When stdin is not a terminal (an agent, CI, a `… &` job) the dev server exits
+  by itself after 30 minutes with no request and no HMR client attached, and
+  says so on stdout. `SPRIG_IDLE_EXIT=<minutes>` overrides; `0` disables. At a
+  terminal the default is off — a person's workbench never vanishes.
+- The exit propagates: the whole `sprig isolate` chain finishes with it.
+
+Tests:
+
+- unit — `framework/.sprig/supervise.test.ts` (REQ-006): the idle policy
+  (terminal vs not, env override, `0`) and the idle clock (requests and attached
+  clients reset it).
+- e2e — `framework/.sprig/isolate-teardown.e2e.test.ts` (REQ-006): a sub-minute
+  `SPRIG_IDLE_EXIT` makes the whole chain exit on its own with the idle message.
+- integration — n/a: the idle timer lives inside the server process; the e2e
+  exercises it end to end.
+
+---
+
+## REQ-008 — a root-mounted UI serves `/` itself; it never redirects `/` to `/`
+
+> Found by the merge gate (`deno test -A` refuses any failure, pre-existing or
+> not): `app/spine.test.ts` "SSR / → 200" had been red on develop since the
+> Frontend seam (382c21a; CI runs only `framework/` + `packages/`). The
+> workbench's own `serve.ts` mounts at base `""`, and `GET /` answered
+> `302 Location: <the same URL>`. `Frontend()`'s handler redirects `/` to
+> `new URL(base, url)`; with an empty base that is the request itself — a
+> self-loop. The exported `derivedRedirect()` beside it carries the right guard
+> ("a ROOT mount means the app is already at `/`") but nothing calls it. Live:
+> every workbench answered 302 on `/` (the reporter's orphans, and the trunk
+> reproduction under REQ-004). Not part of the report; fixed here because the
+> merge gate needs the suite green.
+
+- With `base` `""` or `"/"`, `GET /` falls through to the SSR app (200, the
+  shell), with no `Location` header.
+- With any other base, `/` still 302-redirects to the base (unchanged;
+  `packages/keep/frontend.test.ts` "root redirects to base").
+
+Tests:
+
+- unit — `packages/keep/frontend.test.ts` (REQ-008): a base-`""` Frontend serves
+  `/` itself.
+- integration — `app/spine.test.ts` (REQ-008): the composed workbench `serve.ts`
+  answers `/` with the rendered shell and discovery data.
+- e2e — n/a: the same composition runs under `sprig isolate`; the spine test
+  drives the real composed handler.

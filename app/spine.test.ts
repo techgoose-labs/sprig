@@ -22,7 +22,7 @@ const post = (path: string, body: unknown) =>
     info,
   );
 
-Deno.test("SSR / → 200, workbench shell rendered with discovery data", async () => {
+Deno.test("REQ-008: SSR / → 200, workbench shell rendered with discovery data", async () => {
   const res = await get("/");
   assertEquals(res.status, 200);
   const html = await res.text();

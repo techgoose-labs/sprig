@@ -76,6 +76,29 @@ lib/
 - **test** materializes, starts the Vite preview, then `runTests()` spawns
   Playwright against it (passing the materialized `playwright.config.ts`).
 
+## Lifetime — no run leaves a server behind
+
+The chain `sprig isolate` → `isolate dev` → `deno serve serve-dev.ts` (and
+`isolate test` → `deno serve`) is supervised by `framework/.sprig/supervise.ts`
+(REQ-004/005/006 in `requirements.md`):
+
+- **Stop = one kill.** SIGINT/SIGTERM/SIGHUP to any level stops everything
+  below it: SIGTERM, a 2 s grace, then SIGKILL — `deno serve` on its own waits
+  for the never-ending HMR stream and would never exit. A level whose parent
+  vanishes (SIGKILL, OOM) notices through `SPRIG_PARENT_PID` and stops itself.
+  `isolate test` stops its server before it exits, on every path.
+- **Reuse.** `isolate dev` records the live server in
+  `<SPRIG_WB_ROOT>/isolate.json` (pids, port, URL, project). A later run on the
+  same workbench probes `GET /__sprig/isolate`; if that server is still up it
+  prints the URL and exits 0 instead of starting another. A stale record is
+  dropped; a live server for a different project is warned about, not reused.
+- **Idle exit.** When stdin is not a terminal (an agent, CI, a `… &` job) the
+  server exits after `SPRIG_IDLE_EXIT` minutes (default 30) with no request and
+  no HMR client attached, and says so on stdout. `0` disables; at a terminal
+  the default is off.
+- **Ready means ready.** `◆ isolate ready` prints once the server answers, not
+  when it is spawned.
+
 ## Verified
 
 `deno check` / `deno lint` / `deno fmt` clean. End-to-end against

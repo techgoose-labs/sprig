@@ -33,6 +33,8 @@ export function createDevServer(cfg: DevConfig): {
     info: Deno.ServeHandlerInfo,
   ): Promise<Response> | Response;
   close(): void;
+  /** Open HMR event streams — a browser (or Playwright page) is attached. */
+  clientCount(): number;
 } {
   const enc = new TextEncoder();
   const clients = new Set<ReadableStreamDefaultController<Uint8Array>>();
@@ -215,6 +217,9 @@ export function createDevServer(cfg: DevConfig): {
           : new Response("not found", { status: 404 });
       }
       return cfg.handler.fetch(req, info);
+    },
+    clientCount() {
+      return clients.size;
     },
     close() {
       clearTimeout(timer);

@@ -53,6 +53,13 @@ import {
   specRootOf,
 } from "@techgoose-labs/bedrock/artifact";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
+import {
+  findLive,
+  IDLE_EXIT_ENV,
+  parentEnv,
+  reuseBanner,
+  terminate,
+} from "./.sprig/supervise.ts";
 import { hostArgTokens, hostLayer } from "./.sprig/host-layer.ts";
 import {
   hasLegacyRuntimeName,
@@ -1918,7 +1925,12 @@ async function dev(rawArgs: string[] = []): Promise<void> {
   // (the app is the review surface; isolate is the verify surface) — it just warns.
   try {
     await assertWorkbench(root); // throws on an old slim install lacking the workbench
-    wb = spawnWorkbench(appAbs, isoPort, open); // workbench opens its own tab when ready
+    // The workbench lives exactly as long as this dev process (SPRIG_PARENT_PID), so the
+    // unattended idle exit stays OFF here unless the user asks for it — otherwise an agent's
+    // `sprig dev` would silently lose its verify surface after 30 quiet minutes.
+    wb = spawnWorkbench(appAbs, isoPort, open, {
+      [IDLE_EXIT_ENV]: Deno.env.get(IDLE_EXIT_ENV) ?? "0",
+    }); // workbench opens its own tab when ready
   } catch (e) {
     console.error(
       `sprig: isolate workbench unavailable (${
@@ -2342,6 +2354,7 @@ function spawnWorkbench(
   appAbs: string,
   port: number,
   open: boolean,
+  extraEnv: Record<string, string> = {},
 ): Deno.ChildProcess {
   const root = installRoot();
   return new Deno.Command(Deno.execPath(), {
@@ -2363,6 +2376,8 @@ function spawnWorkbench(
       ...Deno.env.toObject(),
       PORT: String(port),
       SPRIG_WB_ROOT: Deno.env.get("SPRIG_WB_ROOT") ?? workbenchRoot(appAbs),
+      ...parentEnv(), // the workbench watches us: if we die without warning, it exits (REQ-004)
+      ...extraEnv,
     },
     stdin: "inherit",
     stdout: "inherit",
@@ -2374,8 +2389,39 @@ async function isolate(appDir = ".", open = true): Promise<void> {
   // the dir that holds framework/ — a repo checkout or ~/.sprig (both carry the workbench).
   const root = installRoot();
   await assertWorkbench(root); // clear "run `sprig update`" error if an old slim install lacks it
+  const appAbs = resolve(appDir);
+  // REQ-005 — this workbench's server is still up from an earlier run → reuse it, start nothing.
+  // (A live server for ANOTHER project in the same workbench is the workbench cli's call: it warns
+  // and starts its own.)
+  const wbRoot = Deno.env.get("SPRIG_WB_ROOT") ?? workbenchRoot(appAbs);
+  const live = await findLive(wbRoot);
+  if (live && resolve(live.project) === appAbs) {
+    console.log(reuseBanner(live));
+    if (open) openUrl(live.url);
+    return;
+  }
   const port = freePort(Number(Deno.env.get("PORT") ?? 8000));
-  const { code } = await spawnWorkbench(resolve(appDir), port, open).status;
+  const child = spawnWorkbench(appAbs, port, open);
+  // REQ-004 — `kill <pid>` of THIS process (the documented way to stop a workbench) must take
+  // the chain below it down too: forward the stop, wait for it, escalate if it stalls.
+  let stopping = false;
+  const stop = async (code: number): Promise<void> => {
+    if (stopping) return;
+    stopping = true;
+    await terminate(child, 3000);
+    Deno.exit(code);
+  };
+  for (
+    const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143], [
+      "SIGHUP",
+      129,
+    ]] as const
+  ) {
+    try {
+      Deno.addSignalListener(sig, () => void stop(code));
+    } catch { /* signal not supported here */ }
+  }
+  const { code } = await child.status; // the workbench finished on its own (idle exit, crash)
   Deno.exit(code);
 }
 

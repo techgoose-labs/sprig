@@ -5,7 +5,7 @@
 
 import { assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { Frontend } from "./mod.ts";
+import { Frontend, type FrontendConfig } from "./mod.ts";
 import { identityHeaderValue } from "@techgoose-labs/bedrock";
 import type { Bag, Identity, Unit } from "@techgoose-labs/bedrock";
 import type { SprigApp } from "@techgoose-labs/sprig";
@@ -30,6 +30,7 @@ async function withApp(
       sessions: (Identity | null | undefined)[];
     },
   ) => Promise<void>,
+  config: Partial<FrontendConfig> = {},
 ) {
   const tmp = await Deno.makeTempDir();
   const assetsDir = join(tmp, "static");
@@ -59,7 +60,7 @@ async function withApp(
     },
   } as unknown as SprigApp;
   try {
-    await fn(Frontend({ app, assetsDir }).handler, calls);
+    await fn(Frontend({ app, assetsDir, ...config }).handler, calls);
   } finally {
     await Deno.remove(tmp, { recursive: true });
   }
@@ -74,6 +75,17 @@ Deno.test("Frontend: total coverage — root redirects to base, unknown paths 40
     assertEquals(other.status, 404);
     await other.body?.cancel();
   });
+});
+
+Deno.test("REQ-008: a ROOT mount (base '') serves `/` itself — never a 302 to itself", async () => {
+  await withApp(async (handler, calls) => {
+    // the isolate workbench's own serve.ts mounts at "": `/` IS the app
+    const root = await handler(new Request("http://app/"));
+    assertEquals(root.status, 200);
+    assertEquals(root.headers.get("location"), null);
+    assertEquals(await root.text(), "<html>ssr</html>");
+    assertEquals(calls.path, "/");
+  }, { base: "" });
 });
 
 Deno.test("Frontend: serves the SSR app under base; no bag → no backend in ctx (UI-only)", async () => {
