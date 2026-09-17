@@ -66,8 +66,9 @@ write, don't hunt the disk. Any legitimate lookup stays inside
 **Read `~/.claude/skills/sprig:breakdown/references/capture-recipes.md` (that
 exact absolute path) before writing any capture code** — it has verified,
 copy-adaptable Node/Playwright recipes for everything below. Playwright:
-`require()` the isolate-runner's bundled `playwright-core` directly
-(`~/.isolate-runner/node_modules/playwright-core`) — don't pre-verify it with
+`require()` the isolate runner's bundled `playwright-core` directly (the runner
+dir is `$ISOLATE_RUNNER_HOME`, else `$XDG_CACHE_HOME/sprig/isolate-runner`, else
+a legacy `~/.isolate-runner` — the recipe resolves it) — don't pre-verify it with
 `ls`. Create your target dirs with one unconditional `mkdir -p` (idempotent) —
 never pre-check what exists. Make every capture script `console.log` each path
 as it saves it: that printout IS your receipt (never `ls`/`find` afterward to

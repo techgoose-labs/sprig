@@ -120,7 +120,8 @@ Mechanics you should NOT rediscover:
 
 Build in this order:
 1. **`docker/Dockerfile.sprig`** — extend Dockerfile.rune's pattern: + `npx playwright install
-   chromium --with-deps` and PRE-PROVISION `~/.isolate-runner` (the isolate CLI's `ensureRunner()`
+   chromium --with-deps` and PRE-PROVISION the isolate runner dir (`$XDG_CACHE_HOME/sprig/isolate-runner`, or
+   `ISOLATE_RUNNER_HOME`; the isolate CLI's `ensureRunner()`
    npm-installs `@playwright/test` + `rxjs@^7` on first use — do it at image build so eval runs
    don't npm-install; see `sprig/cli/lib/runner.ts`). sprig needs Node+npm on PATH (base image has
    them). The sprig CLI runs from the mounted snapshot: `deno run -A /repos/sprig/framework/cli.ts`

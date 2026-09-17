@@ -6,10 +6,13 @@
 
 import { isAbsolute, relative, resolve } from "#std/path";
 import { discover as realDiscover } from "../discover/mod.ts";
-
-const HOME = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE") ?? "";
-const RUNNER_DIR = `${HOME}/.isolate-runner/node_modules`;
-const PW_BIN = `${RUNNER_DIR}/.bin/playwright`;
+import {
+  isProvisioned,
+  nodeModulesDir,
+  playwrightBin,
+  resolveRunnerDir,
+  type RunnerEnv,
+} from "./dir.ts";
 // A whole-app suite is ONE playwright spawn: 120s fits a component-sized app but a real
 // app's full suite exceeds it (twice measured on a 20+-page suite — the run dies as
 // error:"timeout" with nothing wrong). ISOLATE_SPAWN_TIMEOUT_MS raises the ceiling for
@@ -47,19 +50,40 @@ export interface RunnerStatus {
   message?: string;
 }
 
-/** Non-destructive status check of ~/.isolate-runner (no install). */
-export async function runnerStatus(): Promise<RunnerStatus> {
-  if (!(await exists(PW_BIN))) {
+export interface StatusDeps {
+  /** The env the runner dir is resolved from (default: this process's). */
+  env?: RunnerEnv;
+  /** "Is this dir provisioned?" (default: its playwright binary exists). */
+  provisioned?: (dir: string) => Promise<boolean>;
+}
+
+/** Non-destructive status check of the runner (no install). The runner dir is
+ *  resolved by ./dir.ts (REQ-007); `path` is that dir — where to `cd` to fix it. */
+export async function runnerStatus(
+  deps: StatusDeps = {},
+): Promise<RunnerStatus> {
+  const env = deps.env ?? Deno.env.toObject();
+  const provisioned = deps.provisioned ?? isProvisioned;
+  const dir = await resolveRunnerDir(env, provisioned);
+  if (!dir) {
     return {
       ok: false,
-      path: RUNNER_DIR,
+      path: "",
       message:
-        "Playwright runner not provisioned at ~/.isolate-runner — run any isolate command to install it.",
+        "HOME is not set — can't locate the Playwright runner. Set ISOLATE_RUNNER_HOME=<dir> (or HOME / XDG_CACHE_HOME).",
+    };
+  }
+  if (!(await provisioned(dir))) {
+    return {
+      ok: false,
+      path: dir,
+      message:
+        `Playwright runner not provisioned at ${dir} — run any isolate command to install it.`,
     };
   }
   let version: string | undefined;
   try {
-    const out = await new Deno.Command(PW_BIN, {
+    const out = await new Deno.Command(playwrightBin(dir), {
       args: ["--version"],
       stdout: "piped",
       stderr: "null",
@@ -67,7 +91,7 @@ export async function runnerStatus(): Promise<RunnerStatus> {
     version = new TextDecoder().decode(out.stdout).match(/(\d+\.\d+\.\d+)/)
       ?.[1];
   } catch { /* ignore */ }
-  return { ok: true, version, path: RUNNER_DIR, message: "runner ready" };
+  return { ok: true, version, path: dir, message: "runner ready" };
 }
 
 interface TestResult {
@@ -204,9 +228,23 @@ export interface RunRequest {
 
 export interface RunDeps {
   discover?: typeof realDiscover;
+  /** The env the runner dir is resolved from AND the spawned specs inherit
+   *  (default: this process's). */
+  env?: RunnerEnv;
+  /** "Is this dir provisioned?" (default: its playwright binary exists). */
+  provisioned?: (dir: string) => Promise<boolean>;
+  /** Override the whole "is the runner there?" gate (kept for existing tests;
+   *  `provisioned` is the finer seam). */
   runnerPresent?: () => Promise<boolean>;
   runSpec?: typeof runSpec;
   timeoutMs?: number;
+}
+
+/** A child env: the resolved env minus its undefined entries. */
+function definedEnv(env: RunnerEnv): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) if (v !== undefined) out[k] = v;
+  return out;
 }
 
 /**
@@ -220,7 +258,11 @@ export async function runTests(
   deps: RunDeps = {},
 ): Promise<TestReport> {
   const discover = deps.discover ?? realDiscover;
-  const runnerPresent = deps.runnerPresent ?? (() => exists(PW_BIN));
+  const env = deps.env ?? Deno.env.toObject();
+  const provisioned = deps.provisioned ?? isProvisioned;
+  const runnerDir = await resolveRunnerDir(env, provisioned);
+  const runnerPresent = deps.runnerPresent ??
+    (() => runnerDir ? provisioned(runnerDir) : Promise.resolve(false));
   const spawn = deps.runSpec ?? runSpec;
   const timeoutMs = deps.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
@@ -263,7 +305,9 @@ export async function runTests(
       problems: [],
     };
   }
-  if (!(await runnerPresent())) throw new Error("runner-unavailable");
+  if (!runnerDir || !(await runnerPresent())) {
+    throw new Error("runner-unavailable");
+  }
 
   // Pass --config when given (the materialized app's), else auto-detect one at
   // the project root (the generated preview app writes one).
@@ -277,7 +321,7 @@ export async function runTests(
     }
   }
   const { stdout, stderr } = await spawn(
-    PW_BIN,
+    playwrightBin(runnerDir),
     [
       "test",
       ...safe,
@@ -285,8 +329,8 @@ export async function runTests(
       ...(config ? ["--config", config] : []),
     ],
     {
-      ...Deno.env.toObject(),
-      NODE_PATH: RUNNER_DIR,
+      ...definedEnv(env),
+      NODE_PATH: nodeModulesDir(runnerDir),
       ...(req.baseUrl ? { ISOLATE_BASE_URL: req.baseUrl } : {}),
     },
     timeoutMs,

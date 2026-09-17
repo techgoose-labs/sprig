@@ -71,11 +71,12 @@
 [DTO] TestReportDto: ok, ran, total, passed, failed, testResult(s)?, problem(s)?, error?
     the aggregate report a run returns
 [DTO] RunnerStatusDto: ok, version?, path, message?
-    health of the ~/.isolate-runner Playwright runner
+    health of the Playwright runner; path = its resolved dir
 
 
 [NON] runner
-    the Playwright runner provisioned under ~/.isolate-runner
+    the Playwright runner, under $XDG_CACHE_HOME/sprig/isolate-runner
+    (ISOLATE_RUNNER_HOME overrides; a provisioned ~/.isolate-runner is reused)
 
 
 [SRV] sc:os: ISOLATE_RUNNER_HOME
