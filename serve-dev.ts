@@ -24,6 +24,13 @@ import {
 } from "@std/path";
 import type { SprigApp } from "@techgoose-labs/sprig";
 import type { SsrRenderer } from "@techgoose-labs/sprig/bedrock";
+import {
+  declaredParent,
+  HEALTH_PATH,
+  IDLE_EXIT_ENV,
+  idleClock,
+  watchParent,
+} from "./framework/.sprig/supervise.ts";
 
 const root = dirname(fromFileUrl(import.meta.url)); // the install root (repo or ~/.sprig)
 // The WORKBENCH working dir is per repo-branch (`~/.sprig/work/<repo-branch>`), so two projects —
@@ -59,6 +66,48 @@ const dev = createDevServer({ renderer, base: "", outDir, handler });
 
 const project = Deno.env.get("ISOLATE_PROJECT");
 if (project) watchProject(join(project, "src"), project);
+
+// ── lifetime (REQ-004 / REQ-006) ───────────────────────────────────────────────────
+// This process must never outlive its reason to exist. Three exits, all announced:
+//   SIGTERM/SIGINT  — `deno serve` alone shuts down GRACEFULLY: it waits for open
+//                     connections, and the HMR event stream never closes, so a plain
+//                     SIGTERM left this process running forever (measured; the report's
+//                     orphans). Close the streams and go.
+//   parent gone     — the `isolate dev` above us died without warning (SIGKILL, OOM):
+//                     nobody will ever stop us, so stop ourselves.
+//   idle            — unattended (the launcher sets SPRIG_IDLE_EXIT when stdin is not a
+//                     terminal): no request and no browser attached for that long → exit.
+const startedAt = new Date().toISOString();
+let shuttingDown = false;
+function shutdown(why: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`isolate: ${why} — dev server (pid ${Deno.pid}) shutting down`);
+  dev.close(); // ends every HMR stream, so nothing holds the process open
+  Deno.exit(0);
+}
+for (const sig of ["SIGINT", "SIGTERM"] as const) {
+  Deno.addSignalListener(sig, () => shutdown(`${sig} received`));
+}
+const parent = declaredParent();
+if (parent) {
+  watchParent(parent, () => shutdown(`parent process ${parent} exited`));
+}
+// The launcher resolves the policy (terminal vs unattended); a bare run reads the env only.
+const idleMinutes = Math.max(0, Number(Deno.env.get(IDLE_EXIT_ENV)) || 0);
+const clock = idleClock(idleMinutes * 60_000, () => dev.clientCount());
+if (idleMinutes > 0) {
+  const every = Math.max(250, Math.min(30_000, (idleMinutes * 60_000) / 2));
+  const t = setInterval(() => {
+    if (clock.expired()) {
+      shutdown(
+        `no requests for ${idleMinutes} min and no browser attached — exiting ` +
+          `(${IDLE_EXIT_ENV}=0 keeps it running)`,
+      );
+    }
+  }, every);
+  Deno.unrefTimer(t);
+}
 
 /** Mirror a user-project edit into the workbench previews so the dev server hot-swaps it.
  *  A component file (template/styles/logic) edit is copied straight into its existing
@@ -127,5 +176,20 @@ export default {
   fetch: (
     req: Request,
     info: Deno.ServeHandlerInfo,
-  ): Promise<Response> | Response => dev.fetch(req, info),
+  ): Promise<Response> | Response => {
+    // Who am I? — what lets the next run on this workbench reuse this server (REQ-005)
+    // and lets a launcher know "ready" is true before it says so.
+    if (new URL(req.url).pathname === HEALTH_PATH) {
+      return Response.json({
+        ok: true,
+        pid: Deno.pid,
+        project: project ?? null,
+        wbRoot,
+        startedAt,
+        idleMinutes,
+      });
+    }
+    clock.touch();
+    return dev.fetch(req, info);
+  },
 };

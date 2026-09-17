@@ -127,7 +127,11 @@ Pass each one its input contract and summarize what it returns.
    (`SPRIG_WB_ROOT=/tmp/wb-<port>`, exported on every `isolate` call) in its
    prompt so isolate servers and workbench regenerations never collide (the
    pkill-a-sibling wars and the shared-workbench preview race are both measured
-   failure modes). Without a breakdown spec, the same specialist authors a
+   failure modes). A re-run of `sprig isolate` on a workbench whose server is
+   still up reuses it (prints the URL, exits 0); `kill <pid>` of a run stops
+   its whole chain; an unattended workbench exits by itself after 30 min idle
+   (`SPRIG_IDLE_EXIT`) — so a fleet never accumulates servers (17 leaked in one
+   box was the measured failure mode). Without a breakdown spec, the same specialist authors a
    minimal `isolate/` and runs the same loop. **Long-unit split (the quadratic
    rule).** An agent loop re-sends its whole history every turn — input cost
    grows with the SQUARE of loop length, so one 150-turn

@@ -8,6 +8,7 @@ import { materializeWorkbench } from "../lib/workbench.ts";
 import { buildClient } from "../../framework/.sprig/compiler/build.ts";
 import { formatProblems, printReport } from "../lib/format.ts";
 import { emitJson } from "../lib/json-stdout.ts";
+import { parentEnv, terminate } from "../../framework/.sprig/supervise.ts";
 
 const REPO = fromFileUrl(new URL("../../", import.meta.url));
 
@@ -51,6 +52,7 @@ async function startServer(
   const env: Record<string, string> = {
     ...Deno.env.toObject(),
     ISOLATE_PROJECT: projectRoot,
+    ...parentEnv(), // if this run is SIGKILLed mid-test the server still goes
   };
   if (wbRoot) {
     env.SPRIG_WB_ROOT = wbRoot;
@@ -183,6 +185,25 @@ export const testCmd = new Command()
     let wbApp: string | undefined;
     let child: Deno.ChildProcess | undefined;
     let baseUrl = o.baseUrl;
+    // REQ-004 — Ctrl-C, `kill`, or a timed-out agent tool must not orphan the preview
+    // server: stop it (SIGTERM → grace → SIGKILL), then leave.
+    let stopping = false;
+    const stopOn = async (code: number) => {
+      if (stopping) return;
+      stopping = true;
+      if (child) await terminate(child, 2000);
+      Deno.exit(code);
+    };
+    for (
+      const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143], [
+        "SIGHUP",
+        129,
+      ]] as const
+    ) {
+      try {
+        Deno.addSignalListener(sig, () => void stopOn(code));
+      } catch { /* signal not supported here */ }
+    }
     try {
       if (wbRoot) {
         wbApp = await materializeWorkbench(wbRoot, root);
@@ -246,17 +267,19 @@ export const testCmd = new Command()
       } else {
         console.error(`✗ ${msg}`);
       }
-      try {
-        child?.kill("SIGTERM");
-      } catch { /* dead */ }
+      if (child) await terminate(child, 2000);
       Deno.exit(1);
     }
 
+    // The verdict decides the exit code; the server is stopped BEFORE exiting. (This used
+    // to call Deno.exit inside a try whose finally killed the server — Deno.exit does not
+    // unwind, so the finally never ran and every run left its server behind.)
+    let code = 1;
     try {
       const report = await runTests({ files, baseUrl, projectRoot: root });
       if (o.json) printJson(report);
       else printReport(report, root);
-      Deno.exit(report.ran && report.failed === 0 ? 0 : 1);
+      code = report.ran && report.failed === 0 ? 0 : 1;
     } catch (e) {
       const msg = (e as Error).message;
       if (o.json) {
@@ -268,12 +291,7 @@ export const testCmd = new Command()
           error: msg,
         });
       } else console.error(`✗ test run failed: ${msg}`);
-      Deno.exit(1);
-    } finally {
-      if (child) {
-        try {
-          child.kill("SIGTERM");
-        } catch { /* dead */ }
-      }
     }
+    if (child) await terminate(child, 2000);
+    Deno.exit(code);
   });
