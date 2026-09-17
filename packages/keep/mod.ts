@@ -565,9 +565,13 @@ export function Frontend(config: FrontendConfig = {}): Unit {
     const url = new URL(req.url);
     const path = url.pathname;
     if (path === "/" || path === "") {
-      return Response.redirect(new URL(base, url), 302);
-    }
-    if (path === "/favicon.ico") {
+      // A ROOT mount — base "" (the isolate workbench's own serve.ts) or "/" — IS the app:
+      // `/` falls through to SSR. Redirecting it to `new URL(base, url)` with an empty base
+      // is the request itself: a 302 self-loop (REQ-008; app/spine.test.ts caught it).
+      if (base !== "" && base !== "/") {
+        return Response.redirect(new URL(base, url), 302);
+      }
+    } else if (path === "/favicon.ico") {
       return Response.redirect(new URL(`${assetPrefix}/favicon.ico`, url), 302);
     }
     if (path !== base && !path.startsWith(base + "/")) {
