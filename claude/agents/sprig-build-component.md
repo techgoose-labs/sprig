@@ -63,10 +63,15 @@ and passed only a name.)
   delete each other's previews mid-run (a measured race). If you start
   `isolate dev`, record its PID
   (`isolate dev & echo $! > /tmp/dev-<your PORT>.pid`) and stop it with
-  `kill $(cat /tmp/dev-<your PORT>.pid)`. **`pkill`/`killall` are banned
+  `kill $(cat /tmp/dev-<your PORT>.pid)` — that one `kill` stops the whole
+  chain, dev server included; nothing to hunt afterwards. Re-running
+  `sprig isolate` on a workbench whose server is still up REUSES it (prints its
+  URL, exits 0) — never start a second one for the same `SPRIG_WB_ROOT`. A
+  workbench you leave behind exits by itself after 30 min idle
+  (`SPRIG_IDLE_EXIT=<minutes>`; `0` disables). **`pkill`/`killall` are banned
   OUTRIGHT — even scoped to your own workbench name** (gate-enforced; the
-  pattern can match siblings' servers). If strays persist after a kill, list
-  them (`ps aux | grep "wb-<your PORT>"`) and `kill <pid> <pid>…` explicitly by
+  pattern can match siblings' servers). If a stray ever persists after a kill,
+  list it (`ps aux | grep "wb-<your PORT>"`) and `kill <pid>` explicitly by
   number.
 
 ## Procedure

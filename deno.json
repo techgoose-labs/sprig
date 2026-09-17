@@ -74,6 +74,7 @@
       "framework/.sprig/install.ts",
       "framework/.sprig/pin-stamp.ts",
       "framework/.sprig/skills.ts",
+      "framework/.sprig/supervise.ts",
       "framework/cli.ts",
       "packages/keep/mod.ts",
       "packages/keep/vendor/apexcharts.js",
