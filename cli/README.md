@@ -57,7 +57,9 @@ commands/
 lib/
   format.ts            problem report, list table, test-report printer (@cliffy/ansi)
   process.ts           pump/drain, startServer (ready-URL detect), openBrowser, signals
-  runner.ts            ensureRunner — provisions ~/.isolate-runner (Playwright + rxjs + events)
+  runner.ts            ensureRunner — provisions the runner dir (Playwright + rxjs + events):
+                       $XDG_CACHE_HOME/sprig/isolate-runner, ISOLATE_RUNNER_HOME overrides
+                       (rule: server/src/core/business/runner/dir.ts)
   materialize.ts       the reference setupApp, adapted to copy ui/ instead of inlined strings
   update.ts            JSR latest + skills install + global CLI (ported from reference)
   events/              the isolate-events helper (capture/waitHydrated) copied into the runner

@@ -1,11 +1,26 @@
-// Provision ~/.isolate-runner with @playwright/test, rxjs, and the isolate-events
-// helper (copied from lib/events/). Returns whether the runner is usable; when it
-// isn't, the exact cause + fix are printed first — a broken runner must never
-// surface as a cryptic spawn failure inside `isolate test` or a ▸ run button.
+// Provision the Playwright runner — @playwright/test, rxjs, and the isolate-events
+// helper (copied from lib/events/) — in the dir server/src/core/business/runner/dir.ts
+// resolves: ISOLATE_RUNNER_HOME, else $XDG_CACHE_HOME/sprig/isolate-runner (~/.cache
+// default), else a legacy ~/.isolate-runner that is already provisioned (REQ-007).
+// Returns whether the runner is usable and where it is; when it isn't usable, the
+// exact cause + fix are printed first — a broken runner must never surface as a
+// cryptic spawn failure inside `isolate test` or a ▸ run button.
 import { fromFileUrl } from "#std/path";
 import { copy } from "#std/fs";
+import {
+  nodeModulesDir,
+  playwrightBin,
+  resolveRunnerDir,
+} from "../../server/src/core/business/runner/dir.ts";
 
 const EVENTS_DIR = fromFileUrl(new URL("./events", import.meta.url));
+
+export interface RunnerEnsure {
+  /** Usable: @playwright/test + rxjs + isolate-events are all in place. */
+  ok: boolean;
+  /** The resolved runner dir — null only when nothing can name one (no HOME). */
+  dir: string | null;
+}
 
 async function pathExists(p: string): Promise<boolean> {
   try {
@@ -16,18 +31,33 @@ async function pathExists(p: string): Promise<boolean> {
   }
 }
 
-export async function ensureRunner(): Promise<boolean> {
-  const home = Deno.env.get("HOME");
-  if (!home) {
+export async function ensureRunner(): Promise<RunnerEnsure> {
+  const dir = await resolveRunnerDir();
+  if (!dir) {
     console.warn(
-      "⚠ HOME is not set — can't set up the Playwright runner (~/.isolate-runner).\n" +
+      "⚠ HOME is not set — can't locate the Playwright runner.\n" +
+        "  Set ISOLATE_RUNNER_HOME=<dir> (or HOME / XDG_CACHE_HOME).\n" +
         "  ▸ run buttons and `isolate test` will fail until it is.",
     );
-    return false;
+    return { ok: false, dir: null };
   }
-  const dir = `${home}/.isolate-runner`;
-  const mods = `${dir}/node_modules`;
-  await Deno.mkdir(dir, { recursive: true });
+  const mods = nodeModulesDir(dir);
+  try {
+    await Deno.mkdir(dir, { recursive: true });
+  } catch (e) {
+    // The reported failure: a location that isn't a write root (a box's Landlock
+    // allow-list). Say where we tried and the two knobs that move it — never an
+    // uncaught EACCES.
+    console.warn(
+      `⚠ Can't create the Playwright runner dir ${dir}: ${
+        (e as Error).message
+      }\n` +
+        "  Point it somewhere writable: ISOLATE_RUNNER_HOME=<dir>, or XDG_CACHE_HOME=<cache dir>\n" +
+        "  (the runner lives at $XDG_CACHE_HOME/sprig/isolate-runner).\n" +
+        "  ▸ run buttons and `isolate test` will fail until it's fixed.",
+    );
+    return { ok: false, dir };
+  }
 
   let npmMissing = false;
   const npm = async (
@@ -58,8 +88,8 @@ export async function ensureRunner(): Promise<boolean> {
   }
 
   // 1. @playwright/test, matched to the system playwright version when available.
-  if (!(await pathExists(`${mods}/.bin/playwright`))) {
-    console.log("Setting up the Playwright runner (one-time)…");
+  if (!(await pathExists(playwrightBin(dir)))) {
+    console.log(`Setting up the Playwright runner (one-time) in ${dir}…`);
     let ver = "latest";
     try {
       const v = await new Deno.Command("playwright", {
@@ -89,7 +119,7 @@ export async function ensureRunner(): Promise<boolean> {
 
   // Verify what actually landed; one consolidated warning naming the gap + fix.
   const missing: string[] = [];
-  if (!(await pathExists(`${mods}/.bin/playwright`))) {
+  if (!(await pathExists(playwrightBin(dir)))) {
     missing.push("@playwright/test");
   }
   if (!(await pathExists(`${mods}/rxjs`))) missing.push("rxjs");
@@ -101,7 +131,7 @@ export async function ensureRunner(): Promise<boolean> {
           missing.map((m) => (m === "rxjs" ? "rxjs@^7" : m)).join(" ")
         }`,
     );
-    return false;
+    return { ok: false, dir };
   }
-  return true;
+  return { ok: true, dir };
 }
