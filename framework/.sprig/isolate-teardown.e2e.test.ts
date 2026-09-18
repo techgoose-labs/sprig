@@ -83,17 +83,27 @@ async function probe(port: number): Promise<boolean> {
   }
 }
 
+/** The supervisor's own word: printed after its health poll passed and the
+ *  live record is written. */
+const READY = "isolate ready";
+
+/** Ready = the port answers AND the supervisor said so. Its health poll runs
+ *  every 250 ms, so the listener is up before it knows; a kill that lands in
+ *  that window is "exited before it was ready" → exit 1, and a second run
+ *  finds no live record yet. The CI runner hit that window on every run
+ *  (REQ-004 AMENDMENT). */
 async function waitHealthy(run: Run, port: number, ms = 150_000) {
   const t0 = Date.now();
   let exited = false;
   run.child.status.then(() => exited = true);
   while (Date.now() - t0 < ms) {
-    if (await probe(port)) return;
+    if (run.out.text.includes(READY) && await probe(port)) return;
     if (exited) break;
     await sleep(300);
   }
   throw new Error(
-    `workbench never answered on ${port} (exited=${exited}):\n${run.out.text}`,
+    `workbench never became ready on ${port} (exited=${exited}, ` +
+      `ready line seen=${run.out.text.includes(READY)}):\n${run.out.text}`,
   );
 }
 
