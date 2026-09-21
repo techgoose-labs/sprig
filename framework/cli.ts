@@ -58,7 +58,11 @@ import {
 // serve.ts without it; `sprig clean` only removes one with it. So a
 // hand-written serve.ts is never overwritten nor deleted, whichever CLI ran.
 // It counts only as the file's first-line BANNER — see the module (REQ-010).
-import { isGeneratedServe, isLegacyServe } from "./.sprig/serve-marker.ts";
+import {
+  handOwnedRefusal,
+  isGeneratedServe,
+  isLegacyServe,
+} from "./.sprig/serve-marker.ts";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
 import {
   findLive,
@@ -1395,17 +1399,7 @@ async function writeRuneServe(
     const cur = await Deno.readTextFile(servePath);
     if (!isGeneratedServe(cur)) {
       console.error(
-        `sprig build: ${servePath} already exists and was NOT generated.\n` +
-          `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
-          `  Composing your own \`ui:\` or \`auth:\` unit is NOT a reason to own this file:\n` +
-          `  a generated root carries both across every build (REQ-012) — give yours the\n` +
-          `  \`// ${BEDROCK_SERVE_MARKER}\` banner and the build maintains it around your units.\n` +
-          `  Hand-owning it for something else (code that runs before compose)? Then this\n` +
-          `  build isn't yours to run: build just the client bundle instead, and keep\n` +
-          `  serving your own root —\n` +
-          `      sprig build --ui-only ${uiRel}\n` +
-          `  (that is how this toolchain's own workbench builds). Otherwise move the file\n` +
-          `  aside (or delete it) and re-run to get the generated root.\n` +
+        `sprig build: ${handOwnedRefusal(servePath, uiRel)}\n` +
           `  Porting a hand-written 1.x serve.ts (api.compose → Bedrock)? ${MIGRATION_GUIDE}`,
       );
       Deno.exit(1);

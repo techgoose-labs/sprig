@@ -48,6 +48,22 @@ export function isGeneratedServe(src: string): boolean {
     (b.startsWith(BEDROCK_SERVE_MARKER) || b.startsWith(LEGACY_SERVE_MARKER));
 }
 
+/** What `sprig build` tells an app whose serve.ts it refused to overwrite —
+ *  everything after the "sprig build: " prefix, before the migration-guide line. */
+export function handOwnedRefusal(servePath: string, uiRel: string): string {
+  return `${servePath} already exists and was NOT generated.\n` +
+    `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
+    `  Composing your own \`ui:\` or \`auth:\` unit is NOT a reason to own this file:\n` +
+    `  a generated root carries both across every build (REQ-012) — give yours the\n` +
+    `  \`// ${BEDROCK_SERVE_MARKER}\` banner and the build maintains it around your units.\n` +
+    `  Hand-owning it for something else (code that runs before compose)? Then this\n` +
+    `  build isn't yours to run: build just the client bundle instead, and keep\n` +
+    `  serving your own root —\n` +
+    `      sprig build --ui-only ${uiRel}\n` +
+    `  (that is how this toolchain's own workbench builds). Otherwise move the file\n` +
+    `  aside (or delete it) and re-run to get the generated root.`;
+}
+
 /** Was this serve.ts written by the 1.x CLI? The build says so out loud when it
  *  regenerates one, so a migrating app knows what just changed under it. */
 export function isLegacyServe(src: string): boolean {
