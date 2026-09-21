@@ -4,7 +4,7 @@
 // coms 20260921T181052Z-w5-55966: "Repro: any repo with a marker-less serve.ts,
 // run sprig build, diff the tree." The file below is `git show HEAD:serve.ts`
 // from the reporter's box, verbatim.
-import { assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, fromFileUrl, join } from "@std/path";
 
 const REPO = dirname(dirname(fromFileUrl(import.meta.url)));
@@ -165,13 +165,32 @@ async function scaffoldedInfraRepo(home: string): Promise<string> {
   assertEquals(init.code, 0, new TextDecoder().decode(init.stderr));
   const root = join(base, "app");
   const denoJson = JSON.parse(await Deno.readTextFile(join(root, "deno.json")));
-  denoJson.imports["@techgoose-labs/sprig"] = join(REPO, "framework", ".sprig", "core.ts");
-  denoJson.imports["@techgoose-labs/sprig/bedrock"] = join(REPO, "packages", "keep", "mod.ts");
-  await Deno.writeTextFile(join(root, "deno.json"), JSON.stringify(denoJson, null, 2) + "\n");
+  denoJson.imports["@techgoose-labs/sprig"] = join(
+    REPO,
+    "framework",
+    ".sprig",
+    "core.ts",
+  );
+  denoJson.imports["@techgoose-labs/sprig/bedrock"] = join(
+    REPO,
+    "packages",
+    "keep",
+    "mod.ts",
+  );
+  await Deno.writeTextFile(
+    join(root, "deno.json"),
+    JSON.stringify(denoJson, null, 2) + "\n",
+  );
   // infra's root in place of the generated one, plus what it imports
   await Deno.writeTextFile(join(root, "serve.ts"), INFRA_SERVE);
-  await Deno.writeTextFile(join(root, "public-surfaces.ts"), "export const InfraFrontend = () => ({});\n");
-  await Deno.writeTextFile(join(root, "firebase-config.ts"), `export const firebaseConfig = { projectId: "keystone" };\n`);
+  await Deno.writeTextFile(
+    join(root, "public-surfaces.ts"),
+    "export const InfraFrontend = () => ({});\n",
+  );
+  await Deno.writeTextFile(
+    join(root, "firebase-config.ts"),
+    `export const firebaseConfig = { projectId: "keystone" };\n`,
+  );
   // init already ignores /serve.ts for the generated root it wrote; infra's
   // repo has no such entry — start from one that a composition would have to ADD to.
   await Deno.writeTextFile(join(root, ".gitignore"), "node_modules/\n");
@@ -184,7 +203,10 @@ async function cli(root: string, home: string, ...args: string[]) {
     cwd: root,
     env: { ...Deno.env.toObject(), SPRIG_HOME: home, NO_COLOR: "1" },
   }).output();
-  return { code, out: new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr) };
+  return {
+    code,
+    out: new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr),
+  };
 }
 
 Deno.test("REQ-014 (e2e): `sprig build --ui-only ui` on infra's hand-owned root builds the bundle and leaves serve.ts, server/deno.json and the ignore file byte-identical", async () => {
@@ -199,13 +221,21 @@ Deno.test("REQ-014 (e2e): `sprig build --ui-only ui` on infra's hand-owned root 
     const rootDeno = JSON.parse(await read("deno.json"));
 
     const built = await cli(root, home, "build", "--ui-only", "ui");
-    assertEquals(built.code, 0, `sprig build --ui-only ui failed:\n${built.out}`);
+    assertEquals(
+      built.code,
+      0,
+      `sprig build --ui-only ui failed:\n${built.out}`,
+    );
     for (const f of ["client.js", "app.css", "templates.json"]) {
       await Deno.stat(join(root, "ui", "static", f)); // throws if the bundle is missing
     }
     assertEquals(await read("serve.ts"), serve, "serve.ts changed");
     assertStringIncludes(await read("serve.ts"), "__firebaseConfig =");
-    assertEquals(await read("server/deno.json"), serverDeno, "server/deno.json changed");
+    assertEquals(
+      await read("server/deno.json"),
+      serverDeno,
+      "server/deno.json changed",
+    );
     assertEquals(await read(".gitignore"), ignore, ".gitignore changed");
     // the root deno.json may take the pin stamp and nothing else
     const after = JSON.parse(await read("deno.json"));
@@ -216,9 +246,17 @@ Deno.test("REQ-014 (e2e): `sprig build --ui-only ui` on infra's hand-owned root 
     // …and the same tree under the composed build: refused, still untouched,
     // and pointed at the command that just worked.
     const plain = await cli(root, home, "build");
-    assertEquals(plain.code, 1, `plain build on a hand-owned root must refuse:\n${plain.out}`);
+    assertEquals(
+      plain.code,
+      1,
+      `plain build on a hand-owned root must refuse:\n${plain.out}`,
+    );
     assertStringIncludes(plain.out, "sprig build --ui-only ui");
-    assertEquals(await read("serve.ts"), serve, "the refused build rewrote serve.ts");
+    assertEquals(
+      await read("serve.ts"),
+      serve,
+      "the refused build rewrote serve.ts",
+    );
     assertEquals(await read("server/deno.json"), serverDeno);
     assertEquals(await read(".gitignore"), ignore);
   } finally {

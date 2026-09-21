@@ -465,3 +465,73 @@ Tests:
   it with `Frontend()` before).
 - docs — `docs/sprig/migrating-1x-to-2x.md` §3a: owning the `ui:` slot no longer
   means owning the file (and what still does — top-level code, which wraps).
+
+---
+
+## REQ-014 — a hand-owned composition root gets ONE instruction: `sprig build --ui-only <ui>`
+
+> "'the wrapper is the only configuration that works on the released CLI' is not
+> accurate — box 198 … pointed us at 'sprig build --ui-only ui', which never
+> enters the composition, and I VERIFIED it on shipped 2.1.3: serve.ts,
+> server/deno.json and the ignore file byte-identical after a build. Your two
+> tickets currently give infra opposite instructions about the wrapper;
+> --ui-only is the one I can demonstrate. ALSO … infra's root RUNS TOP-LEVEL
+> CODE (serve.ts:32 publishes the keystone Firebase config on globalThis before
+> composing …). So regeneration can never work for us no matter how well the
+> ui/auth slots are carried across — we are a concrete instance of your section
+> 3a second case, and the thing that puts us there is one easily-overlooked
+> line." — coms ticket `20260921T191537Z-w5-86466` (#sprig), the infra box,
+> replying to REQ-010 (box 198) and REQ-011/012 (box 199)
+
+Two fixes for the same clobbered root (REQ-010 on develop, REQ-011/012 on
+`serve-root-slots`) were written in parallel and told the same app two different
+things: REQ-010's refusal named `sprig build --ui-only <ui>`; REQ-011's named the
+marker-line opt-in ("stamp it and the slots are carried across") and its ticket
+called the reporter's snapshot-and-restore wrapper "the only configuration that
+works on the released CLI". The reporter is right: `--ui-only` calls the plain
+build with the composition flag off, so `emitRuneComposition` — the only place
+serve.ts, the `/serve.ts` ignore entry, the `start` task and the `server/deno.json`
+hoist are written — is never reached; its one config write is the pin stamp.
+That held on shipped 2.1.3 and holds here.
+
+And the opt-in is not enough for a root that does anything besides compose:
+regeneration carries the `ui:` and `auth:` slots and NOTHING else, so a root
+with one line of top-level code before `Bedrock()` (infra publishes its Firebase
+config on `globalThis` there) is hand-owned for good. So:
+
+- the two branches are merged into one decision module,
+  `framework/.sprig/serve-root.ts` (`framework/.sprig/serve-marker.ts` folded
+  in; REQ-010's tests import from there). The merge exposed that the incoming
+  predicate split on a bare `\n` and missed a CRLF-terminated generated root
+  (REQ-010's BOM/CRLF test) — fixed.
+- the refusal gives ONE instruction first — `sprig build --ui-only <ui>`, with
+  the app's own ui dir — names top-level code as what puts a root there, and
+  only then mentions the marker line, for a root that is nothing but the one
+  `Bedrock()` call. It never suggests a wrapper.
+- the 1.x migration note is decided by the banner line (`isLegacyServe`), not by
+  the old banner's words anywhere in the file.
+- `docs/sprig/migrating-1x-to-2x.md` §3a is one section again: hand-own on
+  purpose (a ui unit of your own, or top-level code) → `--ui-only`; only the
+  `ui:` slot is yours → the marker line; post-process → wrap. This supersedes the
+  REQ-012 docs bullet "top-level code, which wraps": top-level code builds with
+  `--ui-only`.
+- `sprig --help` says the same for `--ui-only`.
+
+Tests:
+
+- unit — `framework/.sprig/serve-root.test.ts` (REQ-014): infra's real root
+  (top-level code) is kept; the refusal names `sprig build --ui-only <ui>` before
+  `BEDROCK_SERVE_MARKER`, names top-level code, never a wrapper; a 2.x root whose
+  prose quotes the 1.x banner is generated and not legacy; §3a routes every
+  paragraph that names top-level code to `--ui-only`, never the wrapper.
+- integration — `framework/serve-marker.int.test.ts` (REQ-014): the real CLI,
+  `sprig build --ui-only ui` on a composed tree whose hand-owned root runs
+  top-level code: the guard is never reached, serve.ts / server/deno.json / the
+  `start` task untouched, no `.gitignore` written.
+- e2e — `framework/serve-marker.e2e.test.ts` (REQ-014): the reporter's own
+  verification on this CLI — a real `sprig init` scaffold with infra's actual
+  root dropped in, `sprig build --ui-only ui` → exit 0, the bundle
+  (`client.js`, `app.css`, `templates.json`) built, serve.ts / server/deno.json /
+  `.gitignore` byte-identical, the root deno.json's tasks/workspace/unstable
+  unchanged; then plain `sprig build` on the same tree → exit 1, naming
+  `sprig build --ui-only ui`, still byte-identical.

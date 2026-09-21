@@ -1,7 +1,7 @@
 // REQ-010 (integration) — the real CLI on a real composed tree: refusing a
 // hand-owned composition root leaves EVERY file byte-identical, and a genuinely
 // generated one is still regenerated and still cleaned.
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, fromFileUrl, join } from "@std/path";
 import { BEDROCK_SERVE_MARKER } from "@techgoose-labs/bedrock/artifact";
 

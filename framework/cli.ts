@@ -46,10 +46,7 @@ import {
   installRuntimeFromWorkingTree,
   latestRuntimeRelease,
 } from "./.sprig/install.ts";
-import {
-  ensureWorkspace,
-  specRootOf,
-} from "@techgoose-labs/bedrock/artifact";
+import { ensureWorkspace, specRootOf } from "@techgoose-labs/bedrock/artifact";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
 import {
   findLive,
@@ -121,7 +118,9 @@ function runeRange(): string {
     const cfg = JSON.parse(
       Deno.readTextFileSync(join(fwDir, "..", "server", "deno.json")),
     ) as { imports?: Record<string, string> };
-    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(/\/rune@([^"/]+)$/)
+    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(
+      /\/rune@([^"/]+)$/,
+    )
       ?.[1];
     if (range) return range;
   } catch { /* fall through to a sane floor */ }
@@ -1381,7 +1380,8 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *
  *  The refusal is the FIRST thing the composition does, before the serve.ts
  *  write, before the .gitignore entry, before the workspace merge — so an app
- *  that hand-owns its root ends a build with its tree byte-identical (REQ-010). */
+ *  that hand-owns its root ends a build with its tree byte-identical (REQ-010),
+ *  and it gives that app ONE instruction: `sprig build --ui-only <ui>` (REQ-014). */
 
 async function writeRuneServe(
   gitRoot: string,
@@ -1444,8 +1444,9 @@ async function ensureRuneWorkspace(
         "jsr:@techgoose-labs/bedrock@^1",
       "@techgoose-labs/sprig": uiImports["@techgoose-labs/sprig"] ??
         `jsr:@techgoose-labs/sprig@${fallbackSprigV}`,
-      "@techgoose-labs/sprig/bedrock": uiImports["@techgoose-labs/sprig/bedrock"] ??
-        `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
+      "@techgoose-labs/sprig/bedrock":
+        uiImports["@techgoose-labs/sprig/bedrock"] ??
+          `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
       "@std/path": uiImports["@std/path"] ?? "jsr:@std/path@^1",
       "@preact/signals-core": uiImports["@preact/signals-core"] ??
         "npm:@preact/signals-core@^1",

@@ -16,9 +16,20 @@
 //    config its auth path reads (REQ-012). A build must never remove what it
 //    cannot see.
 //
+// 3. What does the refusal tell the app to do? ONE thing: build the client
+//    bundle with `sprig build --ui-only <ui>` and keep serving its own root.
+//    Two fixes for the same clobbered root once gave the same app opposite
+//    instructions ("wrap the generated root" vs --ui-only); only --ui-only is
+//    true of a root that does anything besides compose — and one line of
+//    top-level code before `Bedrock()` is enough for that, since regeneration
+//    carries the slots and nothing else (REQ-014).
+//
 // Lives in its own module so all of it is testable without running the CLI.
 
-import { BEDROCK_SERVE_MARKER, renderServe } from "@techgoose-labs/bedrock/artifact";
+import {
+  BEDROCK_SERVE_MARKER,
+  renderServe,
+} from "@techgoose-labs/bedrock/artifact";
 
 /** The 1.x CLI's private marker. A root carrying it is by definition generated —
  *  refusing to regenerate it stranded every 1.x app at "already exists and was
@@ -48,19 +59,31 @@ export interface ServeSlot {
  * does not.
  */
 export function isGeneratedServe(src: string): boolean {
+  return headerMarker(src) !== undefined;
+}
+
+/** Was this root written by the 1.x CLI? Decided by the same banner line, so
+ *  the migration note prints for a 1.x root and not for a 2.x root whose prose
+ *  happens to quote the old banner (REQ-014). */
+export function isLegacyServe(src: string): boolean {
+  return headerMarker(src) === LEGACY_SERVE_MARKER;
+}
+
+/** The marker that opens a line of the leading comment block — or undefined
+ *  when no line does, which makes the file hand-written. */
+function headerMarker(src: string): string | undefined {
   for (const line of src.split(/\r?\n/)) { // CRLF-terminated is still generated
     const comment = line.match(/^\s*\/\/\s*(.*)$/);
     if (!comment) {
       if (line.trim() === "") continue; // blank lines don't end the header
-      return false; // code has started — the header block is over
+      return undefined; // code has started — the header block is over
     }
     const text = comment[1];
-    if (
-      text.startsWith(BEDROCK_SERVE_MARKER) ||
-      text.startsWith(LEGACY_SERVE_MARKER)
-    ) return true;
+    for (const marker of [BEDROCK_SERVE_MARKER, LEGACY_SERVE_MARKER]) {
+      if (text.startsWith(marker)) return marker;
+    }
   }
-  return false;
+  return undefined;
 }
 
 /** The argument list starting at `src[open]` (which must be `(`), balanced —
@@ -108,7 +131,9 @@ export function readSlot(src: string, slot: string): ServeSlot | undefined {
     args = balanced;
   }
   const imp = src.match(
-    new RegExp(`import\\s*\\{[^}]*\\b${symbol}\\b[^}]*\\}\\s*from\\s*["']([^"']+)["']`),
+    new RegExp(
+      `import\\s*\\{[^}]*\\b${symbol}\\b[^}]*\\}\\s*from\\s*["']([^"']+)["']`,
+    ),
   );
   if (!imp) return undefined;
   return { from: imp[1], symbol, expression: symbol + args };
@@ -169,16 +194,18 @@ export async function planServeRoot(
     return {
       action: "keep",
       reason: `${servePath} already exists and was NOT generated.\n` +
-        `  Refusing to overwrite a hand-written file — move it aside (or delete it) and re-run.\n` +
-        `  To let the build own this root again, open it with the marker line\n` +
-        `  \`// ${BEDROCK_SERVE_MARKER}\` — regeneration carries your \`ui:\` and \`auth:\`\n` +
-        `  units across (and nothing else in the file), so composing your own unit\n` +
-        `  does NOT mean opting out of builds.\n` +
-        `  Hand-owning the composition root on purpose (a ui slot this build can't see,\n` +
-        `  something published before compose)? Then this build isn't yours to run: build\n` +
-        `  just the client bundle instead, and keep serving your own root —\n` +
+        `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
+        `  Hand-owning the composition root on purpose — a ui unit of your own, something\n` +
+        `  published before compose, any top-level code at all? Then the composed build is\n` +
+        `  not yours to run: build just the client bundle, and keep serving your own root —\n` +
         `      sprig build --ui-only ${uiRel}\n` +
-        `  (that is how this toolchain's own workbench builds).`,
+        `  (that is how this toolchain's own workbench builds; point your deploy build\n` +
+        `  command at it too).\n` +
+        `  Only the \`ui:\` slot is yours, nothing else in the file? Then you need not own\n` +
+        `  it: open it with the marker line \`// ${BEDROCK_SERVE_MARKER}\` and the build\n` +
+        `  regenerates it, carrying your \`ui:\` and \`auth:\` units across — and NOTHING else,\n` +
+        `  so a root with top-level code stays hand-owned and builds with --ui-only above.\n` +
+        `  Otherwise move the file aside (or delete it) and re-run to get the generated root.`,
     };
   }
   // CARRY THE APP'S OWN SLOTS ACROSS. The renderer emits from which halves this
@@ -194,8 +221,14 @@ export async function planServeRoot(
     notes: [
       `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
       `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-      ...(auth ? [] : [`Add an auth unit as the third slot when the app needs one.`]),
+      ...(auth
+        ? []
+        : [`Add an auth unit as the third slot when the app needs one.`]),
     ],
   });
-  return { action: "write", src, legacy: cur?.includes(LEGACY_SERVE_MARKER) ?? false };
+  return {
+    action: "write",
+    src,
+    legacy: cur !== undefined && isLegacyServe(cur),
+  };
 }
