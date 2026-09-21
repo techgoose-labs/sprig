@@ -25,7 +25,7 @@ import {
 // static relative imports of the package's own modules (computed-path dynamic imports
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
-import { existingAuthSlot } from "./.sprig/auth-slot.ts";
+import { isGeneratedServe, planServeRoot } from "./.sprig/serve-root.ts";
 import { compositionRootOf, ROOT_ENV } from "./.sprig/composition-root.ts";
 import {
   analyzeWiring,
@@ -48,16 +48,8 @@ import {
 } from "./.sprig/install.ts";
 import {
   ensureWorkspace,
-  renderServe,
   specRootOf,
 } from "@techgoose-labs/bedrock/artifact";
-// The generated-serve.ts marker is BEDROCK_SERVE_MARKER now — one string both
-// toolchains write and both recognize, replacing the two private markers that
-// each had to know about the other. `writeRuneServe` refuses to clobber a
-// serve.ts without it; `sprig clean` only removes one with it. So a
-// hand-written serve.ts is never overwritten nor deleted, whichever CLI ran.
-// It counts only as the file's first-line BANNER — see the module (REQ-010).
-import { isGeneratedServe, isLegacyServe } from "./.sprig/serve-marker.ts";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
 import {
   findLive,
@@ -602,6 +594,14 @@ function devCacheDir(appDir: string): string {
   return join(tmp, "sprig-dev", key, "static");
 }
 
+// The generated-serve.ts marker is BEDROCK_SERVE_MARKER now — one string both
+// toolchains write and both recognize, replacing the two private markers that
+// each had to know about the other. `writeRuneServe` refuses to clobber a
+// serve.ts without it; `sprig clean` only removes one with it. So a
+// hand-written serve.ts is never overwritten nor deleted, whichever CLI ran —
+// which holds only because the test is a marker LINE and not the word anywhere
+// in the file (REQ-010, REQ-011): `isGeneratedServe` and the rest of that decision
+// live in .sprig/serve-root.ts, where they are testable without running the CLI.
 /** Where the 1.x → 2.x hand-migration steps live (ships in the docs of every release). */
 const MIGRATION_GUIDE =
   "https://github.com/techgoose-labs/sprig/blob/main/docs/sprig/migrating-1x-to-2x.md";
@@ -898,9 +898,9 @@ async function migrateLegacyRuntime(appDir: string): Promise<void> {
  *  source untouched. That is exactly two things:
  *    1. the build output dir <ui>/static/ — chunks, app.css, templates.json, .gen/, and the
  *       COPIES of assets/** (the authored originals under <ui>/assets/ stay put).
- *    2. a generated <root>/serve.ts — only when its FIRST LINE is the BEDROCK_SERVE_MARKER
- *       banner, so a hand-written serve.ts is never deleted, not even one that talks
- *       about the marker.
+ *    2. a generated <root>/serve.ts — only when a line of its leading comment block is
+ *       the BEDROCK_SERVE_MARKER banner, so a hand-written serve.ts is never deleted,
+ *       not even one that talks about the marker.
  *  It deliberately does NOT touch the shared ~/.cache/sprig-tailwind cache (cross-project, not an
  *  artifact of THIS build) nor revert the deno.json/.gitignore edits `--rune` makes (those are
  *  config merges, not created files) — it reports them so you can undo them if you want. */
@@ -1374,9 +1374,10 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *  `renderServe`, so the file is byte-identical whichever toolchain's init
  *  emitted it (D-18) and each recognizes the other's by the ONE shared marker
  *  instead of hunting for a private one. Refuses to clobber a hand-written
- *  serve.ts. The root is a BUILD ARTIFACT — a CLI concern, kept out of git:
- *  deploy builds regenerate it, and `sprig dev` composes the same thing
- *  in-process.
+ *  serve.ts, and carries the app's OWN `ui:`/`auth:` units across when it does
+ *  regenerate — a build must never remove what it cannot see. The root is a
+ *  BUILD ARTIFACT — a CLI concern, kept out of git: deploy builds regenerate
+ *  it, and `sprig dev` composes the same thing in-process.
  *
  *  The refusal is the FIRST thing the composition does, before the serve.ts
  *  write, before the .gitignore entry, before the workspace merge — so an app
@@ -1389,48 +1390,22 @@ async function writeRuneServe(
   assetsRel: string,
 ): Promise<void> {
   const servePath = join(gitRoot, "serve.ts");
-  if (await pathExists(servePath)) {
-    const cur = await Deno.readTextFile(servePath);
-    if (!isGeneratedServe(cur)) {
-      console.error(
-        `sprig build: ${servePath} already exists and was NOT generated.\n` +
-          `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
-          `  Hand-owning the composition root on purpose (a ui slot this build can't see,\n` +
-          `  something published before compose)? Then this build isn't yours to run: build\n` +
-          `  just the client bundle instead, and keep serving your own root —\n` +
-          `      sprig build --ui-only ${uiRel}\n` +
-          `  (that is how this toolchain's own workbench builds). Otherwise move the file\n` +
-          `  aside (or delete it) and re-run to get the generated root.\n` +
-          `  Porting a hand-written 1.x serve.ts (api.compose → Bedrock)? ${MIGRATION_GUIDE}`,
-      );
-      Deno.exit(1);
-    }
-    if (isLegacyServe(cur)) {
-      console.log(
-        `sprig build: regenerating the 1.x serve.ts as a Bedrock composition root — see ${MIGRATION_GUIDE}`,
-      );
-    }
+  // The decision — may we rewrite this file, and what does the rewrite carry
+  // across — is `planServeRoot`; this is only the I/O and the console around it.
+  const plan = await planServeRoot(servePath, { uiRel, serverRel, assetsRel });
+  if (plan.action === "keep") {
+    console.error(
+      `sprig build: ${plan.reason}\n` +
+        `  Porting a hand-written 1.x serve.ts (api.compose → Bedrock)? ${MIGRATION_GUIDE}`,
+    );
+    Deno.exit(1);
   }
-  // CARRY THE AUTH SLOT ACROSS. The renderer emits from which halves this build
-  // can see, and it cannot see a third-party auth unit — so regenerating would
-  // silently DELETE `auth:` from an app that composes one, and the app would
-  // come back up with every guarded route open. A build must never remove auth.
-  const auth = await existingAuthSlot(servePath);
-  const src = renderServe({
-    ui: {
-      from: "@techgoose-labs/sprig/bedrock",
-      symbol: "Frontend",
-      expression: "Frontend()",
-    },
-    backend: { from: `./${serverRel}/bootstrap/mod.ts`, symbol: "api" },
-    ...(auth ? { auth } : {}),
-    notes: [
-      `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
-      `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-      ...(auth ? [] : [`Add an auth unit as the third slot when the app needs one.`]),
-    ],
-  });
-  await Deno.writeTextFile(servePath, src);
+  if (plan.legacy) {
+    console.log(
+      `sprig build: regenerating the 1.x serve.ts as a Bedrock composition root — see ${MIGRATION_GUIDE}`,
+    );
+  }
+  await Deno.writeTextFile(servePath, plan.src);
   // the composition root is never committed — the deploy build regenerates it and
   // dev composes it in-process, so keep it out of the repo's history entirely.
   await ensureGitignore(gitRoot, "/serve.ts");

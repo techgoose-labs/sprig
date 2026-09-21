@@ -6,7 +6,7 @@ import { BEDROCK_SERVE_MARKER } from "@techgoose-labs/bedrock/artifact";
 import {
   isGeneratedServe,
   LEGACY_SERVE_MARKER,
-} from "./.sprig/serve-marker.ts";
+} from "./.sprig/serve-root.ts";
 
 /** infra's real hand-owned composition root — the file the report says was
  *  overwritten (`git show HEAD:serve.ts` on the reporter's box). Its third line
