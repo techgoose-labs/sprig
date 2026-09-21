@@ -364,6 +364,8 @@ Tests:
 - e2e — `framework/.sprig/serve-root.e2e.test.ts` (REQ-011): the real CLI on a
   real scaffold — `sprig clean` leaves the prose root (it deleted it before) and
   regeneration exits 1 without touching a byte.
+- docs — `docs/sprig/migrating-1x-to-2x.md` §3a states the marker-line rule (no
+  test: it restates the behaviour the three above hold).
 
 ---
 
@@ -399,3 +401,5 @@ Tests:
 - e2e — `framework/.sprig/serve-root.e2e.test.ts` (REQ-012): the real CLI
   regenerating a real scaffolded root keeps the app's own ui unit (it replaced
   it with `Frontend()` before).
+- docs — `docs/sprig/migrating-1x-to-2x.md` §3a: owning the `ui:` slot no longer
+  means owning the file (and what still does — top-level code, which wraps).

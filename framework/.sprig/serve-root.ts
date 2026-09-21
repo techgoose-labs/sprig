@@ -168,7 +168,8 @@ export async function planServeRoot(
         `  Refusing to overwrite a hand-written file — move it aside (or delete it) and re-run.\n` +
         `  To let the build own this root again, open it with the marker line\n` +
         `  \`// ${BEDROCK_SERVE_MARKER}\` — regeneration carries your \`ui:\` and \`auth:\`\n` +
-        `  units across, so composing your own unit does NOT mean opting out of builds.`,
+        `  units across (and nothing else in the file), so composing your own unit\n` +
+        `  does NOT mean opting out of builds.`,
     };
   }
   // CARRY THE APP'S OWN SLOTS ACROSS. The renderer emits from which halves this

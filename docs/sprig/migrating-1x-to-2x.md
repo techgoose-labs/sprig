@@ -76,6 +76,29 @@ generated marker — you wrote it. Port it:
 
 Or delete it and let `sprig build` write the canonical one.
 
+**You wrote it to keep your OWN `ui:` unit** (a Frontend of your own that serves
+extra routes, publishes config, wraps the sprig one). You no longer have to own
+the file for that: open your root with the marker line
+
+```ts
+// BEDROCK_SERVE_MARKER — the composition root at the git root.
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { MyFrontend } from "./ui/frontend.ts";
+import { api } from "./server/bootstrap/mod.ts";
+
+export default Bedrock({ ui: MyFrontend(), backend: api });
+```
+
+and the build regenerates AROUND your units: it reads `ui:` and `auth:` back off
+the file and writes them again, owning only the `backend:` it just composed. The
+marker has to be a line of the leading comment block — naming it in prose does
+not make a file generated (and a hand-written root that mentions it is not
+overwritten, nor deleted by `sprig clean`).
+
+Nothing else in the file survives, though: if your root also runs top-level code,
+keep it hand-written (no marker — the build will refuse it, which is the point)
+and wrap the generated one, next.
+
 **You post-process the generated file** (a script that splices extra host routes
 into `serve.ts` after every build). `Bedrock(...)` returns a callable handler,
 so stop patching the generated file and wrap it instead — your entry imports
