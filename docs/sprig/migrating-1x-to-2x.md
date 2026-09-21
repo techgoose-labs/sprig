@@ -63,7 +63,10 @@ templates, islands, `resolve.ts`, DI, routing and styling are the same API in
 
 ### 3a. A customised `serve.ts`
 
-The build regenerates a `serve.ts` it (or 1.x) generated. Two cases need you:
+The build regenerates a `serve.ts` it (or 1.x) generated — recognized by its
+first line, the `// BEDROCK_SERVE_MARKER …` banner (or the 1.x one). Anything
+else is yours and is never rewritten, not even a file that talks _about_ the
+marker. Three cases need you:
 
 **It refuses: "already exists and was NOT generated."** Your `serve.ts` has no
 generated marker — you wrote it. Port it:
@@ -94,6 +97,20 @@ export default {
 ```bash
 deno serve -A host.ts        # instead of serve.ts; update the `start` task
 ```
+
+**You hand-own the root on purpose** — its `ui` slot is not a plain `Frontend()`
+(a subclass adding public surfaces), or something has to be published into
+`globalThis` _before_ `Bedrock()` composes. Then the composed build is not yours
+to run: build only the client bundle, and keep serving your own root.
+
+```bash
+sprig build --ui-only ui     # assets only — no serve.ts, no workspace merge,
+                             # no /serve.ts in .gitignore, no `start` task rewrite
+```
+
+This toolchain's own workbench builds that way. Point your deploy preset's build
+command at it too — plain `sprig build` will refuse (exit 1) rather than
+substitute the generated root for yours.
 
 ### 3b. The docs moved: `/docs` → `/api/docs`
 

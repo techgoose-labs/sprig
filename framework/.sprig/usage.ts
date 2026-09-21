@@ -27,6 +27,11 @@ export const USAGE = `sprig — the framework CLI
                                   (the Bedrock composition root) and makes the root a workspace. The root
                                   is the dir holding ui/ + server/ — the git root, or a subfolder of a
                                   larger repo (nearest wins; SPRIG_ROOT=<dir> overrides)
+                                  --ui-only <ui>: JUST the client bundle — no serve.ts, no workspace, no
+                                  .gitignore entry. For an app that HAND-OWNS its composition root (a ui
+                                  slot this build can't see): it keeps serving its own root and still
+                                  gets its assets built. A hand-written serve.ts is never overwritten —
+                                  the plain build refuses and names this flag
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
   sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free

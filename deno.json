@@ -83,7 +83,8 @@
       "framework/.sprig/auth-slot.ts",
       "framework/.sprig/composition-root.ts",
       "framework/.sprig/host-layer.ts",
-      "framework/.sprig/usage.ts"
+      "framework/.sprig/usage.ts",
+      "framework/.sprig/serve-marker.ts"
     ]
   },
   "git": {
