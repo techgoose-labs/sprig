@@ -1,7 +1,7 @@
 // REQ-010 (integration) — the real CLI on a real composed tree: refusing a
 // hand-owned composition root leaves EVERY file byte-identical, and a genuinely
 // generated one is still regenerated and still cleaned.
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, fromFileUrl, join } from "@std/path";
 import { BEDROCK_SERVE_MARKER } from "@techgoose-labs/bedrock/artifact";
 
@@ -202,5 +202,65 @@ Deno.test("REQ-010 (integration): sprig clean removes a generated root and spare
   } finally {
     await Deno.remove(generated, { recursive: true });
     await Deno.remove(handOwned, { recursive: true });
+  }
+});
+
+/** The CLI the way a deploy build runs it: no TTY on either stream, NO_COLOR
+ *  not set (a build log does not set it for us), each stream kept apart.
+ *  `clearEnv` matters: without it Deno MERGES `env` over the parent's, and a key
+ *  deleted from the copy still reaches the child from the test runner's env. */
+async function sprigAsBuildLog(root: string, ...args: string[]) {
+  const env = { ...Deno.env.toObject() };
+  delete env.NO_COLOR;
+  const { code, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
+    args: ["run", "-A", "--config", CONFIG, CLI, ...args],
+    cwd: root,
+    env,
+    clearEnv: true,
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  return {
+    code,
+    out: new TextDecoder().decode(stdout),
+    err: new TextDecoder().decode(stderr),
+  };
+}
+
+Deno.test("REQ-013 (integration): the refusal reads as a build log — on stderr, plain text, the command a whole line", async () => {
+  const root = await composedRepo(HAND_OWNED);
+  try {
+    const { code, out, err } = await sprigAsBuildLog(root, "build");
+    assertEquals(
+      code,
+      1,
+      `expected a refusal, got exit ${code}:\n${out}${err}`,
+    );
+    // stderr is where a build log looks for the failure — none of the refusal
+    // may be split off onto stdout
+    assertStringIncludes(err, "already exists and was NOT generated");
+    assert(
+      !out.includes("NOT generated"),
+      `the refusal leaked to stdout:\n${out}`,
+    );
+    // the way forward: one whole line, copy-pasteable, with the real ui dir
+    const lines = err.split("\n").map((l) => l.trim());
+    assertEquals(
+      lines.filter((l) => l === "sprig build --ui-only ui").length,
+      1,
+      `expected exactly one \`sprig build --ui-only ui\` line:\n${err}`,
+    );
+    // and the other way forward, for a root that only composes its own unit
+    assertStringIncludes(err, "BEDROCK_SERVE_MARKER");
+    // nothing a TTY-less log prints raw — in the refusal, which is the CLI's to
+    // write. (Deno's own experimentalDecorators warning, above it, is coloured
+    // by Deno regardless of the pipe; the CLI has no say in that line.)
+    const body = err.slice(err.indexOf("sprig build:"));
+    assert(body.startsWith("sprig build:"), `the refusal is missing:\n${err}`);
+    // deno-lint-ignore no-control-regex
+    assert(!/\x1b/.test(body + out), "escape sequence in the refusal");
+  } finally {
+    await Deno.remove(root, { recursive: true });
   }
 });

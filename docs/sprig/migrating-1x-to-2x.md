@@ -132,9 +132,23 @@ sprig build --ui-only ui     # assets only — no serve.ts, no workspace merge,
                              # no /serve.ts in .gitignore, no `start` task rewrite
 ```
 
-This toolchain's own workbench builds that way. Point your deploy preset's build
-command at it too — plain `sprig build` will refuse (exit 1) rather than
-substitute the generated root for yours.
+This toolchain's own workbench builds that way. It is a per-app choice, made in
+both places a build runs — the `build` task **and that app's own deploy build
+command** — because plain `sprig build` refuses (exit 1) rather than substitute
+the generated root for yours. The refusal is written for a build log with no
+TTY: the command is a whole line of its own, with the app's real ui dir.
+
+Which build command an app deploys with follows from where its root lives:
+
+| The root is… | `serve.ts` in git                                    | build task and deploy build command                          |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
+| generated    | no — `/serve.ts` is gitignored; every build emits it | `sprig build` — the composed build (`--rune` still accepted) |
+| hand-owned   | yes — committed; the build never writes it           | `sprig build --ui-only ui`                                   |
+
+A build command shared by every app you deploy — a preset — has to stay on the
+composed build: switched to `--ui-only`, every generated-root app would deploy
+with no entrypoint at all. Only a hand-owned root's own deploy config points at
+`--ui-only`, and committing `serve.ts` is what makes a root hand-owned.
 
 ### 3b. The docs moved: `/docs` → `/api/docs`
 
