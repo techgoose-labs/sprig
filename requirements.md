@@ -380,3 +380,72 @@ Tests:
   publication, the "no BEDROCK_SERVE_MARKER" header) under the deploy preset's
   own command `sprig build --rune`: exit 1, the file byte-identical, the ui slot
   and the project-id publication intact, no `/serve.ts` in `.gitignore`.
+
+---
+
+## REQ-011 — SUPERSEDED by REQ-010
+
+Reserved for "the marker is a LINE of the generated root, never a word in its
+prose" — the first of the two defects in coms `20260921T184230Z-w5-73419`, the
+root-cause follow-up to `20260921T181052Z-w5-55966`. REQ-010 landed the same fix
+from the original ticket while this branch was in flight, and it landed the
+stricter reading: the marker is the file's first-line BANNER. That is the one in
+the tree; this branch dropped its own predicate and its tests rather than keep
+two.
+
+What this branch kept from it is in REQ-012's refusal message: composing your own
+unit is no longer a reason to hand-own the file, so the refusal says so and names
+the banner.
+
+No tests — the behaviour is REQ-010's, held by `framework/serve-marker.*.test.ts`.
+
+---
+
+## REQ-012 — a build must never remove the app's own `ui:` unit, either
+
+> "The bigger one: writeRuneServe hardcodes ui: Frontend() at cli.ts:1415, so a
+> custom ui unit is deleted every build — the exact failure existingAuthSlot
+> exists to prevent, and your own comment at cli.ts:1410 argues it for me ('A
+> build must never remove auth'). infra composes InfraFrontend(), which serves
+> /firebase-config.* and /authz/* and publishes globalThis.__firebaseConfig;
+> losing that makes the auth unit resolve an empty projectId and ACCEPT A
+> TOKEN-LESS LOGIN, and the deploy preset runs sprig build --rune so it lands in
+> prod." — report 20260921T184230Z-w5-73419 (#sprig), defect 2
+
+REQ-010 stops the build from touching a root it did not write. This is the other
+half: what a build does to a root it DID write. Regeneration carries the app's own
+slots across — `auth:` (already) and now `ui:`. The build's `Frontend()` is only
+the DEFAULT, for a root that composes no ui unit of its own. The build owns
+exactly one slot, the backend it just composed, because that is the only one it
+can see.
+
+So an app that only wants its own `ui:` unit does not have to hand-own the file to
+keep it: it keeps the banner, the build keeps maintaining the root, and the unit
+survives. The refusal in REQ-010 says that, and reserves `--ui-only` for what
+regeneration genuinely cannot preserve — a root that runs code before it composes
+(infra's `globalThis.__firebaseConfig = …`, which is why THAT app stays
+hand-owned).
+
+The slot reader is shared by both slots and reads a **balanced** argument list, so
+a configured unit (`Frontend({ app: build({ x: 1 }) })`) is carried whole instead
+of truncated at the first `)` into a root that does not parse; an unbalanced or
+un-imported slot is left alone rather than half-copied. `auth-slot.ts` became
+`framework/.sprig/serve-slots.ts` — both slots, one reader — next to REQ-010's
+`serve-marker.ts`: which file may be rewritten is one question, what the rewrite
+carries is the other.
+
+Tests:
+
+- unit — `framework/serve-slots.test.ts` (REQ-012): a custom unit and its import,
+  the default reading back as itself, an object argument, a nested call, an
+  unbalanced list, a symbol with no import, no ui slot, no file — plus the auth
+  cases the module already held.
+- integration — `framework/serve-slots.int.test.ts` (REQ-012): the real CLI on
+  REQ-010's minimal composed tree — the regenerated root keeps `ui: MyFrontend({
+  base: "/" })` and `auth: AlfredAuth()` with their imports, a root with no ui
+  unit still gets the default `Frontend()`, and a second build is byte-stable.
+- e2e — `framework/serve-slots.e2e.test.ts` (REQ-012): a real `sprig init` app
+  whose root takes over the ui slot, then a real `sprig build --rune` — the unit
+  survives and the regenerated root typechecks.
+- docs — `docs/sprig/migrating-1x-to-2x.md` §3a: owning the `ui:` slot is not
+  owning the file (no test: it restates the behaviour the three above hold).

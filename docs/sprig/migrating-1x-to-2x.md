@@ -66,7 +66,7 @@ templates, islands, `resolve.ts`, DI, routing and styling are the same API in
 The build regenerates a `serve.ts` it (or 1.x) generated — recognized by its
 first line, the `// BEDROCK_SERVE_MARKER …` banner (or the 1.x one). Anything
 else is yours and is never rewritten, not even a file that talks _about_ the
-marker. Three cases need you:
+marker. Four cases need you:
 
 **It refuses: "already exists and was NOT generated."** Your `serve.ts` has no
 generated marker — you wrote it. Port it:
@@ -78,6 +78,28 @@ generated marker — you wrote it. Port it:
 | `sprigAuth(…)` / the `/auth` gateway                              | gone from sprig. An auth unit is the third slot: `Bedrock({ ui, backend, auth: MyAuth() })` — see [hosting.md](./hosting.md#who-the-caller-is)             |
 
 Or delete it and let `sprig build` write the canonical one.
+
+**You wrote it only to keep your OWN `ui:` unit** (a Frontend of your own that
+serves extra routes, or wraps the sprig one). You do not have to own the file for
+that — keep the banner as the first line and compose your unit under it:
+
+```ts
+// BEDROCK_SERVE_MARKER — the composition root at the git root.
+import { Bedrock } from "@techgoose-labs/bedrock";
+import { MyFrontend } from "./ui/frontend.ts";
+import { api } from "./server/bootstrap/mod.ts";
+
+export default Bedrock({ ui: MyFrontend(), backend: api });
+```
+
+The build regenerates AROUND your units: it reads `ui:` and `auth:` back off the
+file and writes them again, owning only the `backend:` it just composed. So the
+root stays maintained — new notes, new backend path, new slots — and your unit
+survives every build.
+
+Only the slots survive, though. If your root also runs top-level code (publishing
+into `globalThis` before `Bedrock()` composes, say), that code is not carried:
+hand-own the file and build with `--ui-only`, last case below.
 
 **You post-process the generated file** (a script that splices extra host routes
 into `serve.ts` after every build). `Bedrock(...)` returns a callable handler,
@@ -98,10 +120,12 @@ export default {
 deno serve -A host.ts        # instead of serve.ts; update the `start` task
 ```
 
-**You hand-own the root on purpose** — its `ui` slot is not a plain `Frontend()`
-(a subclass adding public surfaces), or something has to be published into
-`globalThis` _before_ `Bedrock()` composes. Then the composed build is not yours
-to run: build only the client bundle, and keep serving your own root.
+**You hand-own the root on purpose** — something has to run before `Bedrock()`
+composes (a value published into `globalThis`, a side-effecting import), so the
+file is more than its slots and regeneration cannot preserve it. (A custom `ui:`
+or `auth:` unit alone is NOT this case — those are carried, two cases up.) Then
+the composed build is not yours to run: build only the client bundle, and keep
+serving your own root.
 
 ```bash
 sprig build --ui-only ui     # assets only — no serve.ts, no workspace merge,

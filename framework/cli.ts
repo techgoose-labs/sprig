@@ -25,7 +25,7 @@ import {
 // static relative imports of the package's own modules (computed-path dynamic imports
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
-import { existingAuthSlot } from "./.sprig/auth-slot.ts";
+import { existingAuthSlot, existingUiSlot } from "./.sprig/serve-slots.ts";
 import { compositionRootOf, ROOT_ENV } from "./.sprig/composition-root.ts";
 import {
   analyzeWiring,
@@ -47,6 +47,7 @@ import {
   latestRuntimeRelease,
 } from "./.sprig/install.ts";
 import {
+  BEDROCK_SERVE_MARKER,
   ensureWorkspace,
   renderServe,
   specRootOf,
@@ -1374,7 +1375,8 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *  `renderServe`, so the file is byte-identical whichever toolchain's init
  *  emitted it (D-18) and each recognizes the other's by the ONE shared marker
  *  instead of hunting for a private one. Refuses to clobber a hand-written
- *  serve.ts. The root is a BUILD ARTIFACT — a CLI concern, kept out of git:
+ *  serve.ts, and carries the app's OWN `ui:`/`auth:` units across when it does
+ *  regenerate (REQ-012). The root is a BUILD ARTIFACT — a CLI concern, kept out of git:
  *  deploy builds regenerate it, and `sprig dev` composes the same thing
  *  in-process.
  *
@@ -1395,9 +1397,12 @@ async function writeRuneServe(
       console.error(
         `sprig build: ${servePath} already exists and was NOT generated.\n` +
           `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
-          `  Hand-owning the composition root on purpose (a ui slot this build can't see,\n` +
-          `  something published before compose)? Then this build isn't yours to run: build\n` +
-          `  just the client bundle instead, and keep serving your own root —\n` +
+          `  Composing your own \`ui:\` or \`auth:\` unit is NOT a reason to own this file:\n` +
+          `  a generated root carries both across every build (REQ-012) — give yours the\n` +
+          `  \`// ${BEDROCK_SERVE_MARKER}\` banner and the build maintains it around your units.\n` +
+          `  Hand-owning it for something else (code that runs before compose)? Then this\n` +
+          `  build isn't yours to run: build just the client bundle instead, and keep\n` +
+          `  serving your own root —\n` +
           `      sprig build --ui-only ${uiRel}\n` +
           `  (that is how this toolchain's own workbench builds). Otherwise move the file\n` +
           `  aside (or delete it) and re-run to get the generated root.\n` +
@@ -1411,17 +1416,21 @@ async function writeRuneServe(
       );
     }
   }
-  // CARRY THE AUTH SLOT ACROSS. The renderer emits from which halves this build
-  // can see, and it cannot see a third-party auth unit — so regenerating would
-  // silently DELETE `auth:` from an app that composes one, and the app would
-  // come back up with every guarded route open. A build must never remove auth.
+  // CARRY THE APP'S OWN SLOTS ACROSS. The renderer emits from which halves this
+  // build can see, and it can see neither a third-party auth unit nor an app's
+  // own ui unit — so regenerating would silently DELETE them, and the app would
+  // come back up with every guarded route open (auth) or serving none of the
+  // routes its own Frontend adds (ui). A build must never remove what it cannot
+  // see; the one slot it owns is the backend it just composed. `Frontend()` is
+  // the DEFAULT here, for a root that composes no ui unit of its own (REQ-012).
+  const ui = await existingUiSlot(servePath) ?? {
+    from: "@techgoose-labs/sprig/bedrock",
+    symbol: "Frontend",
+    expression: "Frontend()",
+  };
   const auth = await existingAuthSlot(servePath);
   const src = renderServe({
-    ui: {
-      from: "@techgoose-labs/sprig/bedrock",
-      symbol: "Frontend",
-      expression: "Frontend()",
-    },
+    ui,
     backend: { from: `./${serverRel}/bootstrap/mod.ts`, symbol: "api" },
     ...(auth ? { auth } : {}),
     notes: [
