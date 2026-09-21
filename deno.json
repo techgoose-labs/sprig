@@ -80,10 +80,11 @@
       "packages/keep/vendor/apexcharts.js",
       "framework/.sprig/artifact.ts",
       "framework/.sprig/wire-paths.ts",
-      "framework/.sprig/serve-root.ts",
+      "framework/.sprig/serve-slots.ts",
       "framework/.sprig/composition-root.ts",
       "framework/.sprig/host-layer.ts",
       "framework/.sprig/usage.ts",
+      "framework/.sprig/serve-marker.ts"
     ]
   },
   "git": {
