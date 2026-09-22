@@ -57,16 +57,30 @@ export function isGeneratedServe(src: string): boolean {
  *  besides compose, and one line of top-level code before `Bedrock()` is enough
  *  for that — regeneration carries the ui:/auth: slots and nothing else. The
  *  marker line is the footnote, for a root that is nothing but the one call.
- *  Never a wrapper script around the build (REQ-014). */
-export function handOwnedRefusal(servePath: string, uiRel: string): string {
+ *  Never a wrapper script around the build (REQ-014). The instruction is given
+ *  in its hosted form too — the same CLI from jsr through the import map —
+ *  because the log this is read in belongs to a build with no `sprig` launcher
+ *  (REQ-016). */
+export function handOwnedRefusal(
+  servePath: string,
+  uiRel: string,
+  cliVersion: string | null = null,
+): string {
+  // a file: run knows its version; a jsr run has none on disk to hand over
+  const pin = cliVersion ?? "<version>";
   return `${servePath} already exists and was NOT generated.\n` +
     `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
     `  Hand-owning the composition root on purpose — a ui unit of your own, something\n` +
     `  published before compose, any top-level code at all? Then the composed build is\n` +
     `  not yours to run: build just the client bundle, and keep serving your own root —\n` +
     `      sprig build --ui-only ${uiRel}\n` +
-    `  (that is how this toolchain's own workbench builds; point your deploy build\n` +
-    `  command at it too).\n` +
+    `  (that is how this toolchain's own workbench builds). Point your deploy build\n` +
+    `  command at it too — as the same CLI run from jsr, because a hosted build is a\n` +
+    `  clean checkout with no \`sprig\` launcher on PATH (that is what \`sprig install\`\n` +
+    `  writes on your machine; a bare \`sprig\` head exits 127 there):\n` +
+    `      deno run -A @techgoose-labs/sprig/cli build --ui-only ${uiRel}\n` +
+    `  with "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@${pin}/cli" in the\n` +
+    `  deno.json imports — the build stamps that pin with the runtime's (REQ-017).\n` +
     `  Only the \`ui:\` or \`auth:\` slot is yours, nothing else in the file? Then you need\n` +
     `  not own it: give it the \`// ${BEDROCK_SERVE_MARKER}\` banner and the build\n` +
     `  regenerates it around your units (REQ-012), carrying \`ui:\` and \`auth:\` across —\n` +

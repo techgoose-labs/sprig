@@ -639,3 +639,110 @@ Tests:
   "has to stay on the composed build", and states both deploy shapes (the
   `generated` / `hand-owned` rows; "committing `serve.ts` is what makes a root
   hand-owned").
+
+## REQ-016 — the documented deploy build command survives a hosted build: the `/cli` form
+
+> Filed on the same ticket, coms `20260921T190104Z-w5-80834`, by the infra box
+> after shipping to Deno Deploy: "The documented command does not survive a
+> hosted build. Every revision of our app since 2026-08-25 failed at the
+> building step with: `Task build sprig build --ui-only ui` / `sprig: command
+> not found` / `Error executing build command (exit code 127)`. Cause: the sprig
+> shim written by sprig install execs ~/.sprig/framework/cli.ts, so a bare sprig
+> head only resolves on a machine where someone ran sprig install. Deploy's
+> build container is a clean checkout. The live site silently stayed on the last
+> revision that HAD built - a month stale - because deno deploy exits 0 even
+> when the revision fails, so a scripted deploy looks green. What fixed it, and
+> it may be worth documenting as the hosted-build form: route through the
+> import map rather than PATH. deno.json imports: `"@techgoose-labs/sprig/cli":
+> "jsr:@techgoose-labs/sprig@<pin>/cli"` — task build: `deno run -A
+> @techgoose-labs/sprig/cli build --ui-only ui` … No action wanted; filing it
+> because anyone following the --ui-only docs onto a hosted build will hit exit
+> 127 and get no signal that the deploy failed."
+
+Verified here before changing anything: the launcher `sprig install` writes is
+`exec deno run -A --config ~/.sprig/deno.json ~/.sprig/framework/cli.ts "$@"`
+(`framework/.sprig/install.ts`), so a bare `sprig` head resolves only where
+that ran; `cliVersion()`'s own comment already calls `deno run jsr:…/cli build`
+"every Deno Deploy build"; and `deno task build` with no launcher on PATH
+prints exactly the reporter's `sprig: command not found`, exit 127. REQ-013's
+§3a and REQ-014's refusal both told a reader to point the deploy build command
+at `sprig build --ui-only ui` — a command that cannot run in the log it is read
+in. "No action wanted" is the reporter's; the fix is the assignee's call, because
+the guidance shipped for this ticket fails where it is followed.
+
+The docs. §3a now gives the hosted form: a deploy's build step is a clean
+checkout with no `sprig` on PATH (that launcher is what `sprig install` writes),
+a bare `sprig …` task ends with `sprig: command not found` and exit 127 while a
+scripted `deno deploy` still reports success; run the same CLI from jsr through
+an import-map entry — `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@<v>/cli"`,
+task `deno run -A @techgoose-labs/sprig/cli build --ui-only ui` — and the same
+head serves a generated root's composed build. The mapped form, not an inline
+`jsr:…@X.Y.Z` in the task, because the build stamps that entry (REQ-017).
+
+The refusal. `handOwnedRefusal` takes the CLI's version as a third argument and
+names the hosted form under the local one: the same whole-line shape with the
+app's real ui dir, the mapping it resolves through at the CLI's own version (a
+placeholder on a jsr run, which has no version on disk), and why the bare head
+fails there. REQ-013's and REQ-014's properties hold: `sprig build --ui-only <ui>`
+is still the first instruction and still exactly one whole line, the marker line
+still the footnote, no wrapper.
+
+Out of scope, flagged: the scaffold's own root `deno.json` writes
+`"build": "sprig build"` — the same bare head, for a generated root — so a
+scaffolded app deployed with `deno task build` fails the same way; that is its
+own ticket. `deno deploy` exiting 0 on a failed revision is Deno's.
+
+Tests:
+
+- unit — `framework/serve-marker.test.ts` (REQ-016): the refusal carries
+  exactly one `deno run -A @techgoose-labs/sprig/cli build --ui-only <ui>` line
+  below the local one and above the marker, names the mapping at the CLI's
+  version, says `sprig install` and "hosted build", never "wrap"; with no
+  version, a placeholder and never "null"/"undefined".
+- integration — `framework/serve-marker.int.test.ts` (REQ-016): the real CLI as
+  a build log (stdio piped, stdin null): the hosted line exactly once on stderr,
+  below the local line, the mapping pinned to this checkout's version, nothing
+  of it on stdout.
+- e2e — `framework/serve-marker.e2e.test.ts` (REQ-016): on a scaffolded app with
+  infra's root, `deno task build` under a PATH with no `sprig` launcher: the
+  documented task exits 127 with `sprig: command not found`; the hosted head on
+  the composed build refuses and names both lines; the hosted `--ui-only` form
+  builds the bundle, leaves `serve.ts`, `.gitignore` and the task byte-identical
+  and does not restamp a local `/cli` override.
+- docs — `framework/.sprig/serve-root.docs.test.ts` (REQ-016): §3a gives the
+  hosted line, the `/cli` mapping, the composed-build head, `sprig install`,
+  127, "command not found", and that the build stamps the entry.
+
+## REQ-017 — the stamp keeps `@techgoose-labs/sprig/cli` in lockstep with the runtime pins
+
+> Same message: "Using the mapped specifier rather than an inline jsr:...@X.Y.Z
+> matters: it puts the CLI pin on a line the stamp already rewrites, so it
+> cannot drift from the bare and /bedrock entries."
+
+It did not. `stampImports` (`framework/.sprig/pin-stamp.ts`) re-pinned exactly
+two keys, `@techgoose-labs/sprig` and `@techgoose-labs/sprig/bedrock`, and
+`sprigImportsInText` read only those — so a `/cli` mapping was the one sprig
+entry every build left alone: the deploy built with whatever CLI the entry was
+first written at, while the runtime pins moved on, and a JSONC config that
+declined the stamp never mentioned it (REQ-015's notice named the first pinned
+value it found, which may be the current runtime entry). Now `/cli` is a third
+wanted key under the same rules — only an existing key is touched, a local
+override is left alone, a pin ahead of the CLI is never downgraded — the JSONC
+reader sees it, and the declined notice names the entry that is behind and the
+pin it keeps. The hosted build never stamps anything: a jsr run has no version
+on disk, and `stamp()` returns before reading a file.
+
+Tests:
+
+- unit — `framework/.sprig/pin-stamp.test.ts` (REQ-017 ×2): `/cli` re-pinned
+  with the runtime entries and alone; never added; a local override and an
+  ahead pin left alone; `sprigImportsInText` reads a `/cli` mapping and the
+  declined notice names it with its stale pin, one line.
+- integration — `framework/pin-stamp.int.test.ts` (REQ-017): the real CLI's
+  `build --ui-only ui` on a root `deno.json` with a stale `/cli` pin stamps it
+  with the runtime pins in one write, announced once, task untouched,
+  idempotent on the second build.
+- e2e — `framework/serve-marker.e2e.test.ts` (REQ-017): on a scaffolded app
+  wired the reporter's way with a pin that fell behind, the local build re-pins
+  `/cli` to the CLI that ran, leaves the runtime overrides and the task alone,
+  and has nothing to stamp the second time.

@@ -317,3 +317,50 @@ Deno.test("REQ-013 (integration): the refusal reads as a build log — on stderr
     await Deno.remove(root, { recursive: true });
   }
 });
+
+// REQ-016 (integration) — the refusal, as a build log reads it, also names the
+// HOSTED form of the instruction: a deploy's build container has no `sprig`
+// launcher (that is a local install's), so the same CLI is run from jsr through
+// the import map (coms 20260921T190104Z-w5-80834).
+Deno.test("REQ-016 (integration): the refusal as a build log carries the hosted form once — a whole `deno run -A @techgoose-labs/sprig/cli build --ui-only ui` line on stderr, below the `sprig build --ui-only ui` line", async () => {
+  const root = await composedRepo(HAND_OWNED);
+  try {
+    const { code, out, err } = await sprigAsBuildLog(root, "build");
+    assertEquals(
+      code,
+      1,
+      `expected a refusal, got exit ${code}:\n${out}${err}`,
+    );
+    const lines = err.split("\n").map((l) => l.trim());
+    const local = lines.indexOf("sprig build --ui-only ui");
+    const hosted = lines.indexOf(
+      "deno run -A @techgoose-labs/sprig/cli build --ui-only ui",
+    );
+    assert(local >= 0, `the local instruction is missing:\n${err}`);
+    assert(hosted >= 0, `the hosted form is missing:\n${err}`);
+    assertEquals(
+      lines.filter((l) =>
+        l === "deno run -A @techgoose-labs/sprig/cli build --ui-only ui"
+      ).length,
+      1,
+      `expected exactly one hosted-form line:\n${err}`,
+    );
+    assert(
+      local < hosted,
+      `the hosted form belongs under the local one:\n${err}`,
+    );
+    // the mapping that line resolves through, pinned to the CLI that printed
+    // it — a file: run knows its own version
+    const cliV = JSON.parse(await Deno.readTextFile(CONFIG)).version as string;
+    assertStringIncludes(
+      err,
+      `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@${cliV}/cli"`,
+    );
+    assert(
+      !out.includes("sprig/cli"),
+      `the hosted form leaked to stdout:\n${out}`,
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});

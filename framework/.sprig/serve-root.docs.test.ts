@@ -36,3 +36,31 @@ Deno.test("REQ-013 (docs): §3a states both deploy shapes — a generated root g
     "committing `serve.ts` is what makes a root hand-owned",
   );
 });
+
+// REQ-016 (docs) — the documented deploy build command must survive a HOSTED
+// build. The first cut of §3a gave `sprig build --ui-only ui` as the deploy
+// build command; a bare `sprig` head resolves only where `sprig install` wrote
+// its launcher, and Deno Deploy's build step is a clean checkout — exit 127,
+// "sprig: command not found", and a scripted `deno deploy` still reports
+// success (coms 20260921T190104Z-w5-80834, the reporter's month of failed
+// revisions). So §3a gives the hosted form: the same CLI run from jsr, through
+// an import-map entry the build stamps with the runtime pins (REQ-017).
+Deno.test("REQ-016 (docs): §3a gives the hosted-build form — the /cli import-map entry and `deno run -A @techgoose-labs/sprig/cli build --ui-only ui` — and says a bare `sprig` head exits 127 where nobody ran `sprig install`", async () => {
+  const s = await section3a();
+  assertStringIncludes(
+    s,
+    "deno run -A @techgoose-labs/sprig/cli build --ui-only ui",
+  );
+  assertStringIncludes(
+    s,
+    `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@`,
+  );
+  // the same head serves a generated root's composed build
+  assertStringIncludes(s, "deno run -A @techgoose-labs/sprig/cli build`");
+  // why the bare head fails there, in the reporter's terms
+  assertStringIncludes(s, "sprig install");
+  assertStringIncludes(s, "127");
+  assertStringIncludes(s, "command not found");
+  // the mapped entry is kept in lockstep by the build, so the pin is not a chore
+  assertStringIncludes(s, "stamp");
+});
