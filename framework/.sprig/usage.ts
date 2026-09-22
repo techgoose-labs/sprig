@@ -29,9 +29,9 @@ export const USAGE = `sprig — the framework CLI
                                   larger repo (nearest wins; SPRIG_ROOT=<dir> overrides)
                                   --ui-only <ui>: JUST the client bundle — no serve.ts, no workspace, no
                                   .gitignore entry. For an app that HAND-OWNS its composition root (a ui
-                                  slot this build can't see): it keeps serving its own root and still
-                                  gets its assets built. A hand-written serve.ts is never overwritten —
-                                  the plain build refuses and names this flag
+                                  unit of its own, top-level code before compose): it keeps serving its
+                                  own root and still gets its assets built. A hand-written serve.ts is
+                                  never overwritten — the plain build refuses and names this flag
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
   sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free

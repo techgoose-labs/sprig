@@ -48,6 +48,33 @@ export function isGeneratedServe(src: string): boolean {
     (b.startsWith(BEDROCK_SERVE_MARKER) || b.startsWith(LEGACY_SERVE_MARKER));
 }
 
+/** What `sprig build` tells an app whose serve.ts it refused to overwrite —
+ *  everything after the "sprig build: " prefix, before the migration-guide line.
+ *
+ *  ONE instruction, first: `sprig build --ui-only <ui>`. Two fixes for the same
+ *  clobbered root once told the same app two different things ("stamp the marker
+ *  line" / "--ui-only"); only --ui-only is true of a root that does anything
+ *  besides compose, and one line of top-level code before `Bedrock()` is enough
+ *  for that — regeneration carries the ui:/auth: slots and nothing else. The
+ *  marker line is the footnote, for a root that is nothing but the one call.
+ *  Never a wrapper script around the build (REQ-014). */
+export function handOwnedRefusal(servePath: string, uiRel: string): string {
+  return `${servePath} already exists and was NOT generated.\n` +
+    `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
+    `  Hand-owning the composition root on purpose — a ui unit of your own, something\n` +
+    `  published before compose, any top-level code at all? Then the composed build is\n` +
+    `  not yours to run: build just the client bundle, and keep serving your own root —\n` +
+    `      sprig build --ui-only ${uiRel}\n` +
+    `  (that is how this toolchain's own workbench builds; point your deploy build\n` +
+    `  command at it too).\n` +
+    `  Only the \`ui:\` or \`auth:\` slot is yours, nothing else in the file? Then you need\n` +
+    `  not own it: give it the \`// ${BEDROCK_SERVE_MARKER}\` banner and the build\n` +
+    `  regenerates it around your units (REQ-012), carrying \`ui:\` and \`auth:\` across —\n` +
+    `  and NOTHING else, so a root with top-level code stays hand-owned and builds\n` +
+    `  with --ui-only above.\n` +
+    `  Otherwise move the file aside (or delete it) and re-run to get the generated root.`;
+}
+
 /** Was this serve.ts written by the 1.x CLI? The build says so out loud when it
  *  regenerates one, so a migrating app knows what just changed under it. */
 export function isLegacyServe(src: string): boolean {

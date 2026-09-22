@@ -47,7 +47,6 @@ import {
   latestRuntimeRelease,
 } from "./.sprig/install.ts";
 import {
-  BEDROCK_SERVE_MARKER,
   ensureWorkspace,
   renderServe,
   specRootOf,
@@ -58,7 +57,11 @@ import {
 // serve.ts without it; `sprig clean` only removes one with it. So a
 // hand-written serve.ts is never overwritten nor deleted, whichever CLI ran.
 // It counts only as the file's first-line BANNER — see the module (REQ-010).
-import { isGeneratedServe, isLegacyServe } from "./.sprig/serve-marker.ts";
+import {
+  handOwnedRefusal,
+  isGeneratedServe,
+  isLegacyServe,
+} from "./.sprig/serve-marker.ts";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
 import {
   findLive,
@@ -69,6 +72,7 @@ import {
 } from "./.sprig/supervise.ts";
 import { hostArgTokens, hostLayer } from "./.sprig/host-layer.ts";
 import {
+  declinedStampNotice,
   hasLegacyRuntimeName,
   migrateImports,
   migrateSource,
@@ -130,7 +134,9 @@ function runeRange(): string {
     const cfg = JSON.parse(
       Deno.readTextFileSync(join(fwDir, "..", "server", "deno.json")),
     ) as { imports?: Record<string, string> };
-    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(/\/rune@([^"/]+)$/)
+    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(
+      /\/rune@([^"/]+)$/,
+    )
       ?.[1];
     if (range) return range;
   } catch { /* fall through to a sane floor */ }
@@ -756,7 +762,12 @@ async function stamp(appDir: string): Promise<void> {
       try {
         cfg = JSON.parse(text);
       } catch {
-        continue; // JSONC-with-comments / unparseable → don't risk a rewrite
+        // JSONC-with-comments / unparseable → don't risk a rewrite. But SAY so
+        // when it matters: a stale pin here would stay stale on every build
+        // otherwise, and nobody would be told (REQ-015).
+        const notice = declinedStampNotice(p, text, v);
+        if (notice) console.warn(notice);
+        continue;
       }
       if (!cfg.imports) continue;
       // stampImports NEVER downgrades: a pin AHEAD of this CLI means the CLI install is
@@ -1382,7 +1393,8 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *
  *  The refusal is the FIRST thing the composition does, before the serve.ts
  *  write, before the .gitignore entry, before the workspace merge — so an app
- *  that hand-owns its root ends a build with its tree byte-identical (REQ-010). */
+ *  that hand-owns its root ends a build with its tree byte-identical (REQ-010),
+ *  and it gives that app ONE instruction: `sprig build --ui-only <ui>` (REQ-014). */
 
 async function writeRuneServe(
   gitRoot: string,
@@ -1395,17 +1407,7 @@ async function writeRuneServe(
     const cur = await Deno.readTextFile(servePath);
     if (!isGeneratedServe(cur)) {
       console.error(
-        `sprig build: ${servePath} already exists and was NOT generated.\n` +
-          `  Refusing to overwrite a hand-written file — nothing in the tree was touched.\n` +
-          `  Composing your own \`ui:\` or \`auth:\` unit is NOT a reason to own this file:\n` +
-          `  a generated root carries both across every build (REQ-012) — give yours the\n` +
-          `  \`// ${BEDROCK_SERVE_MARKER}\` banner and the build maintains it around your units.\n` +
-          `  Hand-owning it for something else (code that runs before compose)? Then this\n` +
-          `  build isn't yours to run: build just the client bundle instead, and keep\n` +
-          `  serving your own root —\n` +
-          `      sprig build --ui-only ${uiRel}\n` +
-          `  (that is how this toolchain's own workbench builds). Otherwise move the file\n` +
-          `  aside (or delete it) and re-run to get the generated root.\n` +
+        `sprig build: ${handOwnedRefusal(servePath, uiRel)}\n` +
           `  Porting a hand-written 1.x serve.ts (api.compose → Bedrock)? ${MIGRATION_GUIDE}`,
       );
       Deno.exit(1);
@@ -1436,7 +1438,9 @@ async function writeRuneServe(
     notes: [
       `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
       `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-      ...(auth ? [] : [`Add an auth unit as the third slot when the app needs one.`]),
+      ...(auth
+        ? []
+        : [`Add an auth unit as the third slot when the app needs one.`]),
     ],
   });
   await Deno.writeTextFile(servePath, src);
@@ -1478,8 +1482,9 @@ async function ensureRuneWorkspace(
         "jsr:@techgoose-labs/bedrock@^1",
       "@techgoose-labs/sprig": uiImports["@techgoose-labs/sprig"] ??
         `jsr:@techgoose-labs/sprig@${fallbackSprigV}`,
-      "@techgoose-labs/sprig/bedrock": uiImports["@techgoose-labs/sprig/bedrock"] ??
-        `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
+      "@techgoose-labs/sprig/bedrock":
+        uiImports["@techgoose-labs/sprig/bedrock"] ??
+          `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
       "@std/path": uiImports["@std/path"] ?? "jsr:@std/path@^1",
       "@preact/signals-core": uiImports["@preact/signals-core"] ??
         "npm:@preact/signals-core@^1",
