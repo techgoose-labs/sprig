@@ -570,3 +570,72 @@ Tests:
   release back, `sprig build --ui-only ui` exits 0, the comment survives, the
   pin stays, stderr says it was left unstamped; the comment removed, the same
   build stamps and announces.
+
+---
+
+## REQ-013 — the refusal is read in a Deno Deploy build log; `--ui-only` is per app, never a shared preset
+
+> Filed as coms ticket `20260921T190104Z-w5-80834` on #sprig by the infra box
+> (continuing 55966 / 73419): "when the fixed sprig releases, our DEPLOY build
+> would start failing (exit 1 on a hand-owned root) even though the local task
+> is already correct. That is the right behaviour — failing loudly beats
+> shipping the bypass — but it means the exit-1 message will be read in a Deno
+> Deploy build log with no TTY, so it is worth making sure it reads well there
+> and names `--ui-only` unambiguously." And on the preset: "making the SHARED
+> deploy preset `--ui-only` would break every app whose root is generated rather
+> than committed - those need `--rune` to emit an entrypoint at all … If you did
+> intend the preset to become `--ui-only` for everyone, that implies
+> generated-root apps must start committing `serve.ts` — worth stating
+> explicitly in `migrating-1x-to-2x.md` §3a".
+
+The message. The refusal `writeRuneServe` prints (REQ-010, kept whole by
+REQ-012's merge) already says both ways forward — the marker banner for a root
+that only composes its own unit, and `sprig build --ui-only <ui>` on a line of
+its own for one that hand-owns the file — with the app's real ui dir. This
+requirement pins the properties a TTY-less log needs, so a later rewrite of the
+text cannot lose them the way one merge candidate did (the `serve-root-slots`
+message, before REQ-012 landed, named no `--ui-only` at all): the refusal is on
+**stderr** and none of it on stdout; `sprig build --ui-only <ui>` is one whole
+line, exactly once; the marker is named; the refusal carries no escape byte. The
+tests spawn the CLI the way a deploy build runs it — stdout/stderr piped, stdin
+null, `NO_COLOR` absent — and `clearEnv` is what makes "absent" true: without
+it `Deno.Command` merges `env` over the parent's, and a key deleted from the
+copy still reaches the child from the test runner. Deno's own coloured
+`experimentalDecorators` deprecation warning, printed above the refusal, is
+Deno's line and stays outside this requirement.
+
+The docs. §3a told the reader to "point your deploy preset's build command" at
+`--ui-only` — wrong for a preset shared with generated-root apps, whose deploy
+has no entrypoint without the composed build (it is what emits their
+`serve.ts`). `--ui-only` is per app: §3a now scopes it to the app's own build
+task + deploy build command, states the two deploy shapes explicitly (generated
+root: gitignored, composed build; hand-owned root: committed, `--ui-only`), and
+that a shared preset stays on the composed build. Generated-root apps do not
+start committing `serve.ts`.
+
+Retracted by the reporter, on their own repro: `sprig dev` "rewriting"
+`deno.json` was one stale pin being stamped once, by build and dev alike; the
+one defect in that area (a JSONC config silently skips the stamp) is its own
+ticket, `20260921T205912Z-w5-115272`. Related, not this: REQ-014 (ticket
+`20260921T191537Z-w5-86466`, branch `serve-root-unify`) reorders the refusal to
+lead with `--ui-only`; REQ-013's tests hold for either order.
+
+Tests:
+
+- unit — n/a: the message is composed inline in `writeRuneServe` (cli.ts), and
+  extracting it would rewrite the lines REQ-014 is rewriting in parallel; the
+  integration test drives the real CLI on the same tree instead.
+- integration — `framework/serve-marker.int.test.ts` (REQ-013): the real CLI as
+  a build log runs it — stdio piped, stdin null, `NO_COLOR` absent via
+  `clearEnv` — exit 1, the refusal on stderr (none on stdout), exactly one
+  `sprig build --ui-only ui` line, the marker named, no escape byte in the
+  refusal.
+- e2e — `framework/serve-marker.e2e.test.ts` (REQ-013): the deploy preset's own
+  `sprig build --rune` on infra's actual root, piped like a Deno Deploy build:
+  exit 1, the file byte-identical, exactly one `sprig build --ui-only ui` line
+  on stderr, the marker named, no escape byte.
+- docs — `framework/.sprig/serve-root.docs.test.ts` (REQ-013): §3a scopes
+  `--ui-only` per app (no "deploy preset's build command"), says a shared preset
+  "has to stay on the composed build", and states both deploy shapes (the
+  `generated` / `hand-owned` rows; "committing `serve.ts` is what makes a root
+  hand-owned").

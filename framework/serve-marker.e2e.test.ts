@@ -4,7 +4,7 @@
 // coms 20260921T181052Z-w5-55966: "Repro: any repo with a marker-less serve.ts,
 // run sprig build, diff the tree." The file below is `git show HEAD:serve.ts`
 // from the reporter's box, verbatim.
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, fromFileUrl, join } from "@std/path";
 
 const REPO = dirname(dirname(fromFileUrl(import.meta.url)));
@@ -262,5 +262,55 @@ Deno.test("REQ-014 (e2e): `sprig build --ui-only ui` on infra's hand-owned root 
   } finally {
     await Deno.remove(base, { recursive: true });
     await Deno.remove(home, { recursive: true });
+  }
+});
+
+Deno.test("REQ-013 (e2e): read in a Deno Deploy build log — the preset's `sprig build --rune` on infra's root names `--ui-only` unambiguously", async () => {
+  const root = await infraLikeRepo();
+  try {
+    // a deploy build: no TTY on either stream, NO_COLOR not set for us
+    // (`clearEnv`, or the runner's own NO_COLOR would be merged back in)
+    const env = { ...Deno.env.toObject() };
+    delete env.NO_COLOR;
+    const { code, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
+      args: ["run", "-A", "--config", CONFIG, CLI, "build", "--rune"],
+      cwd: root,
+      env,
+      clearEnv: true,
+      stdin: "null",
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const err = new TextDecoder().decode(stderr);
+    const out = new TextDecoder().decode(stdout);
+
+    assertEquals(
+      code,
+      1,
+      `expected a refusal, got exit ${code}:\n${out}${err}`,
+    );
+    assertEquals(
+      await Deno.readTextFile(join(root, "serve.ts")),
+      INFRA_SERVE,
+      "infra's composition root was rewritten",
+    );
+
+    const lines = err.split("\n").map((l) => l.trim());
+    // infra's ui dir is `ui`: the line to put in its deploy build command is exactly this
+    assertEquals(
+      lines.filter((l) => l === "sprig build --ui-only ui").length,
+      1,
+      `expected exactly one \`sprig build --ui-only ui\` line on stderr:\n${err}`,
+    );
+    // the other way forward — for a root that only composes its own unit
+    assertStringIncludes(err, "BEDROCK_SERVE_MARKER");
+    // the refusal itself is plain text (Deno's own coloured deprecation warning
+    // above it is Deno's line, not the CLI's)
+    const body = err.slice(err.indexOf("sprig build:"));
+    assert(body.startsWith("sprig build:"), `the refusal is missing:\n${err}`);
+    // deno-lint-ignore no-control-regex
+    assert(!/\x1b/.test(body + out), "escape sequence in the refusal");
+  } finally {
+    await Deno.remove(root, { recursive: true });
   }
 });
