@@ -77,6 +77,45 @@ export function stampImports(
   return { imports: out, changed, aheadPin };
 }
 
+/** The `@techgoose-labs/sprig` mappings a config TEXT declares, read without
+ *  parsing it. For a JSONC file (a comment, a trailing comma) JSON.parse fails
+ *  and the stamp declines to rewrite — it cannot round-trip what it did not
+ *  parse — but it still has to know whether it declined something that
+ *  mattered. Text-level, so a commented-out mapping counts too; the cost of
+ *  that is one spurious line, never a wrong write (REQ-015). */
+export function sprigImportsInText(text: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (
+    const m of text.matchAll(
+      /"(@techgoose-labs\/sprig(?:\/bedrock)?)"\s*:\s*"([^"]*)"/g,
+    )
+  ) {
+    out[m[1]] = m[2];
+  }
+  return out;
+}
+
+/** The one line `stamp()` owes an app when it declines a config it could not
+ *  parse — or null when declining changed nothing: no sprig mapping there, a
+ *  pin already at `v`, a local override, or a pin AHEAD of the CLI (never
+ *  downgrade; that one is the CLI's problem, warned about elsewhere). Without
+ *  this, a repo that annotates its deno.json was never re-pinned and never
+ *  told (REQ-015, coms 20260921T205912Z-w5-115272). */
+export function declinedStampNotice(
+  path: string,
+  text: string,
+  v: string,
+): string | null {
+  const found = sprigImportsInText(text);
+  if (!stampImports(found, v).changed) return null;
+  const cur =
+    Object.values(found).map(pinnedSprigVersion).find((p) => p !== null) ??
+      "an older pin";
+  return `sprig: ${path} is not plain JSON (a comment? a trailing comma?) — left unstamped: ` +
+    `@techgoose-labs/sprig stays at ${cur} while this CLI is ${v}. ` +
+    `Re-pin it by hand, or drop the comments and rebuild.`;
+}
+
 /** Rename a legacy-scoped import KEY to the modern scope; non-legacy keys pass through. */
 export function migrateKey(k: string): string {
   // The @mrg-keystone -> @techgoose-labs move is a scope rename like the

@@ -72,6 +72,7 @@ import {
 } from "./.sprig/supervise.ts";
 import { hostArgTokens, hostLayer } from "./.sprig/host-layer.ts";
 import {
+  declinedStampNotice,
   hasLegacyRuntimeName,
   migrateImports,
   migrateSource,
@@ -761,7 +762,12 @@ async function stamp(appDir: string): Promise<void> {
       try {
         cfg = JSON.parse(text);
       } catch {
-        continue; // JSONC-with-comments / unparseable → don't risk a rewrite
+        // JSONC-with-comments / unparseable → don't risk a rewrite. But SAY so
+        // when it matters: a stale pin here would stay stale on every build
+        // otherwise, and nobody would be told (REQ-015).
+        const notice = declinedStampNotice(p, text, v);
+        if (notice) console.warn(notice);
+        continue;
       }
       if (!cfg.imports) continue;
       // stampImports NEVER downgrades: a pin AHEAD of this CLI means the CLI install is

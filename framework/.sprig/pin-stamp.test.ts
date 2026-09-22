@@ -2,7 +2,12 @@
 // a stale 0.21.1 CLI ran `sprig build` on an app pinned to @techgoose-labs/sprig@1.0.0
 // and silently DOWNGRADED the pin to 0.21.1 (via the legacy-name migration path,
 // which restamped EVERY entry's version) — resurrecting a fixed SSR bug.
-import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import {
+  assert,
+  assertEquals,
+  assertStringIncludes,
+  assertThrows,
+} from "@std/assert";
 import {
   declinedStampNotice,
   hasLegacyRuntimeName,
@@ -263,15 +268,29 @@ Deno.test("REQ-015: declining a JSONC config with a STALE pin says so — the pa
 
 Deno.test("REQ-015: declining that changes nothing is silent — pin current, no sprig key, local override, pin ahead", () => {
   const p = "/app/deno.json";
-  assertEquals(declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", CLI_V), CLI_V), null);
   assertEquals(
-    declinedStampNotice(p, `{ // note\n  "imports": { "@std/path": "jsr:@std/path@^1" } }\n`, CLI_V),
+    declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", CLI_V), CLI_V),
     null,
   );
   assertEquals(
-    declinedStampNotice(p, `{ // note\n  "imports": { "@techgoose-labs/sprig": "../framework/.sprig/core.ts" } }\n`, CLI_V),
+    declinedStampNotice(
+      p,
+      `{ // note\n  "imports": { "@std/path": "jsr:@std/path@^1" } }\n`,
+      CLI_V,
+    ),
+    null,
+  );
+  assertEquals(
+    declinedStampNotice(
+      p,
+      `{ // note\n  "imports": { "@techgoose-labs/sprig": "../framework/.sprig/core.ts" } }\n`,
+      CLI_V,
+    ),
     null,
   );
   // never downgrade: a pin AHEAD of the CLI is the CLI's problem, not the file's
-  assertEquals(declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", "9.0.0"), CLI_V), null);
+  assertEquals(
+    declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", "9.0.0"), CLI_V),
+    null,
+  );
 });

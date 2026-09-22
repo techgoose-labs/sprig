@@ -11,7 +11,8 @@ import { dirname, fromFileUrl, join } from "@std/path";
 
 const REPO = dirname(dirname(fromFileUrl(import.meta.url)));
 const CLI = join(REPO, "framework", "cli.ts");
-const CLI_V = JSON.parse(Deno.readTextFileSync(join(REPO, "deno.json"))).version as string;
+const CLI_V = JSON.parse(Deno.readTextFileSync(join(REPO, "deno.json")))
+  .version as string;
 
 async function cli(cwd: string, home: string, ...args: string[]) {
   const { code, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
@@ -19,7 +20,11 @@ async function cli(cwd: string, home: string, ...args: string[]) {
     cwd,
     env: { ...Deno.env.toObject(), SPRIG_HOME: home, NO_COLOR: "1" },
   }).output();
-  return { code, out: new TextDecoder().decode(stdout), err: new TextDecoder().decode(stderr) };
+  return {
+    code,
+    out: new TextDecoder().decode(stdout),
+    err: new TextDecoder().decode(stderr),
+  };
 }
 
 Deno.test("REQ-015 (e2e): on a real scaffold, a commented deno.json with a stale pin builds, keeps its comment, and is told the pin was left unstamped", async () => {
@@ -36,22 +41,43 @@ Deno.test("REQ-015 (e2e): on a real scaffold, a commented deno.json with a stale
         `  "tasks": {`,
         `  // REQ-010: \`build\` is --ui-only on purpose. Do not "simplify" this.\n  "tasks": {`,
       )
-      .replace(/jsr:@techgoose-labs\/sprig@[^"/]+/g, "jsr:@techgoose-labs/sprig@2.1.1");
+      .replace(
+        /jsr:@techgoose-labs\/sprig@[^"/]+/g,
+        "jsr:@techgoose-labs/sprig@2.1.1",
+      );
     assertStringIncludes(commented, "// REQ-010");
     await Deno.writeTextFile(denoJsonPath, commented);
 
     const built = await cli(root, home, "build", "--ui-only", "ui");
-    assertEquals(built.code, 0, `the build itself still succeeds:\n${built.err}`);
-    assertEquals(await Deno.readTextFile(denoJsonPath), commented, "the comment did not survive, or the pin moved");
-    assertStringIncludes(built.err, "left unstamped", `the stamp declined silently:\n${built.out}\n${built.err}`);
+    assertEquals(
+      built.code,
+      0,
+      `the build itself still succeeds:\n${built.err}`,
+    );
+    assertEquals(
+      await Deno.readTextFile(denoJsonPath),
+      commented,
+      "the comment did not survive, or the pin moved",
+    );
+    assertStringIncludes(
+      built.err,
+      "left unstamped",
+      `the stamp declined silently:\n${built.out}\n${built.err}`,
+    );
     assertStringIncludes(built.err, "2.1.1");
     assertStringIncludes(built.err, CLI_V);
 
     // …and with the comment gone, the identical file is stamped as before.
-    await Deno.writeTextFile(denoJsonPath, commented.replace(/^\s*\/\/ REQ-010.*\n/m, ""));
+    await Deno.writeTextFile(
+      denoJsonPath,
+      commented.replace(/^\s*\/\/ REQ-010.*\n/m, ""),
+    );
     const again = await cli(root, home, "build", "--ui-only", "ui");
     assertEquals(again.code, 0, again.err);
-    assertStringIncludes(again.out, `sprig: stamped @techgoose-labs/sprig → ${CLI_V}`);
+    assertStringIncludes(
+      again.out,
+      `sprig: stamped @techgoose-labs/sprig → ${CLI_V}`,
+    );
     assertEquals(again.err.includes("left unstamped"), false);
   } finally {
     await Deno.remove(base, { recursive: true });

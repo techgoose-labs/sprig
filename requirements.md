@@ -529,3 +529,44 @@ Tests:
   `.gitignore` byte-identical, the root deno.json's tasks/workspace/unstable
   unchanged; then plain `sprig build` on the same tree → exit 1, naming
   `sprig build --ui-only ui`, still byte-identical.
+
+---
+
+## REQ-015 — a declined pin stamp says so: one line on stderr
+
+> "deno.json is JSONC and Deno accepts comments (`deno task` exits 0), but with
+> a comment in the file the stamp SILENTLY SKIPS - comments survive (good, that
+> is the safe call), pin left stale at 2.1.2, exit 0, and NOTHING is printed: no
+> `stamped` line, no warning, no mention of deno.json. The identical file
+> without the comment stamps normally. So a repo that annotates its deno.json
+> never gets re-pinned and is never told. One line on stderr when the stamp
+> declines would close it." — coms ticket `20260921T205912Z-w5-115272`
+> (#sprig), the infra box (the same ticket retracts its earlier "`sprig dev`
+> rewrites deno.json" report: that was one stale pin being stamped once, by
+> design, and the stamp is idempotent — confirmed here)
+
+`stamp()` reads each `deno.json(c)` on the way up with `JSON.parse` and, when
+that fails, declines to rewrite it — right, since it cannot round-trip what it
+did not parse. It now also says so, once per file, only when declining changed
+something: `declinedStampNotice` reads the `@techgoose-labs/sprig` mappings out
+of the TEXT (`sprigImportsInText`) and runs the ordinary `stampImports`
+decision over them, so a current pin, a missing mapping, a local override and a
+pin ahead of the CLI stay silent exactly as they would for a parseable file.
+The line names the file, the pin it keeps and the CLI version it is behind.
+
+Tests:
+
+- unit — `framework/.sprig/pin-stamp.test.ts` (REQ-015): the text reader on a
+  JSONC text `JSON.parse` rejects; the notice for a stale pin (path, old pin,
+  CLI version, one line); silence for a current pin, no sprig key, a local
+  override, and a pin ahead of the CLI.
+- integration — `framework/pin-stamp.int.test.ts` (REQ-015): the real CLI on a
+  tree whose root `deno.json` carries a comment and a stale pin — the file comes
+  out byte-identical, nothing claims "stamped", stderr carries the notice with
+  the path, the pin and the CLI version; the same file without the comment is
+  stamped, announced, and not warned about.
+- e2e — `framework/pin-stamp.e2e.test.ts` (REQ-015): the reporter's experiment
+  on a real `sprig init` scaffold — a comment above `"tasks"`, the pin set one
+  release back, `sprig build --ui-only ui` exits 0, the comment survives, the
+  pin stays, stderr says it was left unstamped; the comment removed, the same
+  build stamps and announces.

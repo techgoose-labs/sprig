@@ -9,8 +9,10 @@ const CLI = join(REPO, "framework", "cli.ts");
 const CONFIG = join(REPO, "deno.json");
 const CLI_V = JSON.parse(Deno.readTextFileSync(CONFIG)).version as string;
 
-const COMMENT = `  // REQ-010: \`build\` is --ui-only on purpose. Do not "simplify" this.\n`;
-const ROOT_DENO_JSON = (comment: string) => `{
+const COMMENT =
+  `  // REQ-010: \`build\` is --ui-only on purpose. Do not "simplify" this.\n`;
+const ROOT_DENO_JSON = (comment: string) =>
+  `{
 ${comment}  "workspace": ["./ui"],
   "tasks": { "build": "sprig build --ui-only ui" },
   "imports": {
@@ -36,7 +38,10 @@ async function repo(rootDenoJson: string): Promise<string> {
     join(root, "ui", "deno.json"),
     `{ "name": "@x/ui", "version": "0.0.0", "exports": "./src/mod.ts" }\n`,
   );
-  await Deno.writeTextFile(join(root, "ui", "src", "mod.ts"), "export const routes = [];\n");
+  await Deno.writeTextFile(
+    join(root, "ui", "src", "mod.ts"),
+    "export const routes = [];\n",
+  );
   return root;
 }
 
@@ -46,15 +51,26 @@ async function sprig(root: string, ...args: string[]) {
     cwd: root,
     env: { ...Deno.env.toObject(), NO_COLOR: "1" },
   }).output();
-  return { out: new TextDecoder().decode(stdout), err: new TextDecoder().decode(stderr) };
+  return {
+    out: new TextDecoder().decode(stdout),
+    err: new TextDecoder().decode(stderr),
+  };
 }
 
 Deno.test("REQ-015 (integration): a JSONC deno.json with a stale pin is left alone — comment intact — and the CLI says so on stderr", async () => {
   const root = await repo(ROOT_DENO_JSON(COMMENT));
   try {
     const { out, err } = await sprig(root, "build", "--ui-only", "ui");
-    assertEquals(await Deno.readTextFile(join(root, "deno.json")), ROOT_DENO_JSON(COMMENT), "the stamp rewrote a JSONC file");
-    assertEquals(out.includes("sprig: stamped"), false, "nothing was stamped, so nothing may claim to be");
+    assertEquals(
+      await Deno.readTextFile(join(root, "deno.json")),
+      ROOT_DENO_JSON(COMMENT),
+      "the stamp rewrote a JSONC file",
+    );
+    assertEquals(
+      out.includes("sprig: stamped"),
+      false,
+      "nothing was stamped, so nothing may claim to be",
+    );
     assertStringIncludes(err, "left unstamped", `no notice on stderr:\n${err}`);
     assertStringIncludes(err, join(root, "deno.json"));
     assertStringIncludes(err, "0.0.1");
@@ -68,9 +84,15 @@ Deno.test("REQ-015 (integration): the same file without the comment is stamped, 
   const root = await repo(ROOT_DENO_JSON(""));
   try {
     const { out, err } = await sprig(root, "build", "--ui-only", "ui");
-    assertStringIncludes(out, `sprig: stamped @techgoose-labs/sprig → ${CLI_V}`);
+    assertStringIncludes(
+      out,
+      `sprig: stamped @techgoose-labs/sprig → ${CLI_V}`,
+    );
     assertEquals(err.includes("left unstamped"), false);
-    assertStringIncludes(await Deno.readTextFile(join(root, "deno.json")), `jsr:@techgoose-labs/sprig@${CLI_V}"`);
+    assertStringIncludes(
+      await Deno.readTextFile(join(root, "deno.json")),
+      `jsr:@techgoose-labs/sprig@${CLI_V}"`,
+    );
   } finally {
     await Deno.remove(root, { recursive: true });
   }
