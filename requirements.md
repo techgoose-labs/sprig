@@ -639,3 +639,101 @@ Tests:
   "has to stay on the composed build", and states both deploy shapes (the
   `generated` / `hand-owned` rows; "committing `serve.ts` is what makes a root
   hand-owned").
+
+
+## REQ-018 — the composed build keeps an author-owned `start` task
+
+> composed build keeps an author-owned `start` task (flags like --host 127.0.0.1
+> survive)
+
+coms `20260922T231859Z-w208-84791` (box 208, ppwk-crm), on shipped 2.1.3: "sprig
+build rewrites the root deno.json 'start' task and silently drops flags. …
+Before: `deno serve -A --env-file=.env --host 127.0.0.1 serve.ts`. After: `deno
+serve -A --env-file=.env serve.ts` — the --host 127.0.0.1 is gone, so the app
+goes back to binding 0.0.0.0 … every build silently reintroduces the defect and
+nothing fails. … Expected: sprig build regenerates serve.ts and ui/static, and
+leaves author-owned task strings and member import maps alone — or at minimum
+preserves unrecognized flags."
+
+Cause: `ensureRuneWorkspace` hands bedrock's `ensureWorkspace` the generated
+`start` with `replaceTasks: ["start"]`, and the writer's "stale" test (bedrock
+1.0.2, artifact.ts step 4) is "differs from the string I was given" — so every
+flag the author added was stale, on every build, and nothing said so. The
+replacement dates from 4390b3d (2.0.0), to bring a 1.x `start` forward; infra's
+`KV_PATH=.local-kv.db … --unstable-kv` task was the same casualty (REQ-010's
+report), guarded there only for a hand-owned root.
+
+The rule: a `start` task that already **runs the composition root** — `deno
+serve … serve.ts` with any flags or env prefix (`./serve.ts` too, other commands
+around it), or `sprig serve`, as a string or Deno's `{ command }` object — is
+the author's. `ensureRuneWorkspace` passes it back to the writer unchanged, so
+there is nothing to replace, and it survives byte for byte. Only a `start` that
+cannot run the composed root at all (1.x's `deno run -A serve.ts`, a task
+serving another entry, none) gets the generated one — announced with the old
+value (REQ-019). A `.env` beside a kept task that passes no `--env-file` earns
+one hint line under the summary, never an edit. The summary's "run it from
+here" now names `deno task start` and the command it actually runs. `sprig
+init` is unchanged (a fresh scaffold has no `start`; it is added). `sprig build
+--ui-only <ui>` never enters this (REQ-014).
+
+Deliberately NOT changed: the report's second finding, `@techgoose-labs/bedrock`
+removed from `server/deno.json`, is the root-only hoist by design (`hoistOnly`
+since 2.0.0: a member's own pin scopes its files to a second copy — two
+composition roots, two envelopes). The same build adds the pin to the root, and
+the member's files resolve it through the workspace root, as the reporter
+observed. It was silent; REQ-019 makes it say so.
+
+Tests:
+
+- unit — `framework/.sprig/config-edits.test.ts` (REQ-018): the reporter's
+  task, infra's, `./serve.ts`, extra flags, a command chain, `sprig serve` and
+  the object form are the author's; `deno run -A serve.ts`, `host.ts`,
+  `src/serve.ts`, a 1.x CLI task, empty, absent and a non-string are stale.
+- integration — `framework/config-edits.int.test.ts` (REQ-018): the real CLI
+  on a composed tree with a generated root: the reporter's `start` is
+  byte-identical after `build --rune`, no `tasks.start` edit line, the summary
+  names `deno task start` and the task; a `deno run -A serve.ts` start is
+  replaced and announced with the old value; no start → added and announced.
+- e2e — `framework/config-edits.e2e.test.ts` (REQ-018): the reporter's run on
+  a real `sprig init` scaffold with their `.env`, their `start` and a server
+  bedrock pin: `build --rune` exits 0, the bundle is built, `--host 127.0.0.1`
+  survives, the hoist is printed, and a second build prints no edit.
+- docs — `framework/.sprig/config-edits.test.ts` (REQ-018/019 docs): cli.md's
+  `build` section states the "runs the composed root" rule with the reporter's
+  flag, the root-only hoist of `server/deno.json`, and "one line each".
+
+## REQ-019 — the composed build announces every deno.json edit it makes
+
+> announces every deno.json edit it makes, incl. the server/deno.json bedrock
+> hoist
+
+The same ticket: the hoist out of `server/deno.json` and the `start` rewrite
+were both silent — "nothing fails", so the loopback bind came back on every
+deploy and nobody was told. `ensureRuneWorkspace` now reads the root, `ui/`
+and `server/` deno.json before and after bedrock's writer and prints one line
+per difference, indented under the build summary (stdout, with the rest of the
+report): `deno.json: + tasks.start "…"`, `deno.json: tasks.start "old" → "new"
+(it did not run the composed root)`, `server/deno.json: -
+imports.@techgoose-labs/bedrock "jsr:…@^1" (hoisted: root-only, resolved
+through deno.json's "jsr:…@^1")`, `server/deno.json: - unstable "kv" (hoisted:
+honored only in the workspace root)`. `describeConfigEdits`
+(`framework/.sprig/config-edits.ts`, publish-included) diffs at the depth the
+writer edits — top-level scalars and arrays, one level of object keys — and is
+diff-based rather than a reading of bedrock's `changed` list, so it stays true
+if the writer changes. Same config in and out → not a line. `init` discards the
+lines: a fresh scaffold hoists its own template pins, nothing there is the
+author's. Documented in cli.md, `build` → "The composed build and `deno.json`".
+
+Tests:
+
+- unit — `framework/.sprig/config-edits.test.ts` (REQ-019): a replaced start
+  with old → new and its note plus an added `workspace`; a hoisted member pin
+  with the root pin it resolves through and a moved `unstable`; identical
+  configs and null → `[]`.
+- integration — `framework/config-edits.int.test.ts` (REQ-019): the real CLI:
+  the server pin gone, the root pin present, the line naming file, specifier
+  and root pin; `+ imports…` and `+ unstable "kv"` for the root; the second
+  build prints no `deno.json:` line.
+- e2e — `framework/config-edits.e2e.test.ts` (REQ-018 e2e, hoist assertions):
+  the hoist line in the reporter's own run; nothing on the second build.
+- docs — as REQ-018.

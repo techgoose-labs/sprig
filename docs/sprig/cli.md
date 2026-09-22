@@ -87,6 +87,46 @@ self-contained. There is **no `--dev` variant** — `buildClient(src, static)`
 emits one bundle, and `sprig dev` serves those exact bytes (HMR rides on top via
 the `cfg.hmr` runtime flag, never a different build).
 
+### The composed build and `deno.json`
+
+`sprig build` on a composed repo (`ui/` + `server/`, the deploy preset's
+`sprig build --rune`) also keeps the git-root `deno.json` a Deno workspace over
+the two members. It **adds** what the generated `serve.ts` needs — the
+`workspace` members, the decorator `compilerOptions`, the root imports,
+`unstable: ["kv"]` — and a `start` task,
+`deno serve -A [--env-file=.env]
+serve.ts`. Everything it adds is additive;
+nothing the app owns is dropped.
+
+The `start` task is yours once it **runs the composed root** —
+`deno serve …
+serve.ts` with any flags, or `sprig serve`. Then the build passes
+it through byte for byte:
+`deno serve -A --env-file=.env --host 127.0.0.1 serve.ts` keeps its
+`--host 127.0.0.1`, `KV_PATH=.local-kv.db deno serve -A --unstable-kv
+serve.ts`
+keeps its prefix and flag. Only a `start` that cannot run the composed root at
+all (1.x's `deno run -A serve.ts`, a task serving another entry) is replaced —
+and the build says so, old value and new.
+
+`@techgoose-labs/sprig` and `@techgoose-labs/bedrock` are **root-only**: a pin
+of either in `ui/deno.json` or `server/deno.json` is hoisted out so the
+workspace ships one runtime (two copies mean two composition roots, and islands
+bound to a second core). The member's files still resolve the import, through
+the workspace root. The `unstable` field moves the same way, since Deno honours
+it only at the root.
+
+Every edit is printed, one line each, under the build's summary — `deno.json:
+
+- tasks.start "…"`,`deno.json: tasks.start "old" → "new" (it did not run the
+  composed root)`,`server/deno.json: - imports.@techgoose-labs/bedrock "…"
+  (hoisted: root-only, resolved through deno.json's
+  "…")`— and the summary
+ends with what`deno task
+  start`actually runs. A build that changes nothing
+prints no edit lines.`sprig
+  build --ui-only <ui>` never enters any of this.
+
 ## `serve [entry]`
 
 Imports `entry` (default `serve.ts`), asserts its default export has a `fetch`,
