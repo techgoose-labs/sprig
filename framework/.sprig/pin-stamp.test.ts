@@ -2,13 +2,15 @@
 // a stale 0.21.1 CLI ran `sprig build` on an app pinned to @techgoose-labs/sprig@1.0.0
 // and silently DOWNGRADED the pin to 0.21.1 (via the legacy-name migration path,
 // which restamped EVERY entry's version) — resurrecting a fixed SSR bug.
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import {
+  declinedStampNotice,
   hasLegacyRuntimeName,
   migrateImports,
   migrateKey,
   migrateSource,
   pinnedSprigVersion,
+  sprigImportsInText,
   stampImports,
 } from "./pin-stamp.ts";
 
@@ -221,4 +223,55 @@ Deno.test("migrateSource is the identity on a current file (and cheap: no rewrit
     hasLegacyRuntimeName(`deno run -A jsr:@mrg-keystone/sprig@1.1.4/cli build`),
     true,
   );
+});
+
+// ------------------------------------------------ REQ-015 (declined stamp)
+//
+// deno.json is JSONC and Deno accepts comments, but `stamp()` reads it with
+// JSON.parse and, when that fails, declines to rewrite the file — the right
+// call (it cannot round-trip the comments). What it did not do was SAY so: a
+// repo that annotates its deno.json never got re-pinned and was never told
+// (coms 20260921T205912Z-w5-115272). One line on stderr closes that.
+
+const CLI_V = "2.1.3";
+const JSONC_STALE = `{
+  // REQ-010: \`build\` is --ui-only on purpose. Do not "simplify" this.
+  "tasks": { "build": "sprig build --ui-only ui" },
+  "imports": {
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.2",
+    "@techgoose-labs/sprig/bedrock": "jsr:@techgoose-labs/sprig@2.1.2/bedrock"
+  }
+}
+`;
+
+Deno.test("REQ-015: sprigImportsInText reads the sprig mappings out of a JSONC text JSON.parse rejects", () => {
+  assertThrows(() => JSON.parse(JSONC_STALE));
+  assertEquals(sprigImportsInText(JSONC_STALE), {
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.2",
+    "@techgoose-labs/sprig/bedrock": "jsr:@techgoose-labs/sprig@2.1.2/bedrock",
+  });
+});
+
+Deno.test("REQ-015: declining a JSONC config with a STALE pin says so — the path, the pin it keeps, the CLI it is behind, one line", () => {
+  const line = declinedStampNotice("/app/deno.json", JSONC_STALE, CLI_V);
+  assert(line !== null, "a stale pin left unstamped must be announced");
+  assertStringIncludes(line, "/app/deno.json");
+  assertStringIncludes(line, "2.1.2");
+  assertStringIncludes(line, "2.1.3");
+  assertEquals(line.includes("\n"), false, "one line on stderr");
+});
+
+Deno.test("REQ-015: declining that changes nothing is silent — pin current, no sprig key, local override, pin ahead", () => {
+  const p = "/app/deno.json";
+  assertEquals(declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", CLI_V), CLI_V), null);
+  assertEquals(
+    declinedStampNotice(p, `{ // note\n  "imports": { "@std/path": "jsr:@std/path@^1" } }\n`, CLI_V),
+    null,
+  );
+  assertEquals(
+    declinedStampNotice(p, `{ // note\n  "imports": { "@techgoose-labs/sprig": "../framework/.sprig/core.ts" } }\n`, CLI_V),
+    null,
+  );
+  // never downgrade: a pin AHEAD of the CLI is the CLI's problem, not the file's
+  assertEquals(declinedStampNotice(p, JSONC_STALE.replaceAll("2.1.2", "9.0.0"), CLI_V), null);
 });
