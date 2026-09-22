@@ -26,18 +26,29 @@ Deno.test("REQ-014 (unit): every deno.json publish.include entry exists on disk"
       gone.push(p);
     }
   }
-  assertEquals(gone, [], "publish.include names files that no longer exist — a module was deleted but is still shipped");
+  assertEquals(
+    gone,
+    [],
+    "publish.include names files that no longer exist — a module was deleted but is still shipped",
+  );
 });
 
 Deno.test("REQ-014 (unit): every relative module framework/cli.ts imports is in publish.include", async () => {
   const include = await publishInclude();
   const covered = (p: string) =>
-    include.includes(p) || include.some((i) => i.endsWith("/") && p.startsWith(i));
+    include.includes(p) ||
+    include.some((i) => i.endsWith("/") && p.startsWith(i));
   const cli = await Deno.readTextFile(join(REPO, "framework", "cli.ts"));
   const missing: string[] = [];
   for (const [, spec] of cli.matchAll(/from\s+"(\.\.?\/[^"]+)"/g)) {
-    const path = spec.startsWith("./") ? `framework/${spec.slice(2)}` : spec.replace(/^\.\.\//, "");
+    const path = spec.startsWith("./")
+      ? `framework/${spec.slice(2)}`
+      : spec.replace(/^\.\.\//, "");
     if (!covered(path)) missing.push(path);
   }
-  assertEquals(missing, [], "cli.ts imports modules the published package would not contain");
+  assertEquals(
+    missing,
+    [],
+    "cli.ts imports modules the published package would not contain",
+  );
 });

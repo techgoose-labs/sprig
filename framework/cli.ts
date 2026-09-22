@@ -47,7 +47,6 @@ import {
   latestRuntimeRelease,
 } from "./.sprig/install.ts";
 import {
-  BEDROCK_SERVE_MARKER,
   ensureWorkspace,
   renderServe,
   specRootOf,
@@ -134,7 +133,9 @@ function runeRange(): string {
     const cfg = JSON.parse(
       Deno.readTextFileSync(join(fwDir, "..", "server", "deno.json")),
     ) as { imports?: Record<string, string> };
-    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(/\/rune@([^"/]+)$/)
+    const range = cfg.imports?.["@techgoose-labs/rune"]?.match(
+      /\/rune@([^"/]+)$/,
+    )
       ?.[1];
     if (range) return range;
   } catch { /* fall through to a sane floor */ }
@@ -1386,7 +1387,8 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *
  *  The refusal is the FIRST thing the composition does, before the serve.ts
  *  write, before the .gitignore entry, before the workspace merge — so an app
- *  that hand-owns its root ends a build with its tree byte-identical (REQ-010). */
+ *  that hand-owns its root ends a build with its tree byte-identical (REQ-010),
+ *  and it gives that app ONE instruction: `sprig build --ui-only <ui>` (REQ-014). */
 
 async function writeRuneServe(
   gitRoot: string,
@@ -1430,7 +1432,9 @@ async function writeRuneServe(
     notes: [
       `/ → the SSR app     /api/* → the keep backend     /api/docs/* → docs & cake`,
       `Re-run \`sprig build\` after changing pages/islands to refresh ${assetsRel}/.`,
-      ...(auth ? [] : [`Add an auth unit as the third slot when the app needs one.`]),
+      ...(auth
+        ? []
+        : [`Add an auth unit as the third slot when the app needs one.`]),
     ],
   });
   await Deno.writeTextFile(servePath, src);
@@ -1472,8 +1476,9 @@ async function ensureRuneWorkspace(
         "jsr:@techgoose-labs/bedrock@^1",
       "@techgoose-labs/sprig": uiImports["@techgoose-labs/sprig"] ??
         `jsr:@techgoose-labs/sprig@${fallbackSprigV}`,
-      "@techgoose-labs/sprig/bedrock": uiImports["@techgoose-labs/sprig/bedrock"] ??
-        `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
+      "@techgoose-labs/sprig/bedrock":
+        uiImports["@techgoose-labs/sprig/bedrock"] ??
+          `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
       "@std/path": uiImports["@std/path"] ?? "jsr:@std/path@^1",
       "@preact/signals-core": uiImports["@preact/signals-core"] ??
         "npm:@preact/signals-core@^1",

@@ -107,20 +107,33 @@ Deno.test("REQ-014 (unit): the refusal gives ONE instruction first — `sprig bu
   const uiOnly = reason.indexOf("sprig build --ui-only ui");
   const marker = reason.indexOf(BEDROCK_SERVE_MARKER);
   assert(uiOnly >= 0, `the refusal must name the --ui-only build:\n${reason}`);
-  assert(marker >= 0, `the refusal must still say how a pure-composition root opts in:\n${reason}`);
-  assert(uiOnly < marker, `--ui-only is the instruction; the marker line is the footnote:\n${reason}`);
-  assert(!/\bwrap/i.test(reason), `the wrapper is not the toolchain's instruction:\n${reason}`);
+  assert(
+    marker >= 0,
+    `the refusal must still say how a pure-composition root opts in:\n${reason}`,
+  );
+  assert(
+    uiOnly < marker,
+    `--ui-only is the instruction; the marker line is the footnote:\n${reason}`,
+  );
+  assert(
+    !/\bwrap/i.test(reason),
+    `the wrapper is not the toolchain's instruction:\n${reason}`,
+  );
 });
 
 Deno.test("REQ-014 (unit): a 2.x root whose prose quotes the 1.x banner is generated, and not legacy", () => {
-  const src = `// ${BEDROCK_SERVE_MARKER} — the composition root at the git root.
+  const src =
+    `// ${BEDROCK_SERVE_MARKER} — the composition root at the git root.
 //
 // (Before 2.x this file opened with "${LEGACY_SERVE_MARKER}".)
 import { Bedrock } from "@techgoose-labs/bedrock";
 export default Bedrock({ backend: api });
 `;
   assert(isGeneratedServe(src));
-  assertFalse(isLegacyServe(src), "legacy is decided by the banner line, not the old banner's words anywhere");
+  assertFalse(
+    isLegacyServe(src),
+    "legacy is decided by the banner line, not the old banner's words anywhere",
+  );
   assert(isLegacyServe(GENERATED_1X));
 });
 
@@ -135,12 +148,29 @@ Deno.test("REQ-014 (unit): §3a gives the hand-owned root the same instruction i
   const naming = paras.filter((p) => /top-level code/i.test(p));
   assert(naming.length > 0, "§3a must name the top-level-code case explicitly");
   for (const p of naming) {
-    assertStringIncludes(p, "--ui-only", `a §3a paragraph names top-level code without --ui-only:\n${p}`);
-    assert(!/\bwrap/i.test(p), `a §3a paragraph routes top-level code to the wrapper:\n${p}`);
+    assertStringIncludes(
+      p,
+      "--ui-only",
+      `a §3a paragraph names top-level code without --ui-only:\n${p}`,
+    );
+    assert(
+      !/\bwrap/i.test(p),
+      `a §3a paragraph routes top-level code to the wrapper:\n${p}`,
+    );
   }
-  const handOwn = paras.findIndex((p) => p.startsWith("**You hand-own the root on purpose**"));
-  const markerCase = paras.findIndex((p) => p.startsWith("**You wrote it only to keep your OWN `ui:` unit**"));
+  const handOwn = paras.findIndex((p) =>
+    p.startsWith("**You hand-own the root on purpose**")
+  );
+  const markerCase = paras.findIndex((p) =>
+    p.startsWith("**You wrote it only to keep your OWN `ui:` unit**")
+  );
   assert(handOwn >= 0 && markerCase >= 0, "§3a lost one of its two cases");
-  assert(handOwn < markerCase, "§3a lists the marker-line case before the --ui-only case; the refusal says the opposite");
-  assert(/top-level code/i.test(paras[handOwn]), `the hand-own case must name top-level code itself:\n${paras[handOwn]}`);
+  assert(
+    handOwn < markerCase,
+    "§3a lists the marker-line case before the --ui-only case; the refusal says the opposite",
+  );
+  assert(
+    /top-level code/i.test(paras[handOwn]),
+    `the hand-own case must name top-level code itself:\n${paras[handOwn]}`,
+  );
 });
