@@ -1,7 +1,7 @@
 // REQ-010 (integration) — the real CLI on a real composed tree: refusing a
 // hand-owned composition root leaves EVERY file byte-identical, and a genuinely
 // generated one is still regenerated and still cleaned.
-import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { dirname, fromFileUrl, join } from "@std/path";
 import { BEDROCK_SERVE_MARKER } from "@techgoose-labs/bedrock/artifact";
 
@@ -202,5 +202,58 @@ Deno.test("REQ-010 (integration): sprig clean removes a generated root and spare
   } finally {
     await Deno.remove(generated, { recursive: true });
     await Deno.remove(handOwned, { recursive: true });
+  }
+});
+
+// ------------------------------------------------- REQ-014 (one instruction)
+
+/** A hand-owned root that does more than compose: one line of top-level code
+ *  before `Bedrock()`. No regeneration can carry that line, so this root is
+ *  hand-owned for good — the case the refusal's instruction has to fit. */
+const HAND_OWNED_WITH_TOP_LEVEL_CODE = HAND_OWNED.replace(
+  "\nexport default Bedrock(",
+  `
+(globalThis as { __config?: unknown }).__config = { projectId: "keystone" };
+
+export default Bedrock(`,
+);
+
+Deno.test("REQ-014 (integration): `sprig build --ui-only <ui>` never enters the composition — the hand-owned root, server/deno.json and the ignore file are untouched", async () => {
+  const root = await composedRepo(HAND_OWNED_WITH_TOP_LEVEL_CODE);
+  try {
+    const before = await snapshot(root);
+    // Whether this minimal fixture's client bundle completes is the e2e's
+    // business (it uses a real scaffold); here the claim is only that the
+    // --ui-only path is composition-free, whatever happens downstream.
+    const { out } = await sprig(root, "build", "--ui-only", "ui");
+
+    assert(
+      !out.includes("was NOT generated"),
+      `--ui-only reached the composition root guard:\n${out}`,
+    );
+    assertEquals(
+      await Deno.readTextFile(join(root, "serve.ts")),
+      HAND_OWNED_WITH_TOP_LEVEL_CODE,
+      "--ui-only rewrote the hand-owned root",
+    );
+    assertEquals(
+      await Deno.stat(join(root, ".gitignore")).then(() => true).catch(() =>
+        false
+      ),
+      false,
+      "--ui-only added a .gitignore entry",
+    );
+    assertEquals(
+      await Deno.readTextFile(join(root, "server", "deno.json")),
+      before.get("server/deno.json"),
+      "--ui-only ran the workspace merge (server/deno.json changed)",
+    );
+    assertStringIncludes(
+      await Deno.readTextFile(join(root, "deno.json")),
+      "KV_PATH=.local-kv.db deno serve -A --unstable-kv serve.ts",
+      "--ui-only rewrote the start task",
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
   }
 });

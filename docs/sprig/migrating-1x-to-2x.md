@@ -79,9 +79,28 @@ generated marker — you wrote it. Port it:
 
 Or delete it and let `sprig build` write the canonical one.
 
+**You hand-own the root on purpose** — it runs top-level code: something has to
+run before `Bedrock()` composes (a value published into `globalThis`, a
+side-effecting import), so the file is more than its slots and regeneration
+cannot preserve it. That is the easily-overlooked line — a root that otherwise
+reads as pure composition belongs here because of it. (A custom `ui:` or `auth:`
+unit alone is NOT this case — those are carried, next case.) Then the composed
+build is not yours to run: build only the client bundle with `--ui-only`, and
+keep serving your own root.
+
+```bash
+sprig build --ui-only ui     # assets only — no serve.ts, no workspace merge,
+                             # no /serve.ts in .gitignore, no `start` task rewrite
+```
+
+This toolchain's own workbench builds that way. Point your deploy preset's build
+command at it too — plain `sprig build` refuses (exit 1, naming this command)
+rather than substitute the generated root for yours; no snapshot-and-restore
+script around the build is needed.
+
 **You wrote it only to keep your OWN `ui:` unit** (a Frontend of your own that
-serves extra routes, or wraps the sprig one). You do not have to own the file for
-that — keep the banner as the first line and compose your unit under it:
+serves extra routes, or wraps the sprig one). You do not have to own the file
+for that — keep the banner as the first line and compose your unit under it:
 
 ```ts
 // BEDROCK_SERVE_MARKER — the composition root at the git root.
@@ -97,9 +116,9 @@ file and writes them again, owning only the `backend:` it just composed. So the
 root stays maintained — new notes, new backend path, new slots — and your unit
 survives every build.
 
-Only the slots survive, though. If your root also runs top-level code (publishing
-into `globalThis` before `Bedrock()` composes, say), that code is not carried:
-hand-own the file and build with `--ui-only`, last case below.
+Only the slots survive, though. If your root also runs top-level code
+(publishing into `globalThis` before `Bedrock()` composes, say), that code is
+not carried: hand-own the file and build with `--ui-only`, previous case.
 
 **You post-process the generated file** (a script that splices extra host routes
 into `serve.ts` after every build). `Bedrock(...)` returns a callable handler,
@@ -119,22 +138,6 @@ export default {
 ```bash
 deno serve -A host.ts        # instead of serve.ts; update the `start` task
 ```
-
-**You hand-own the root on purpose** — something has to run before `Bedrock()`
-composes (a value published into `globalThis`, a side-effecting import), so the
-file is more than its slots and regeneration cannot preserve it. (A custom `ui:`
-or `auth:` unit alone is NOT this case — those are carried, two cases up.) Then
-the composed build is not yours to run: build only the client bundle, and keep
-serving your own root.
-
-```bash
-sprig build --ui-only ui     # assets only — no serve.ts, no workspace merge,
-                             # no /serve.ts in .gitignore, no `start` task rewrite
-```
-
-This toolchain's own workbench builds that way. Point your deploy preset's build
-command at it too — plain `sprig build` will refuse (exit 1) rather than
-substitute the generated root for yours.
 
 ### 3b. The docs moved: `/docs` → `/api/docs`
 
