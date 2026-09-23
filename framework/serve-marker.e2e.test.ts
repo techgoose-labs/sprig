@@ -509,3 +509,167 @@ Deno.test("REQ-017 (e2e): on a scaffolded app, the local `sprig build --ui-only 
     await Deno.remove(home, { recursive: true });
   }
 });
+
+// REQ-016 AMENDMENT (e2e) — what the sentence documents, run for real. A hosted
+// build runs the CLI from a URL (`deno run -A jsr:…/cli`), not a file; that is
+// what leaves `import.meta.dirname` undefined, so cliVersion() has nothing to
+// read and stamp() returns before it touches deno.json. Here this checkout's
+// framework/ is served over 127.0.0.1 and the CLI is run from that URL with the
+// framework's own config — the launcher's shape — so no registry is needed. A
+// stale /cli pin that a LOCAL build re-pins (REQ-017 above) stays exactly as
+// committed, `sprig: stamped` never prints, and the refusal a hosted composed
+// build prints carries the sentence with the <version> placeholder, because
+// there is no version on disk (coms 20260921T190104Z-w5-80834).
+
+/** Serve `dir` over 127.0.0.1 with module-friendly content types. */
+function serveTree(dir: string): { port: number; close: () => Promise<void> } {
+  const types: Record<string, string> = {
+    ".ts": "application/typescript",
+    ".js": "application/javascript",
+    ".mjs": "application/javascript",
+    ".json": "application/json",
+    ".wasm": "application/wasm",
+  };
+  const server = Deno.serve(
+    { port: 0, hostname: "127.0.0.1", onListen() {} },
+    async (req) => {
+      const path = decodeURIComponent(new URL(req.url).pathname);
+      try {
+        const body = await Deno.readFile(join(dir, path));
+        const ext = path.slice(path.lastIndexOf("."));
+        return new Response(body, {
+          headers: {
+            "content-type": types[ext] ?? "application/octet-stream",
+          },
+        });
+      } catch {
+        return new Response("not found", { status: 404 });
+      }
+    },
+  );
+  return { port: server.addr.port, close: () => server.shutdown() };
+}
+
+/** The CLI as a hosted build runs it: from a URL, with the framework's config
+ *  (what the launcher passes) and a private copy of its lockfile, so the run
+ *  resolves exactly what this checkout resolves and writes nothing back. */
+async function remoteCli(
+  root: string,
+  home: string,
+  port: number,
+  lock: string,
+  ...args: string[]
+) {
+  const { code, stdout, stderr } = await new Deno.Command(Deno.execPath(), {
+    args: [
+      "run",
+      "-A",
+      "--config",
+      CONFIG,
+      `--lock=${lock}`,
+      `http://127.0.0.1:${port}/framework/cli.ts`,
+      ...args,
+    ],
+    cwd: root,
+    env: { ...Deno.env.toObject(), SPRIG_HOME: home, NO_COLOR: "1" },
+    stdin: "null",
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  return {
+    code,
+    out: new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr),
+  };
+}
+
+Deno.test("REQ-016 AMENDMENT (e2e): the CLI run from a URL — no install root, as on jsr — builds `--ui-only ui` without restamping a stale /cli pin and prints no `sprig: stamped` line, and its refusal on the composed build carries the sentence with the <version> placeholder", async () => {
+  const home = await Deno.makeTempDir({ prefix: "req016a-home-" });
+  const base = await scaffoldedInfraRepo(home);
+  const root = join(base, "app");
+  const read = (rel: string) => Deno.readTextFile(join(root, rel));
+  const lock = join(home, "deno.lock");
+  await Deno.copyFile(join(REPO, "deno.lock"), lock);
+  const served = serveTree(REPO);
+  try {
+    // the committed pin: stale, the shape a hosted build reads it in
+    const cfg = JSON.parse(await read("deno.json"));
+    cfg.imports["@techgoose-labs/sprig/cli"] =
+      "jsr:@techgoose-labs/sprig@0.0.1/cli";
+    // The client bundle imports the compiler's hydrate/hmr modules by absolute
+    // URL off the CLI's own location — jsr.io in production, an allowed import
+    // host; here the served host, which `deno bundle` would refuse. Map that
+    // prefix back to this checkout, as the scaffold already maps the runtime.
+    cfg.imports[`http://127.0.0.1:${served.port}/framework/`] = `${
+      join(REPO, "framework")
+    }/`;
+    await Deno.writeTextFile(
+      join(root, "deno.json"),
+      JSON.stringify(cfg, null, 2) + "\n",
+    );
+    const committed = await read("deno.json");
+    const serve = await read("serve.ts");
+
+    // 1. the composed build, hosted: refuses, and the refusal says so — with
+    //    the placeholder, because a URL run has no version on disk
+    const composed = await remoteCli(root, home, served.port, lock, "build");
+    assertEquals(
+      composed.code,
+      1,
+      `the composed build on a hand-owned root must refuse:\n${composed.out}`,
+    );
+    assertStringIncludes(
+      composed.out,
+      "the pin you commit is the pin that ships",
+    );
+    assertStringIncludes(
+      composed.out,
+      `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@<version>/cli"`,
+    );
+    assertEquals(await read("serve.ts"), serve, "the refusal rewrote serve.ts");
+    assertEquals(
+      await read("deno.json"),
+      committed,
+      "the refusal restamped deno.json",
+    );
+
+    // 2. the documented hosted form: builds, restamps nothing, says nothing
+    //    about a stamp — the pin you commit is the pin that ships
+    const hosted = await remoteCli(
+      root,
+      home,
+      served.port,
+      lock,
+      "build",
+      "--ui-only",
+      "ui",
+    );
+    assertEquals(hosted.code, 0, `the hosted form failed:\n${hosted.out}`);
+    for (const f of ["client.js", "app.css", "templates.json"]) {
+      await Deno.stat(join(root, "ui", "static", f)); // throws if the bundle is missing
+    }
+    assertEquals(
+      await read("deno.json"),
+      committed,
+      "a hosted build must not touch deno.json",
+    );
+    assert(
+      !hosted.out.includes("sprig: stamped"),
+      `a hosted build announced a stamp:\n${hosted.out}`,
+    );
+
+    // 3. the contrast: the same command as a LOCAL build moves the pin
+    const local = await cli(root, home, "build", "--ui-only", "ui");
+    assertEquals(local.code, 0, `the local build failed:\n${local.out}`);
+    assertStringIncludes(local.out, "sprig: stamped");
+    const cliV = JSON.parse(await Deno.readTextFile(CONFIG)).version as string;
+    assertEquals(
+      JSON.parse(await read("deno.json")).imports["@techgoose-labs/sprig/cli"],
+      `jsr:@techgoose-labs/sprig@${cliV}/cli`,
+      "the local build did not re-pin /cli",
+    );
+  } finally {
+    await served.close();
+    await Deno.remove(base, { recursive: true });
+    await Deno.remove(home, { recursive: true });
+  }
+});

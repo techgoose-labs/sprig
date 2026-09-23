@@ -746,3 +746,56 @@ Tests:
   wired the reporter's way with a pin that fell behind, the local build re-pins
   `/cli` to the CLI that ran, leaves the runtime overrides and the task alone,
   and has nothing to stamp the second time.
+
+## REQ-016 AMENDMENT — the hosted build never restamps: the pin you commit is the pin that ships
+
+> The reporter, closing the same ticket (coms `20260921T190104Z-w5-80834`) after
+> confirming the mechanism against installed 2.1.3: "a remote jsr: run has no
+> install root to read a version from, so the hosted build can never restamp, by
+> construction. That means production's build is precisely the one the stamp can
+> never help, which is what makes a downstream lockstep test permanent rather
+> than a stopgap. Might be worth a line in §3a next to the hosted form: the stamp
+> does not run here, so the pin you commit is the pin that ships."
+
+True, and REQ-016's own text was misleading on exactly that point. §3a said the
+`/cli` pin "sits on a line the build stamps together with the runtime pins"
+beside the hosted build command, and the refusal said "the build stamps that pin
+with the runtime's (REQ-017)" right under the hosted command — both read as if
+the hosted build keeps the pin current. It cannot: `stamp()` (framework/cli.ts)
+reads its version through `cliVersion()`, which returns null when
+`import.meta.dirname` is undefined — every jsr:/https: run — and returns before
+it touches the file. Only a local `sprig build`, `dev` or `init` moves the entry.
+
+Now: §3a credits the lead-in line to "a local `sprig build`", and the paragraph
+after the snippet says the hosted build itself never restamps, why (no install
+root to read a version from; `sprig: stamped …` never prints there), and what
+follows — the pin you commit is the pin that ships, so build locally or re-pin
+by hand before you deploy. The refusal's line under the hosted command says the
+same in one sentence. Every REQ-013/014/016 property of both texts still holds.
+
+Tests:
+
+- unit — `framework/serve-marker.test.ts` (REQ-016 AMENDMENT): with and without
+  a version, the refusal says "the pin you commit is the pin that ships" and
+  "hosted run never restamps", credits the stamp to a local `sprig build`, no
+  longer says "the build stamps that pin", places the sentence under the hosted
+  command and above the marker footnote, and still has exactly one whole line of
+  each command shape.
+- integration — `framework/serve-marker.int.test.ts` (REQ-016 AMENDMENT): the
+  real CLI's refusal as a build log carries the sentence on stderr, under the
+  hosted line, nothing of it on stdout.
+- e2e — `framework/serve-marker.e2e.test.ts` (REQ-016 AMENDMENT): this
+  checkout's `framework/` served over 127.0.0.1 and the CLI run from that URL
+  with the framework's config (the launcher's shape; `import.meta.dirname` is
+  undefined exactly as on jsr; the compiler's hydrate/hmr URLs, which the bundle
+  imports off the CLI's own location, mapped back to this checkout through the
+  app's import map, as the scaffold already maps the runtime): the composed
+  build on a hand-owned root refuses
+  with the sentence and the `<version>` placeholder; `build --ui-only ui`
+  builds the bundle, leaves a stale `/cli` pin and the whole `deno.json`
+  byte-identical, and prints no `sprig: stamped`; the same command as a local
+  build then re-pins it and announces it.
+- docs — `framework/.sprig/serve-root.docs.test.ts` (REQ-016 AMENDMENT): §3a
+  carries the sentence after the hosted task line and before it moves on,
+  credits a local `sprig build`, no longer says "a line the build stamps", and
+  says "no install root".

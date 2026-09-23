@@ -118,8 +118,8 @@ no `sprig` on PATH: that launcher is what `sprig install` writes on your
 machine, so a bare `sprig …` task ends there with `sprig: command not found`,
 exit code 127 — and a scripted `deno deploy` still reports success while the
 site stays on the last revision that built. Run the same CLI from jsr instead,
-through an import-map entry, so its pin sits on a line the build stamps together
-with the runtime pins:
+through an import-map entry, so its pin sits on a line a local `sprig build`
+stamps together with the runtime pins:
 
 ```jsonc
 // deno.json — the hand-owned row. A generated root's composed build is
@@ -134,7 +134,11 @@ with the runtime pins:
 
 Every local `sprig build` re-pins that entry to the CLI that ran it, exactly as
 it does the `@techgoose-labs/sprig` and `/bedrock` entries, so the deploy builds
-with the CLI that built here — never one that drifted.
+with the CLI that built here — never one that drifted. The hosted build itself
+never restamps: a CLI run from jsr has no install root to read a version from,
+so its stamp step returns before it touches the file, and `sprig: stamped …`
+never prints there — so the pin you commit is the pin that ships. Build locally,
+or re-pin by hand, before you deploy.
 
 **You wrote it only to keep your OWN `ui:` unit** (a Frontend of your own that
 serves extra routes, or wraps the sprig one). You do not have to own the file

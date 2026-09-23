@@ -228,3 +228,49 @@ Deno.test("REQ-016 (unit): the refusal names the hosted-build form — the same 
     "the two-argument call must still read whole",
   );
 });
+
+// REQ-016 AMENDMENT (unit) — the line under the hosted command credited the
+// stamp to "the build", which reads as if the hosted build re-pins the /cli
+// entry. It cannot: a CLI run from jsr has no install root to read a version
+// from, so stamp() returns before it touches the file (framework/cli.ts). The
+// refusal credits a LOCAL build and says the hosted run never restamps — the
+// pin you commit is the pin that ships (coms 20260921T190104Z-w5-80834, the
+// reporter's closing note).
+Deno.test("REQ-016 AMENDMENT (unit): the refusal credits the stamp to a LOCAL build and says the hosted run never restamps — the pin you commit is the pin that ships — under the hosted command", () => {
+  for (const v of ["2.1.3", null]) {
+    const reason = handOwnedRefusal("/repo/serve.ts", "web", v);
+    assertStringIncludes(reason, "the pin you commit is the pin that ships");
+    assertStringIncludes(reason, "local `sprig build` stamps that pin");
+    assert(
+      /hosted run never restamps/.test(reason),
+      `the refusal must say the hosted run never restamps:\n${reason}`,
+    );
+    assertFalse(
+      reason.includes("the build stamps that pin"),
+      `still credits the stamp to "the build", next to the hosted command:\n${reason}`,
+    );
+    // under the hosted command, above the marker footnote
+    const hosted = reason.indexOf(
+      "deno run -A @techgoose-labs/sprig/cli build --ui-only web",
+    );
+    const ships = reason.indexOf("the pin you commit is the pin that ships");
+    const marker = reason.indexOf(BEDROCK_SERVE_MARKER);
+    assert(
+      hosted >= 0 && hosted < ships && ships < marker,
+      `wrong order (v=${v}):\n${reason}`,
+    );
+    // and the sentence adds no second command line of either shape
+    const lines = reason.split("\n").map((l) => l.trim());
+    assertEquals(
+      lines.filter((l) => l === "sprig build --ui-only web").length,
+      1,
+    );
+    assertEquals(
+      lines.filter((l) =>
+        l === "deno run -A @techgoose-labs/sprig/cli build --ui-only web"
+      ).length,
+      1,
+    );
+    assert(!/\bwrap/i.test(reason), "the wrapper is not the instruction");
+  }
+});
