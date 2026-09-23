@@ -60,7 +60,10 @@ export function isGeneratedServe(src: string): boolean {
  *  Never a wrapper script around the build (REQ-014). The instruction is given
  *  in its hosted form too — the same CLI from jsr through the import map —
  *  because the log this is read in belongs to a build with no `sprig` launcher
- *  (REQ-016). */
+ *  (REQ-016) — and the pin's stamp is credited to a LOCAL build, because the
+ *  run that prints this log never stamps: from jsr there is no install root to
+ *  read a version from, so the pin you commit is the pin that ships
+ *  (REQ-016 AMENDMENT). */
 export function handOwnedRefusal(
   servePath: string,
   uiRel: string,
@@ -80,7 +83,9 @@ export function handOwnedRefusal(
     `  writes on your machine; a bare \`sprig\` head exits 127 there):\n` +
     `      deno run -A @techgoose-labs/sprig/cli build --ui-only ${uiRel}\n` +
     `  with "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@${pin}/cli" in the\n` +
-    `  deno.json imports — the build stamps that pin with the runtime's (REQ-017).\n` +
+    `  deno.json imports. A local \`sprig build\` stamps that pin with the runtime's\n` +
+    `  (REQ-017); the hosted run never restamps — a CLI run from jsr has no install\n` +
+    `  root to read a version from — so the pin you commit is the pin that ships.\n` +
     `  Only the \`ui:\` or \`auth:\` slot is yours, nothing else in the file? Then you need\n` +
     `  not own it: give it the \`// ${BEDROCK_SERVE_MARKER}\` banner and the build\n` +
     `  regenerates it around your units (REQ-012), carrying \`ui:\` and \`auth:\` across —\n` +
