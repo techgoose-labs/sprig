@@ -294,3 +294,86 @@ Deno.test("REQ-015: declining that changes nothing is silent — pin current, no
     null,
   );
 });
+
+// REQ-017 — the CLI's own subpath, `@techgoose-labs/sprig/cli`, is stamped with
+// the runtime entries. A hosted build (Deno Deploy's build step is a clean
+// checkout with no `sprig` launcher on PATH) runs the CLI from jsr through that
+// mapping — and it was the one sprig entry the stamp never re-pinned, so the CLI
+// a deploy built with drifted from the runtime it built for
+// (coms 20260921T190104Z-w5-80834).
+Deno.test("REQ-017 (unit): stampImports re-pins an existing @techgoose-labs/sprig/cli mapping with the runtime entries — never adds one, never touches a local override", () => {
+  const res = stampImports({
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.2",
+    "@techgoose-labs/sprig/bedrock": "jsr:@techgoose-labs/sprig@2.1.2/bedrock",
+    "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.1.2/cli",
+  }, "2.1.3");
+  assert(res.changed);
+  assertEquals(
+    res.imports["@techgoose-labs/sprig/cli"],
+    "jsr:@techgoose-labs/sprig@2.1.3/cli",
+  );
+  assertEquals(
+    res.imports["@techgoose-labs/sprig"],
+    "jsr:@techgoose-labs/sprig@2.1.3",
+  );
+  assertEquals(
+    res.imports["@techgoose-labs/sprig/bedrock"],
+    "jsr:@techgoose-labs/sprig@2.1.3/bedrock",
+  );
+  // only the CLI entry behind → still a write: lockstep is per entry
+  const only = stampImports({
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.3",
+    "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.1.2/cli",
+  }, "2.1.3");
+  assert(
+    only.changed,
+    "a stale /cli pin next to a current runtime pin was left",
+  );
+  assertEquals(
+    only.imports["@techgoose-labs/sprig/cli"],
+    "jsr:@techgoose-labs/sprig@2.1.3/cli",
+  );
+  // never added: an app that runs the CLI from its launcher has no /cli entry
+  const absent = stampImports(
+    { "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.3" },
+    "2.1.3",
+  );
+  assert(!absent.changed);
+  assertEquals("@techgoose-labs/sprig/cli" in absent.imports, false);
+  // a local override (a checkout under test, the toolchain's own workbench) is left alone
+  const local = stampImports(
+    { "@techgoose-labs/sprig/cli": "../sprig/main/framework/cli.ts" },
+    "2.1.3",
+  );
+  assert(!local.changed);
+  // never downgraded: a /cli pin ahead of the CLI means the CLI is the stale side
+  const ahead = stampImports(
+    { "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.2.0/cli" },
+    "2.1.3",
+  );
+  assert(!ahead.changed);
+  assertEquals(ahead.aheadPin, "2.2.0");
+});
+
+Deno.test("REQ-017 (unit): sprigImportsInText reads a /cli mapping, so a declined JSONC stamp reports a stale CLI pin too", () => {
+  const text = `{
+  // build: deno run -A @techgoose-labs/sprig/cli build --ui-only ui
+  "imports": {
+    "@techgoose-labs/sprig": "jsr:@techgoose-labs/sprig@2.1.3",
+    "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.1.2/cli"
+  }
+}
+`;
+  assertThrows(() => JSON.parse(text));
+  assertEquals(
+    sprigImportsInText(text)["@techgoose-labs/sprig/cli"],
+    "jsr:@techgoose-labs/sprig@2.1.2/cli",
+  );
+  const line = declinedStampNotice("/app/deno.json", text, "2.1.3");
+  assert(line !== null, "a stale /cli pin declined silently");
+  // the pin it names is the STALE one — the runtime entry is current here
+  assertStringIncludes(line, "@techgoose-labs/sprig/cli");
+  assertStringIncludes(line, "stays at 2.1.2");
+  assertStringIncludes(line, "2.1.3");
+  assertEquals(line.includes("\n"), false, "one line on stderr");
+});

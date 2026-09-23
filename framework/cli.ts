@@ -1394,7 +1394,8 @@ async function ensureGitignore(gitRoot: string, entry: string): Promise<void> {
  *  The refusal is the FIRST thing the composition does, before the serve.ts
  *  write, before the .gitignore entry, before the workspace merge — so an app
  *  that hand-owns its root ends a build with its tree byte-identical (REQ-010),
- *  and it gives that app ONE instruction: `sprig build --ui-only <ui>` (REQ-014). */
+ *  and it gives that app ONE instruction: `sprig build --ui-only <ui>` (REQ-014) —
+ *  in its hosted form too, since the log it is read in has no `sprig` launcher (REQ-016). */
 
 async function writeRuneServe(
   gitRoot: string,
@@ -1407,7 +1408,7 @@ async function writeRuneServe(
     const cur = await Deno.readTextFile(servePath);
     if (!isGeneratedServe(cur)) {
       console.error(
-        `sprig build: ${handOwnedRefusal(servePath, uiRel)}\n` +
+        `sprig build: ${handOwnedRefusal(servePath, uiRel, cliVersion())}\n` +
           `  Porting a hand-written 1.x serve.ts (api.compose → Bedrock)? ${MIGRATION_GUIDE}`,
       );
       Deno.exit(1);

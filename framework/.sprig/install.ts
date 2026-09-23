@@ -1,6 +1,9 @@
-// Local runtime install for the sprig CLI. Running the CLI straight from JSR can't load
-// the tree-sitter compiler (its grammar.bin + web-tree-sitter need a real on-disk
-// node_modules, which a bare `deno run jsr:…` doesn't provide). So `sprig install` /
+// Local runtime install for the sprig CLI. `sprig build` runs straight from JSR —
+// `deno run -A jsr:@techgoose-labs/sprig@<v>/cli build …` is what a hosted build runs,
+// and the compiler's grammar.bin resolves off import.meta.url there (REQ-016). What
+// needs an on-disk install is the WORKBENCH: `sprig dev` / `sprig isolate` re-run the
+// app under this install's config with its node_modules, and the skills + agents go
+// onto this machine. So `sprig install` /
 // `sprig update` download the SOURCE bundle from the GitHub release, extract it to
 // ~/.sprig, run `deno install` THERE to populate node_modules on THIS machine (the bundle
 // ships no node_modules), install the skills, and write a `sprig` launcher that runs the
