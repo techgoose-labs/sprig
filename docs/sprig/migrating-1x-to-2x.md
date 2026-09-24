@@ -102,10 +102,14 @@ no TTY: the command is a whole line of its own, with the app's real ui dir.
 
 Which build command an app deploys with follows from where its root lives:
 
-| The root is… | `serve.ts` in git                                    | build task and deploy build command                          |
-| ------------ | ---------------------------------------------------- | ------------------------------------------------------------ |
-| generated    | no — `/serve.ts` is gitignored; every build emits it | `sprig build` — the composed build (`--rune` still accepted) |
-| hand-owned   | yes — committed; the build never writes it           | `sprig build --ui-only ui`                                   |
+| The root is… | `serve.ts` in git                                    | build task and deploy build command                                                          |
+| ------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| generated    | no — `/serve.ts` is gitignored; every build emits it | `deno run -A @techgoose-labs/sprig/cli build` — the composed build (`--rune` still accepted) |
+| hand-owned   | yes — committed; the build never writes it           | `deno run -A @techgoose-labs/sprig/cli build --ui-only ui`                                   |
+
+Both rows carry the hosted head described below, and `sprig init` writes that
+task — a new app deploys as scaffolded. On your own machine the bare
+`sprig build` is the same build: the launcher and the mapping run one CLI.
 
 A build command shared by every app you deploy — a preset — has to stay on the
 composed build: switched to `--ui-only`, every generated-root app would deploy

@@ -62,6 +62,10 @@ import {
   isGeneratedServe,
   isLegacyServe,
 } from "./.sprig/serve-marker.ts";
+// What the git root is scaffolded with — the tasks and the import map. The
+// build task runs the CLI through the map rather than the `sprig` launcher,
+// which exists only on a developer's machine (REQ-020).
+import { ROOT_TASKS, rootImports } from "./.sprig/app-scaffold.ts";
 import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
 import {
   findLive,
@@ -1478,18 +1482,10 @@ async function ensureRuneWorkspace(
       experimentalDecorators: true,
       emitDecoratorMetadata: true,
     },
-    imports: {
-      "@techgoose-labs/bedrock": uiImports["@techgoose-labs/bedrock"] ??
-        "jsr:@techgoose-labs/bedrock@^1",
-      "@techgoose-labs/sprig": uiImports["@techgoose-labs/sprig"] ??
-        `jsr:@techgoose-labs/sprig@${fallbackSprigV}`,
-      "@techgoose-labs/sprig/bedrock":
-        uiImports["@techgoose-labs/sprig/bedrock"] ??
-          `jsr:@techgoose-labs/sprig@${fallbackSprigV}/bedrock`,
-      "@std/path": uiImports["@std/path"] ?? "jsr:@std/path@^1",
-      "@preact/signals-core": uiImports["@preact/signals-core"] ??
-        "npm:@preact/signals-core@^1",
-    },
+    // + the CLI's own subpath: the build task runs through it on a hosted
+    // builder, and the stamp keeps its pin with the runtime's (REQ-020/017).
+    // Added only when the root has none, so an app's own value stands.
+    imports: rootImports(uiImports, fallbackSprigV),
     hoistOnly: [
       "@techgoose-labs/bedrock",
       "@techgoose-labs/sprig",
@@ -2121,7 +2117,9 @@ async function init(dir = "."): Promise<void> {
   const sprigPin = cliVersion() ?? range;
   const files: Record<string, string> = {
     // The git-root Deno WORKSPACE over the two members — sprig owns `ui/`, rune owns
-    // `server/`. The dev/build tasks run the sprig CLI from the git root; the `start`
+    // `server/`. The tasks are ROOT_TASKS (.sprig/app-scaffold.ts): `dev` through the
+    // installed launcher, `build` through the `/cli` import-map entry so it also runs
+    // in a deploy's clean checkout, where no launcher exists (REQ-020). The `start`
     // task + the `workspace`/`imports` fields are added by ensureRuneWorkspace after
     // this map, and the git-root serve.ts is written by writeRuneServe.
     // `minimumDependencyAge`: Deno's 24h supply-chain cooldown, off — the app pins
@@ -2129,10 +2127,7 @@ async function init(dir = "."): Promise<void> {
     // `sprig update`, and the bundle then fails on "blocked by the minimum dependency
     // age policy". (The per-package `exclude` form is rejected by Deno 2.9.)
     "deno.json": `{
-  "tasks": {
-    "dev": "sprig dev",
-    "build": "sprig build"
-  },
+  "tasks": ${JSON.stringify(ROOT_TASKS, null, 2).replace(/\n/g, "\n  ")},
   "minimumDependencyAge": "0"
 }
 `,

@@ -84,7 +84,8 @@
       "framework/.sprig/composition-root.ts",
       "framework/.sprig/host-layer.ts",
       "framework/.sprig/usage.ts",
-      "framework/.sprig/serve-marker.ts"
+      "framework/.sprig/serve-marker.ts",
+      "framework/.sprig/app-scaffold.ts"
     ]
   },
   "git": {

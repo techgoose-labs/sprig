@@ -799,3 +799,56 @@ Tests:
   carries the sentence after the hosted task line and before it moves on,
   credits a local `sprig build`, no longer says "a line the build stamps", and
   says "no install root".
+
+## REQ-020 — a scaffolded app's own build task survives a hosted build
+
+> Ticket 20260921T190104Z-w5-80834, flagged in the thread while REQ-016 was
+> being fixed: "Out of scope, flagged for its own ticket if you hit it: `sprig
+> init` scaffolds `"build": "sprig build"` at the root — the same bare head, so a
+> generated-root app deployed with `deno task build` fails the same way."
+
+It did, and every app scaffolded to date carried it. The `sprig` on a PATH is
+the launcher `sprig install` writes on a developer's machine; a deploy's build
+step is a clean checkout, so `deno task build` there ends at "sprig: command not
+found", exit 127 — and `deno deploy` still reports success, which is how the
+reporter shipped a month of revisions onto a stale site before noticing.
+REQ-016 documented the fix for the app that hits it; this puts it in the
+scaffold, so a generated-root app is deployable as scaffolded rather than after
+a hand-edit nobody knows to make.
+
+`sprig init` now writes `"build": "deno run -A @techgoose-labs/sprig/cli build"`,
+and the git-root import map carries the `@techgoose-labs/sprig/cli` entry that
+command resolves through — added by `ensureRuneWorkspace`, so an app scaffolded
+before this gets the mapping from its next composed build and REQ-017's lockstep
+finally has a key to stamp. Both live in `framework/.sprig/app-scaffold.ts`
+(`ROOT_TASKS`, `rootImports`), testable without running the CLI. Nothing an app
+owns is rewritten: `ensureWorkspace` adds an import only when the root has none,
+a `ui/` value (a local `../sprig/framework/cli.ts` override included) wins, and
+an existing `build` task is left exactly as the app wrote it.
+
+`dev` keeps the bare launcher on purpose. It needs the on-disk workbench, it
+only runs on a developer's machine — and it is a LOCAL run, so it is what
+re-pins the three sprig entries. Moving `build` off the launcher therefore does
+not freeze an app's pins at its scaffold version, which is the one way this
+change could have hurt (a jsr run has no install root to read a version from and
+never stamps: REQ-016 AMENDMENT).
+
+Tests:
+
+- unit — `framework/.sprig/app-scaffold.test.ts` (REQ-020 ×2): the build task's
+  head is `deno`, never a bare `sprig`, and routes through the mapped
+  specifier, while `dev` stays the launcher; `rootImports` pins `/cli` at the
+  same version as the runtime entries and keeps a value the app already
+  declares, local override included.
+- integration — `framework/app-scaffold.int.test.ts` (REQ-020 ×2): a real
+  `sprig init` writes the hosted build task, the `/cli` mapping and one version
+  across all three sprig specifiers; a composed build adds the mapping to an app
+  that predates it, leaves that app's own `build` task alone, and writes nothing
+  on the second run.
+- e2e — `framework/app-scaffold.e2e.test.ts` (REQ-020): a real scaffolded app
+  under a PATH with no `sprig` launcher — the head the scaffold used to write
+  exits 127 with "sprig: command not found", the head it writes now builds the
+  client bundle and the composition root, exit 0.
+- docs — `framework/.sprig/app-scaffold.test.ts` (REQ-020 docs):
+  `migrating-1x-to-2x.md` §3a's `generated` row names the hosted head and the
+  section says `sprig init` writes that task.
