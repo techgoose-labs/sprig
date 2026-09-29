@@ -1988,3 +1988,73 @@ Tests:
   and parse as the report (red before the fix, green after).
 - unit / integration — n/a: the seam is the real CLI's stdout on a fresh
   runner dir; the e2e is the smallest honest test.
+
+## REQ-007 AMENDMENT 2 — the runner follows the system playwright's WHOLE version, re-matches a stale runner, and provisions under a lock
+
+> "the app will be faithful to the mock" → the `_reference`/`_motion` rows
+> need a browser the runner can launch, on a fresh box and on one whose
+> playwright moved on.
+
+Three defects met under the gate's fresh-runner conditions. (1) The version
+read from `playwright --version` dropped a prerelease suffix — a box whose
+playwright is `1.64.0-alpha-…` (its browsers are that alpha's) got
+`@playwright/test@1.64.0`, which npm resolved to 1.63.0, whose Chromium build
+is not on the box: every row red with "Executable doesn't exist". Now the
+version is taken whole (`playwrightVersionOf`). (2) A runner provisioned
+earlier at another version was reused forever, because only the binary's
+presence was checked; now a runner whose installed `@playwright/test`
+differs from the system playwright is reinstalled at the system version,
+saying so. (3) The workbench (`isolate dev`) and `isolate test` both provision
+on start; under `deno test --parallel` two CLIs provisioned one fresh dir at
+once. Provisioning now takes an atomic `mkdir <dir>/.provisioning` lock; the
+waiter re-checks and installs nothing the winner did; a lock older than ten
+minutes is a crashed provisioner's and is taken over. The chosen version and
+its reason are printed every time.
+
+Tests:
+
+- unit — `cli/lib/runner.test.ts` (REQ-007 AMENDMENT 2 ×4): the version
+  parser keeps a prerelease suffix; a stale 0.9.0 runner is reinstalled at
+  the system 1.0.0 (the stub npm records the call and writes the version); a
+  matching runner is not reinstalled; two concurrent `ensureRunner()` calls on
+  one fresh dir install once and leave no lock.
+- integration — n/a: the stub-npm tests above exercise the real
+  `ensureRunner` on a real filesystem; the only integration seam left is the
+  real npm, covered by the e2e lane.
+- e2e — `cli/commands/test.e2e.test.ts` (REQ-040..045): on this box, under the
+  gate's conditions (no `ISOLATE_RUNNER_HOME`), passes both with the stale
+  `~/.cache/sprig/isolate-runner` (reinstalled) and with a fresh
+  `XDG_CACHE_HOME` (provisioned once by two concurrent CLIs).
+
+## REQ-007 AMENDMENT 3 — of several playwrights on PATH, the runner takes the one whose browsers are installed
+
+> "the app will be faithful to the mock" → the runner must launch a browser
+> under the gate, where `deno task` puts the repo's own `node_modules/.bin`
+> first on PATH.
+
+AMENDMENT 2 matched the FIRST `playwright` on PATH. Under `deno task test:e2e`
+that is the repo's `node_modules/.bin/playwright` (1.63.0, a dependency of this
+repo), while the box's browsers cache (`PLAYWRIGHT_BROWSERS_PATH`) holds the
+Chromium build of the global playwright (1.64.0-alpha): the runner installed
+1.63.0 and every row was red with "Executable doesn't exist". Now
+`choosePlaywright()` lists every `playwright` on PATH (PATH order, symlinks
+resolved, duplicates dropped), reads the Chromium revision each one wants from
+its own `playwright-core/browsers.json`, and takes the first whose
+`chromium-<rev>` / `chromium_headless_shell-<rev>` is in the browsers cache
+(`PLAYWRIGHT_BROWSERS_PATH`, else the platform default). None installed → the
+first on PATH, and the log names the cache, the missing build and the
+`playwright install chromium chromium-headless-shell` that fixes it. No
+playwright at all → `latest`. The choice and every candidate are printed.
+
+Tests:
+
+- unit — `cli/lib/runner.test.ts` (REQ-007 AMENDMENT 3 ×2): two fake
+  playwrights on PATH (1.63.0 wanting chromium 1243, 1.64.0-alpha-1 wanting
+  1246) with only `chromium_headless_shell-1246` in a sandbox browsers path →
+  the alpha is chosen, its reason names 1246, and the stub npm installs it;
+  with no build installed, the first on PATH is taken and the reason says
+  "not installed" and names `playwright install`.
+- integration — n/a: covered by the stub-npm tests on a real filesystem.
+- e2e — `cli/commands/test.e2e.test.ts` (REQ-040..045) under `deno task
+  test:e2e` on this box: green with the stale `~/.cache/sprig/isolate-runner`
+  (reinstalled at the alpha) and with a fresh `XDG_CACHE_HOME`.
