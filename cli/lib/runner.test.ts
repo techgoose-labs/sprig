@@ -33,22 +33,12 @@ exit 0
 `;
 const STUB_PLAYWRIGHT = `#!/bin/sh\necho "Version 1.0.0"\n`;
 
-const ENV_KEYS = [
-  "HOME",
-  "USERPROFILE",
-  "XDG_CACHE_HOME",
-  "ISOLATE_RUNNER_HOME",
-  "PATH",
-  "STUB_NPM_FAIL",
-  "STUB_NPM_LOG",
-  "STUB_NPM_SLOW",
-  "PLAYWRIGHT_BROWSERS_PATH",
-] as const;
-
 interface Sandbox {
   root: string;
   home: string;
   cache: string;
+  /** the env the runner is given — never the process's (REQ-021 AMENDMENT) */
+  env: Record<string, string | undefined>;
   warnings: string[];
   restore(): Promise<void>;
 }
@@ -70,10 +60,11 @@ async function sandbox(opts: {
     mode: 0o755,
   });
 
-  const saved: Record<string, string | undefined> = {};
-  for (const k of ENV_KEYS) saved[k] = Deno.env.get(k);
-  const set = (k: string, v: string | undefined) =>
-    v === undefined ? Deno.env.delete(k) : Deno.env.set(k, v);
+  const env: Record<string, string | undefined> = {};
+  const saved = { PATH: Deno.env.get("PATH") };
+  const set = (k: string, v: string | undefined) => {
+    env[k] = v;
+  };
   set("HOME", home);
   set("USERPROFILE", undefined);
   set("XDG_CACHE_HOME", opts.xdg ? cache : undefined);
@@ -96,11 +87,11 @@ async function sandbox(opts: {
     root,
     home,
     cache,
+    env,
     warnings,
     async restore() {
       console.warn = origWarn;
       console.log = origLog;
-      for (const k of ENV_KEYS) set(k, saved[k]);
       await Deno.chmod(home, 0o755).catch(() => {});
       await Deno.remove(root, { recursive: true });
     },
@@ -143,7 +134,7 @@ Deno.test({
   fn: async () => {
     const sb = await sandbox({ readOnlyHome: true, xdg: true });
     try {
-      const r = await ensureRunner();
+      const r = await ensureRunner({ env: sb.env });
       const dir = join(sb.cache, "sprig", "isolate-runner");
       assertEquals(r, { ok: true, dir });
       assert(await exists(join(dir, "node_modules", ".bin", "playwright")));
@@ -162,7 +153,7 @@ Deno.test("REQ-007: a provisioned legacy ~/.isolate-runner is reused — nothing
   try {
     const legacy = join(sb.home, ".isolate-runner");
     await provision(legacy);
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     assertEquals(r, { ok: true, dir: legacy });
     assert(await exists(join(legacy, "node_modules", "isolate-events")));
     assert(!(await exists(join(sb.cache, "sprig"))));
@@ -179,7 +170,7 @@ Deno.test("REQ-007: ISOLATE_RUNNER_HOME wins, even over a provisioned legacy dir
   const sb = await sandbox({ xdg: true, runnerHome: explicit });
   try {
     await provision(join(sb.home, ".isolate-runner"));
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     assertEquals(r, { ok: true, dir: explicit });
     assert(await exists(join(explicit, "node_modules", ".bin", "playwright")));
     assert(!(await exists(join(sb.cache, "sprig"))));
@@ -197,7 +188,7 @@ Deno.test({
     // no XDG override: the preferred dir is ~/.cache/…, and HOME is read-only
     const sb = await sandbox({ readOnlyHome: true });
     try {
-      const r = await ensureRunner();
+      const r = await ensureRunner({ env: sb.env });
       const dir = join(sb.home, ".cache", "sprig", "isolate-runner");
       assertEquals(r, { ok: false, dir });
       const w = sb.warnings.join("\n");
@@ -213,7 +204,7 @@ Deno.test({
 Deno.test("REQ-007: the runner-incomplete warning names the resolved dir (the `cd … && npm i` fix)", async () => {
   const sb = await sandbox({ xdg: true, failInstall: true });
   try {
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     const dir = join(sb.cache, "sprig", "isolate-runner");
     assertEquals(r, { ok: false, dir });
     assertStringIncludes(sb.warnings.join("\n"), `cd ${dir} && npm i`);
@@ -248,10 +239,10 @@ async function npmLog(sb: Sandbox): Promise<string> {
 Deno.test("REQ-007 AMENDMENT 2: a stale runner (0.9.0 vs system 1.0.0) is reinstalled at the system version", async () => {
   const sb = await sandbox({ runnerHome: "" });
   const dir = join(sb.root, "runner");
-  Deno.env.set("ISOLATE_RUNNER_HOME", dir);
+  sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
     await provision(dir, "0.9.0");
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     assertEquals(r.ok, true);
     assertStringIncludes(await npmLog(sb), "i @playwright/test@1.0.0");
     const pkg = JSON.parse(await Deno.readTextFile(join(dir, "node_modules", "@playwright", "test", "package.json")));
@@ -264,10 +255,10 @@ Deno.test("REQ-007 AMENDMENT 2: a stale runner (0.9.0 vs system 1.0.0) is reinst
 Deno.test("REQ-007 AMENDMENT 2: a runner that matches the system version is not reinstalled", async () => {
   const sb = await sandbox({ runnerHome: "" });
   const dir = join(sb.root, "runner");
-  Deno.env.set("ISOLATE_RUNNER_HOME", dir);
+  sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
     await provision(dir, "1.0.0");
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     assertEquals(r.ok, true);
     assert(!(await npmLog(sb)).includes("@playwright/test"), await npmLog(sb));
   } finally {
@@ -278,9 +269,9 @@ Deno.test("REQ-007 AMENDMENT 2: a runner that matches the system version is not 
 Deno.test("REQ-007 AMENDMENT 2: two concurrent provisioners of one fresh dir install @playwright/test once", async () => {
   const sb = await sandbox({ runnerHome: "", slowInstall: true });
   const dir = join(sb.root, "runner");
-  Deno.env.set("ISOLATE_RUNNER_HOME", dir);
+  sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
-    const [a, b] = await Promise.all([ensureRunner(), ensureRunner()]);
+    const [a, b] = await Promise.all([ensureRunner({ env: sb.env }), ensureRunner({ env: sb.env })]);
     assertEquals(a.ok && b.ok, true);
     const installs = (await npmLog(sb)).split("\n").filter((l) => l.includes("@playwright/test"));
     assertEquals(installs.length, 1, await npmLog(sb));
@@ -306,17 +297,17 @@ async function fakePlaywright(dir: string, version: string, revision: string) {
 Deno.test("REQ-007 AMENDMENT 3: of two playwrights on PATH, the one whose chromium build is in PLAYWRIGHT_BROWSERS_PATH wins", async () => {
   const sb = await sandbox({ runnerHome: "" });
   const dir = join(sb.root, "runner");
-  Deno.env.set("ISOLATE_RUNNER_HOME", dir);
+  sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
     const first = await fakePlaywright(join(sb.root, "repo"), "1.63.0", "1243");
     const second = await fakePlaywright(join(sb.root, "global"), "1.64.0-alpha-1", "1246");
     await Deno.mkdir(join(sb.root, "browsers", "chromium_headless_shell-1246"));
-    Deno.env.set("PATH", `${first}:${second}:${Deno.env.get("PATH")}`);
+    sb.env.PATH = `${first}:${second}:${sb.env.PATH}`;
     const { choosePlaywright } = await import("./runner.ts");
-    const c = await choosePlaywright();
+    const c = await choosePlaywright(sb.env);
     assertEquals(c.ver, "1.64.0-alpha-1");
     assertStringIncludes(c.why, "1246");
-    const r = await ensureRunner();
+    const r = await ensureRunner({ env: sb.env });
     assertEquals(r.ok, true);
     assertStringIncludes(await npmLog(sb), "i @playwright/test@1.64.0-alpha-1");
   } finally {
@@ -327,12 +318,12 @@ Deno.test("REQ-007 AMENDMENT 3: of two playwrights on PATH, the one whose chromi
 Deno.test("REQ-007 AMENDMENT 3: when no candidate's build is installed, the first on PATH is taken and the gap is said", async () => {
   const sb = await sandbox({ runnerHome: "" });
   const dir = join(sb.root, "runner");
-  Deno.env.set("ISOLATE_RUNNER_HOME", dir);
+  sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
     const first = await fakePlaywright(join(sb.root, "repo"), "1.63.0", "1243");
-    Deno.env.set("PATH", `${first}:${Deno.env.get("PATH")}`);
+    sb.env.PATH = `${first}:${sb.env.PATH}`;
     const { choosePlaywright } = await import("./runner.ts");
-    const c = await choosePlaywright();
+    const c = await choosePlaywright(sb.env);
     assertEquals(c.ver, "1.63.0");
     assertStringIncludes(c.why, "not installed");
     assertStringIncludes(c.why, "playwright install");

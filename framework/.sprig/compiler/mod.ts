@@ -108,6 +108,13 @@ export async function createRenderer(
     shellDir?: string;
     reserved?: string[];
     favicon?: string;
+    /** the served assets dir to hash for ?v= and to read templates.json from —
+     *  else SPRIG_ASSETS_DIR, else <cwd>/static. A test passes it instead of
+     *  chdir-ing (REQ-021 AMENDMENT: the lanes share one process cwd). */
+    assetsDir?: string;
+    /** the env the INFRA perf gate reads — else Deno.env; a test passes its own
+     *  reader instead of mutating the process env (REQ-021 AMENDMENT). */
+    env?: { get(key: string): string | undefined };
   } = {},
 ): Promise<SsrRenderer> {
   const shellSelector = opts.shell ?? "shell";
@@ -119,7 +126,7 @@ export async function createRenderer(
   // hidden INFRA perf reporting (env-gated, read once at boot — see ./perf.ts): when
   // enabled, every document ships the head beacon snippet and __sprig_config carries
   // the endpoint so the client runtime can report soft navigations the same way.
-  const perf = perfConfig();
+  const perf = perfConfig(opts.env);
   // A component's IDENTITY is its folder path relative to srcDir (unique), not its
   // bare basename. Two registries: `global` for shared/shell/page components (keyed
   // by basename, must be unique → collision throws), and `pageLocal` for components
@@ -144,7 +151,7 @@ export async function createRenderer(
     prebuilt = JSON.parse(
       await Deno.readTextFile(
         join(
-          Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static"),
+          opts.assetsDir ?? (Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static")),
           "templates.json",
         ),
       ),
@@ -311,8 +318,8 @@ export async function createRenderer(
   // the bundle actually served. Without this, a dev render run from a dir whose own `static/`
   // never changes (e.g. the repo root) yields a frozen ?v=, so a returning browser keeps a
   // stale cached client.js even after a rebuild.
-  const staticDir = Deno.env.get("SPRIG_ASSETS_DIR") ||
-    join(Deno.cwd(), "static");
+  const staticDir = opts.assetsDir ??
+    (Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static"));
   // hash the SERVED assets only (.js + app.css) — same set the build hashes, so
   // templates.json / source maps don't perturb ?v=. A missing/empty dir degrades to
   // the constant "dev" — NOT content-addressed, so the asset server must never send

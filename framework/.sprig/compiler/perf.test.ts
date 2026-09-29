@@ -98,23 +98,21 @@ async function writeTree(tmp: string, files: Record<string, string>) {
 }
 
 Deno.test("perf: renderDocument ships snippet + config only when the env gate is on", async () => {
-  const cwd = Deno.cwd();
   const tmp = await Deno.makeTempDir({ prefix: "sprig-perf-" });
-  const saved: Record<string, string | undefined> = {};
-  for (const k of ["INFRA_PERF", "INFRA_PERF_URL", "INFRA_APP_ID"]) {
-    saved[k] = Deno.env.get(k);
-    Deno.env.delete(k);
-  }
+  const off = { get: (_k: string) => undefined };
+  const on = {
+    get: (k: string) =>
+      ({ INFRA_PERF: "true", INFRA_PERF_URL: "http://127.0.0.1:9/perf", INFRA_APP_ID: "test-app" } as Record<string, string>)[k],
+  };
   try {
     await writeTree(tmp, {
       "static/app.css": "body{color:red}",
       "shell/template.html": `<div><router-outlet></router-outlet></div>`,
       "pages/home/template.html": `<p>hi</p>`,
     });
-    Deno.chdir(tmp); // so the renderer can't pick up the repo's static/templates.json
 
     // OFF (no env): no snippet, no config entry
-    let r = await createRenderer(tmp, "/ui");
+    let r = await createRenderer(tmp, "/ui", { assetsDir: joinPath(tmp, "static"), env: off }); // its own assets, its own env
     let html = await r.renderDocument("pages/home", {});
     assert(
       !html.includes("infra-app-id"),
@@ -126,10 +124,7 @@ Deno.test("perf: renderDocument ships snippet + config only when the env gate is
     );
 
     // ON: snippet in the head + { url, app } in __sprig_config
-    Deno.env.set("INFRA_PERF", "true");
-    Deno.env.set("INFRA_PERF_URL", "http://127.0.0.1:9/perf");
-    Deno.env.set("INFRA_APP_ID", "test-app");
-    r = await createRenderer(tmp, "/ui");
+    r = await createRenderer(tmp, "/ui", { assetsDir: joinPath(tmp, "static"), env: on });
     html = await r.renderDocument("pages/home", {});
     assertStringIncludes(html, '"infra-app-id"');
     assertStringIncludes(html, "http://127.0.0.1:9/perf");
@@ -151,11 +146,6 @@ Deno.test("perf: renderDocument ships snippet + config only when the env gate is
     const streamed = await new Response(stream).text();
     assertEquals(streamed, html);
   } finally {
-    Deno.chdir(cwd);
-    for (const [k, v] of Object.entries(saved)) {
-      if (v === undefined) Deno.env.delete(k);
-      else Deno.env.set(k, v);
-    }
     await Deno.remove(tmp, { recursive: true });
   }
 });

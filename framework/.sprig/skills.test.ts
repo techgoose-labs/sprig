@@ -22,8 +22,7 @@ async function writeFile(p: string, body: string): Promise<void> {
 Deno.test("installSkills: base-level whole-folder replace into user scope", async () => {
   const dest = await Deno.makeTempDir({ prefix: "sprig-skills-dest-" });
   const src = await Deno.makeTempDir({ prefix: "sprig-skills-src-" });
-  const prev = Deno.env.get("CLAUDE_SKILLS_DIR");
-  Deno.env.set("CLAUDE_SKILLS_DIR", dest); // sandbox — never the real ~/.claude/skills
+  const env = { get: (key: string) => key === "CLAUDE_SKILLS_DIR" ? dest : undefined }; // sandbox — never the real ~/.claude, never the process env
   try {
     // --- seed the destination (a prior install) ---
     await writeFile(
@@ -52,7 +51,7 @@ Deno.test("installSkills: base-level whole-folder replace into user scope", asyn
       "not a skill — no SKILL.md",
     );
 
-    await installSkills(src);
+    await installSkills(src, { env });
 
     // same-named skill is UPDATED ...
     assertEquals(
@@ -74,8 +73,6 @@ Deno.test("installSkills: base-level whole-folder replace into user scope", asyn
     // ... and a dir without SKILL.md is skipped.
     assertEquals(await exists(join(dest, "nogood")), false);
   } finally {
-    if (prev === undefined) Deno.env.delete("CLAUDE_SKILLS_DIR");
-    else Deno.env.set("CLAUDE_SKILLS_DIR", prev);
     await Deno.remove(dest, { recursive: true }).catch(() => {});
     await Deno.remove(src, { recursive: true }).catch(() => {});
   }
@@ -87,8 +84,7 @@ Deno.test("installSkills: base-level whole-folder replace into user scope", asyn
 Deno.test("installAgents: base-level replace of flat .md files into user scope", async () => {
   const dest = await Deno.makeTempDir({ prefix: "sprig-agents-dest-" });
   const src = await Deno.makeTempDir({ prefix: "sprig-agents-src-" });
-  const prev = Deno.env.get("CLAUDE_AGENTS_DIR");
-  Deno.env.set("CLAUDE_AGENTS_DIR", dest); // sandbox — never the real ~/.claude/agents
+  const env = { get: (key: string) => key === "CLAUDE_AGENTS_DIR" ? dest : undefined }; // sandbox — never the real ~/.claude, never the process env
   try {
     // --- seed the destination (a prior install) ---
     await writeFile(join(dest, "hunter.md"), "OLD HUNTER");
@@ -99,7 +95,7 @@ Deno.test("installAgents: base-level replace of flat .md files into user scope",
     await writeFile(join(src, "fresh.md"), "a brand new agent");
     await writeFile(join(src, ".gitkeep"), ""); // dotfile — must be skipped
 
-    await installAgents(src);
+    await installAgents(src, { env });
 
     // same-named agent is UPDATED ...
     assertEquals(
@@ -116,8 +112,6 @@ Deno.test("installAgents: base-level replace of flat .md files into user scope",
     // ... and the dotfile is NOT copied.
     assertEquals(await exists(join(dest, ".gitkeep")), false);
   } finally {
-    if (prev === undefined) Deno.env.delete("CLAUDE_AGENTS_DIR");
-    else Deno.env.set("CLAUDE_AGENTS_DIR", prev);
     await Deno.remove(dest, { recursive: true }).catch(() => {});
     await Deno.remove(src, { recursive: true }).catch(() => {});
   }
@@ -129,14 +123,13 @@ Deno.test("installSkills: replaces a symlinked skill in place (no write-through)
   const dest = await Deno.makeTempDir({ prefix: "sprig-skills-dest-" });
   const src = await Deno.makeTempDir({ prefix: "sprig-skills-src-" });
   const elsewhere = await Deno.makeTempDir({ prefix: "sprig-skills-link-" });
-  const prev = Deno.env.get("CLAUDE_SKILLS_DIR");
-  Deno.env.set("CLAUDE_SKILLS_DIR", dest);
+  const env = { get: (key: string) => key === "CLAUDE_SKILLS_DIR" ? dest : undefined }; // sandbox — never the real ~/.claude, never the process env
   try {
     await writeFile(join(elsewhere, "SKILL.md"), "linked target");
     await Deno.symlink(elsewhere, join(dest, "build"));
     await writeFile(join(src, "build", "SKILL.md"), "real folder");
 
-    await installSkills(src);
+    await installSkills(src, { env });
 
     const li = await Deno.lstat(join(dest, "build"));
     assert(!li.isSymlink, "destination is a real dir, not a symlink");
@@ -150,8 +143,6 @@ Deno.test("installSkills: replaces a symlinked skill in place (no write-through)
       "linked target",
     );
   } finally {
-    if (prev === undefined) Deno.env.delete("CLAUDE_SKILLS_DIR");
-    else Deno.env.set("CLAUDE_SKILLS_DIR", prev);
     await Deno.remove(dest, { recursive: true }).catch(() => {});
     await Deno.remove(src, { recursive: true }).catch(() => {});
     await Deno.remove(elsewhere, { recursive: true }).catch(() => {});

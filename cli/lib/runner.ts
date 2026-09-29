@@ -39,16 +39,27 @@ export function playwrightVersionOf(text: string): string | undefined {
 }
 
 /** Where playwright keeps its browsers: PLAYWRIGHT_BROWSERS_PATH, else the platform cache. */
-function browsersPath(): string | undefined {
-  const env = Deno.env.get("PLAYWRIGHT_BROWSERS_PATH");
-  if (env && env !== "0") return env;
-  const home = Deno.env.get("HOME") ?? Deno.env.get("USERPROFILE");
+/** The environment the runner reads — injectable so tests never mutate Deno.env
+ *  (the lanes run `deno test --parallel`, one process). */
+export type Env = Record<string, string | undefined>;
+
+function browsersPath(env: Env): string | undefined {
+  const set = env.PLAYWRIGHT_BROWSERS_PATH;
+  if (set && set !== "0") return set;
+  const home = env.HOME ?? env.USERPROFILE;
   if (!home) return undefined;
   if (Deno.build.os === "darwin") return `${home}/Library/Caches/ms-playwright`;
   if (Deno.build.os === "windows") {
-    return `${Deno.env.get("LOCALAPPDATA") ?? home}/ms-playwright`;
+    return `${env.LOCALAPPDATA ?? home}/ms-playwright`;
   }
-  return `${Deno.env.get("XDG_CACHE_HOME") ?? `${home}/.cache`}/ms-playwright`;
+  return `${env.XDG_CACHE_HOME ?? `${home}/.cache`}/ms-playwright`;
+}
+
+/** What a subprocess inherits: the injected env, undefined values dropped. */
+function subEnv(env: Env): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) if (v !== undefined) out[k] = v;
+  return out;
 }
 
 interface PlaywrightCandidate {
@@ -61,10 +72,10 @@ interface PlaywrightCandidate {
 
 /** Every `playwright` on PATH, in PATH order, with its version and whether the
  *  Chromium build it wants is in the browsers cache. */
-async function playwrightCandidates(): Promise<PlaywrightCandidate[]> {
+async function playwrightCandidates(env: Env): Promise<PlaywrightCandidate[]> {
   const out: PlaywrightCandidate[] = [];
   const present = new Set<string>();
-  const bp = browsersPath();
+  const bp = browsersPath(env);
   if (bp) {
     try {
       for await (const e of Deno.readDir(bp)) present.add(e.name);
@@ -72,7 +83,7 @@ async function playwrightCandidates(): Promise<PlaywrightCandidate[]> {
   }
   const sep = Deno.build.os === "windows" ? ";" : ":";
   const seen = new Set<string>();
-  for (const d of (Deno.env.get("PATH") ?? "").split(sep)) {
+  for (const d of (env.PATH ?? "").split(sep)) {
     if (!d) continue;
     const bin = `${d}/playwright`;
     let real: string;
@@ -85,7 +96,7 @@ async function playwrightCandidates(): Promise<PlaywrightCandidate[]> {
     seen.add(real);
     let ver: string | undefined;
     try {
-      const v = await new Deno.Command(bin, { args: ["--version"], stdout: "piped", stderr: "null" }).output();
+      const v = await new Deno.Command(bin, { args: ["--version"], stdout: "piped", stderr: "null", env: subEnv(env), clearEnv: true }).output();
       ver = playwrightVersionOf(new TextDecoder().decode(v.stdout));
     } catch { /* not runnable */ }
     if (!ver) continue;
@@ -120,9 +131,9 @@ async function chromiumRevisionNear(realBin: string): Promise<string | undefined
  *  node_modules/.bin under `deno task`, a global one) and only one of them can launch
  *  (REQ-007 AMENDMENT 3). None launchable → the first on PATH, saying what is missing.
  *  No playwright at all → "latest". `why` is printed with the choice. */
-export async function choosePlaywright(): Promise<{ ver?: string; why: string }> {
-  const cs = await playwrightCandidates();
-  const bp = browsersPath() ?? "(no browsers path)";
+export async function choosePlaywright(env: Env = Deno.env.toObject()): Promise<{ ver?: string; why: string }> {
+  const cs = await playwrightCandidates(env);
+  const bp = browsersPath(env) ?? "(no browsers path)";
   const describe = (c: PlaywrightCandidate) =>
     `${c.bin} ${c.ver} (chromium ${c.revision ?? "?"}: ${c.installed ? "installed" : "not installed"})`;
   if (!cs.length) return { why: "no `playwright` on PATH — latest" };
@@ -164,6 +175,12 @@ async function withProvisionLock(dir: string, fn: () => Promise<void>): Promise<
       await Deno.mkdir(lock);
       break;
     } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        // the runner dir itself is gone (removed under us): recreate it and retry once
+        await Deno.mkdir(dir, { recursive: true });
+        await Deno.mkdir(lock);
+        break;
+      }
       if (!(e instanceof Deno.errors.AlreadyExists)) throw e;
       const age = Date.now() - ((await Deno.stat(lock).catch(() => null))?.mtime?.getTime() ?? Date.now());
       if (age > 10 * 60_000 || Date.now() > deadline) {
@@ -180,8 +197,11 @@ async function withProvisionLock(dir: string, fn: () => Promise<void>): Promise<
   }
 }
 
-export async function ensureRunner(): Promise<RunnerEnsure> {
-  const dir = await resolveRunnerDir();
+export async function ensureRunner(
+  opts: { env?: Env } = {},
+): Promise<RunnerEnsure> {
+  const env = opts.env ?? Deno.env.toObject();
+  const dir = await resolveRunnerDir(env);
   if (!dir) {
     console.warn(
       "⚠ HOME is not set — can't locate the Playwright runner.\n" +
@@ -219,6 +239,8 @@ export async function ensureRunner(): Promise<RunnerEnsure> {
       const r = await new Deno.Command("npm", {
         args,
         cwd: dir,
+        env: subEnv(env),
+        clearEnv: true,
         stdout: io === "inherit" ? "piped" : "null",
         stderr: io,
       }).output();
@@ -244,8 +266,9 @@ export async function ensureRunner(): Promise<RunnerEnsure> {
   //    browsers on disk belong to the system version, so a runner pinned to another
   //    one cannot launch. Provisioning takes a lock: two CLIs (the workbench and
   //    `isolate test`) may start on one fresh dir at once.
-  await withProvisionLock(dir, async () => {
-    const sys = await choosePlaywright();
+  try {
+    await withProvisionLock(dir, async () => {
+    const sys = await choosePlaywright(env);
     const installed = await installedTestVersion(mods);
     const absent = !(await pathExists(playwrightBin(dir)));
     const stale = sys.ver !== undefined && installed !== undefined && installed !== sys.ver;
@@ -258,7 +281,16 @@ export async function ensureRunner(): Promise<RunnerEnsure> {
     );
     console.log(`  @playwright/test@${ver} (${sys.why})`);
     await npm(["i", `@playwright/test@${ver}`], "inherit");
-  });
+    });
+  } catch (e) {
+    // never a crash: a runner dir that vanished mid-provision (another process
+    // removed it), a lock that could not be taken — say so, and report not-ok.
+    console.warn(
+      `⚠ Playwright runner provisioning failed in ${dir}: ${(e as Error).message}\n` +
+        "  ▸ run buttons and `isolate test` will fail until it's fixed.",
+    );
+    return { ok: false, dir };
+  }
 
   // 2. rxjs — the event-stream test helper depends on it.
   if (!(await pathExists(`${mods}/rxjs`))) {

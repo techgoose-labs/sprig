@@ -2058,3 +2058,37 @@ Tests:
 - e2e — `cli/commands/test.e2e.test.ts` (REQ-040..045) under `deno task
   test:e2e` on this box: green with the stale `~/.cache/sprig/isolate-runner`
   (reinstalled at the alpha) and with a fresh `XDG_CACHE_HOME`.
+
+## REQ-021 AMENDMENT — a lane test never mutates the shared process: no `Deno.chdir`, no `Deno.env.set/delete`
+
+> "The gate runs the three test lanes AT ONCE, each parallel by itself
+> (`deno test --parallel` …)".
+
+`deno test --parallel` runs a lane's test modules in ONE process, so cwd and
+env are shared. Measured on the unit lane: `render-version-race` and
+`render-version-env` chdir'd to temp dirs and the workbench SSR test
+(`app/spine.test.ts`, hashing `<cwd>/static`) went red at random;
+`cli/lib/runner.test.ts` set `ISOLATE_RUNNER_HOME`/`PATH`/`HOME` process-wide
+and `supervise.test.ts`'s spawned `isolate test` inherited another test's
+sandbox dir mid-removal (an uncaught NotFound on the provisioning lock);
+`perf.test.ts` set `INFRA_PERF` for every concurrent render. Now nothing in a
+lane test touches the process: `createRenderer` takes `assetsDir` (the dir to
+hash for `?v=` and read `templates.json` from) and `env` (the reader the
+INFRA perf gate uses); `ensureRunner`/`choosePlaywright` take `{ env }` and
+hand it to every subprocess (`clearEnv`), so the runner tests build a sandbox
+env object; a lock `mkdir` that finds the runner dir gone recreates it, and a
+provisioning failure is a warning + not-ok, never a crash. A guard test scans
+every lane test file and fails naming any that calls `Deno.chdir`,
+`Deno.env.set` or `Deno.env.delete`.
+
+Tests:
+
+- unit — `scripts/lane.test.ts` (REQ-021 AMENDMENT): the guard — was red
+  naming `perf.test.ts`, `render-version-env.test.ts`,
+  `render-version-race.test.ts` (chdir) and `cli/lib/runner.test.ts` (env);
+  green once each took its option. `framework/.sprig/compiler/{perf,
+  render-version-env, render-version-race}.test.ts` and
+  `cli/lib/runner.test.ts` keep their assertions on the injected options.
+- integration — `deno task test:unit` three times in a row: 668 green each
+  (before: 1–4 random reds per run).
+- e2e — n/a: no page.
