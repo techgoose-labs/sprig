@@ -218,3 +218,22 @@ Deno.test("REQ-032: reachableSelectors reads compositionGraph's resolved keys â€
     "task-row",
   ]);
 });
+
+Deno.test("REQ-057: checkComposition compares page-local units too â€” one the page never composes is a finding", () => {
+  const g: CompositionGraph = {
+    ...GRAPH,
+    pages: {
+      ...GRAPH.pages,
+      dashboard: {
+        dir: "pages/dashboard",
+        composes: ["task-row", "app-badge"],
+      },
+    },
+  };
+  const r = checkComposition(INV, g);
+  assertEquals(r.findings.map((f) => f.message), [
+    "page-local stat-card is used on page dashboard per the breakdown, but page dashboard never composes <stat-card>",
+  ]);
+  assert(r.findings[0].hint.includes("pages/dashboard"));
+  assert(!r.ok);
+});

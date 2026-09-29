@@ -128,11 +128,15 @@ the URL you hit and what rendered). Note anything left for
 ALSO return a **BUILD BRIEF** — the shared facts every component agent needs,
 resolved once here (the orchestrator inlines them, ≤8 lines, into every builder
 prompt so no agent re-derives them):
-`{ app_root, aliases (the deno.json import-map names: $, $.pages/, @contract/, …), tokens_path
-(ui/src/css-variables.json), isolate_cmd (how to run the workbench headless — the convention is`SPRIG_WB_ROOT=/tmp/wb-<PORT>
-isolate test <unit>
---json`, one workbench root per agent), port_base, contract
-(typed client present? path), browser_posture (playwright available: yes/no) }`.
+`app_root` (the directory holding the app's `deno.json` and `src/`,
+git-root-relative: `ui` in the `ui/src` layout, `.` when `src/` sits at the
+root), `aliases` (the deno.json import-map names: `$`, `$.pages/`,
+`@contract/`, …), `tokens_path` (`<app_root>/src/css-variables.json`),
+`isolate_cmd` (how to run the cases headless — the convention is
+`SPRIG_WB_ROOT=/tmp/wb-<PORT> sprig isolate test <unit> --json --root <app_root>`,
+one workbench root per agent), `port_base`, `contract` (typed client present?
+path), `browser_posture` (playwright available: yes/no). Every `ui` in this
+definition's commands (`sprig check ui`, `ui/src/…`) is that `app_root`.
 
 Return ONLY this summary + brief.
 

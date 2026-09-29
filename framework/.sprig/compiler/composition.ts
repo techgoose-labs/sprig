@@ -135,8 +135,9 @@ export interface CompositionReport {
  *  it reports; assertComposition decides. */
 export async function checkComposition(
   srcDir: string,
+  opts: { skipDirs?: Record<string, string> } = {},
 ): Promise<CompositionReport> {
-  const scan = await scanApp(srcDir);
+  const scan = await scanApp(srcDir, opts);
   const custom = (await readCustomElements(srcDir)) ?? [];
   const tags = findUnknownTags(scan, custom);
   const shadows = findShadows(scan);
@@ -165,8 +166,9 @@ export async function assertComposition(
   srcDir: string,
   label = "sprig build",
   log: (line: string) => void = console.log,
+  opts: { skipDirs?: Record<string, string> } = {},
 ): Promise<CompositionReport> {
-  const r = await checkComposition(srcDir);
+  const r = await checkComposition(srcDir, opts);
   for (const n of r.notes) log(`${label}: ${n}`);
   const summary =
     `${r.templates} template(s), ${r.tags} tag(s) against ${r.selectors} component selector(s)`;

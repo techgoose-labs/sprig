@@ -42,8 +42,10 @@ breakdown `index.md`; you never go find your unit):
   `screenshots/` dir (the diff targets). For a build-note: the
   `build-notes.json` entry (component + element tag + note + `isolateUrl`). For
   ad-hoc: the change description.
-- **TARGET DIR** — the absolute src folder where this unit lands
-  (`components/`|`islands/`|`pages/<page>/…`).
+- **TARGET DIR** — the absolute src folder where this unit lands:
+  `<app>/src/<dir>`, `<dir>` the unit's `inventory.json` `dir`
+  (`shared-components/<name>`, `pages/<page>`, or
+  `pages/<page>/components/<name>`); `<app>` is the BUILD BRIEF's `app_root`.
 
 **A passed path that doesn't exist = return `blocked` naming exactly which path
 — do NOT search for it.** A missing path means the brief is wrong; the
@@ -59,11 +61,11 @@ and passed only a name.)
   `pkill`/kill server processes to free a port; in a parallel fleet the process
   you kill is a sibling agent's workbench (a measured failure mode: 174 `pkill`s
   in one build fleet). **Workbench isolation:** export
-  `SPRIG_WB_ROOT=/tmp/wb-<your PORT>` on EVERY `isolate test` / `isolate dev`
-  you run — without it parallel agents regenerate the ONE shared workbench and
-  delete each other's previews mid-run (a measured race). If you start
-  `isolate dev`, record its PID
-  (`isolate dev & echo $! > /tmp/dev-<your PORT>.pid`) and stop it with
+  `SPRIG_WB_ROOT=/tmp/wb-<your PORT>` on EVERY `sprig isolate test` /
+  `sprig isolate <app>` you run — without it parallel agents regenerate the ONE
+  shared workbench and delete each other's previews mid-run (a measured race).
+  If you start the workbench, record its PID
+  (`sprig isolate <app> --no-open & echo $! > /tmp/dev-<your PORT>.pid`) and stop it with
   `kill $(cat /tmp/dev-<your PORT>.pid)` — that one `kill` stops the whole
   chain, dev server included; nothing to hunt afterwards. Re-running
   `sprig isolate` on a workbench whose server is still up REUSES it (prints its
@@ -82,10 +84,11 @@ sprig is **Deno SSR**: a component is a **folder** (`template.html` + optional
 makes it an island** (hydrates client-side); template-only ships zero JS and its
 `(event)` bindings never fire. **NOT Fresh/Preact/Next/Angular.**
 
-1. **Classify & place.** `static` → `components/`; `island` (needs client JS —
-   events, signals, `onBrowserInit`, an optimistic write) → `islands/`;
-   `page-composition` → `pages/<name>/`. Justify every island; a whole-page
-   island is a smell.
+1. **Classify & place.** The unit lands at `<app>/src/<dir>` — its
+   inventory `dir`, whatever its classification (spec-check looks for it
+   there). `island` = needs client JS (events, signals, `onBrowserInit`, an
+   optimistic write) → it gets a `logic.ts`. Justify every island; a
+   whole-page island is a smell.
 2. **Author the template** — Angular-flavored bindings: `{{ expr }}`, `[prop]`,
    `(event)`, `@if`/`@for … track`/`@empty`, `<content>` projection,
    `<child-selector [in]="x">` composition. Detail: `references/templates.md`.
@@ -124,19 +127,23 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    (measured). `sprig build`/`dev` print
    `sprig: <dir>/styles.css styles .x — daisyUI … styles the same class name(s) globally`
    — treat it as red: rename, or use the daisyUI component on purpose with its
-   own modifiers. Reserved list: `docs/sprig/styling.md` → "Reserved class
-   names".
+   own modifiers. Reserved list:
+   `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+   styles".
 6. **Isolate to green** — drop in the proposed `isolate/` folder (or author one:
    `fixture.json` + `cases/<state>/<state>.json`, format → cross-skill
    `sprig:breakdown/references/isolate-format.md`). Run
-   `SPRIG_WB_ROOT=/tmp/wb-<PORT> isolate test <unit> --json`: **the visual check
+   `SPRIG_WB_ROOT=/tmp/wb-<PORT> sprig isolate test <unit> --json --root <app>`
+   (exit 1 "nothing was checked" = your filter or `--root` matched no case —
+   fix the command, it is not green): **the visual check
    is the `_reference` row of `isolate test --json`** — the runner measures each
    case's pixel diff against its still and fails it over tolerance; you never
    judge two images by eye. Note: the interactive workbench does not yet apply
    `_viewport`/`_theme` — `sprig isolate test` (the runner) is authoritative.
    Confirm islands hydrate (interact → DOM reacts), lift each **Events**
    predicate into `cases/<case>/tests/*.spec.ts`, run the case tests, then run
-   `sprig check ui` (typecheck, wiring, `contract-calls`, `logic-placement`,
+   `sprig check ui` (`ui` = your `app_root`, e.g. `sprig check .` when `src/`
+   sits at the root; typecheck, wiring, `contract-calls`, `logic-placement`,
    `tokens`, `duplicate-templates`, `optimistic-writes`). **Green = every case
    row green AND no `sprig check ui` finding in your folder — before composing
    this unit into a page.** Fix a finding; a suppression comment needs a real
@@ -144,12 +151,8 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    the SAME case is still red after 3 build-fix-verify cycles, stop grinding** —
    return it red with your best one-line diagnosis (the orchestrator re-routes
    or descopes; the measured alternative was one builder burning 402 requests on
-   a single case). **Iteration budget: at most 5 diff-fix cycles per case.** If
-   a case is still red after 5, STOP and return it as `red` with your diagnosis
-   and the closest-attempt evidence — a deep loop past that point rarely
-   converges and burns the whole fleet's budget (measured: single component
-   agents running 200+ requests). The orchestrator decides whether to re-spec or
-   re-scope. A deliberate visual deviation is never silent: widen that case's
+   a single case; another ran 200+ requests) — include the closest-attempt
+   evidence; the orchestrator decides whether to re-spec or re-scope. A deliberate visual deviation is never silent: widen that case's
    `_reference` tolerance with a `reason`, which the report prints.
 
 ## The recipe (verified against sprig's own fixture app — covers the shapes you'd otherwise go researching; references below are for edge cases)
@@ -205,7 +208,7 @@ label):
 ```
 
 Case test — the ONLY dialect the headless runner loads
-(`isolate test <unit> --json` runs specs with **Node** Playwright;
+(`sprig isolate test <unit> --json` runs specs with **Node** Playwright;
 `@std/expect`, `jsr:`/`#alias`, and every other Deno-only import fails at load
 time):
 
@@ -237,7 +240,7 @@ needed prop as a `"signal": true` control in `fixture.json` and seed it via
 landed).
 
 **Verify by RECEIPT:** the isolate runner's own output is the verification —
-each case's pass/fail verdict from `sprig isolate` (or `isolate test --json`
+each case's pass/fail verdict from `sprig isolate` (or `sprig isolate test --json`
 headless; add `--failures-only` once a unit has >5 cases — counts stay full,
 only red rows print, and your context stops paying for green rows every turn) IS
 the state — its `_reference` rows are the visual check. Never `ls`/glob the tree

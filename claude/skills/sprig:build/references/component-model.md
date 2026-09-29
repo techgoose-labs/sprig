@@ -30,8 +30,9 @@ Rule: **prefix every class you style yourself** (`cm-dot`, `wb-badge`,
 name(s) globally`)
 — treat the warning as red. Want the daisyUI component? Use its own name and
 modifiers on purpose (`btn btn-sm`, `status status-success`) and let the tokens
-style it. Full list + mechanism: `docs/sprig/styling.md` → "Reserved class
-names".
+style it. The complete list lives in the sprig source repo's
+`docs/sprig/styling.md` (not installed with this skill); in an app, the build
+warning above is the authority.
 
 ## Two ways to write `logic.ts`
 
@@ -113,6 +114,36 @@ effect(() => console.log(count())); // re-runs on change
 
 Templates read signals by calling them: `{{ count() }}`, `[value]="count()"`.
 Reactive updates re-render the island in place.
+
+## No business logic — the `logic-placement` lint
+
+`sprig check` fails any island `logic.ts`, page `resolve.ts` or `template.html`
+expression that decides a domain rule. Each finding names its rule letter and
+line: **(a)** arithmetic on data (data × data, a member or money-named signal
+× a rate literal, a `( … )` group of reads counts as data); **(b)** a
+relational branch — data vs data, a member vs a threshold literal/`ALL_CAPS`
+constant, the wall clock (`Date.now()`/`new Date()`) vs data, a `.length` vs
+a data limit; **(c)** validation beyond required/type — `.test/.match/.exec/
+.matchAll/.search(`, `RegExp`, an exact `.length`; **(d)** a validate/
+compute/total/price/… function or a date-rule call (`isAfter`, `addDays`,
+`differenceIn…`); **(e)** access decided in the client — `role`/`plan`/`tier`/
+`permission` compared or used as a key, `can…`/`may…` set in a `switch`, a
+`switch`/`if` chain on a record's `status`/`state`/`stage`/`phase` deciding data
+in ≥2 branches (in a template: rendering different `(event)` actions); **(f)**
+a retry loop around an awaited call. In templates a label ternary
+(`m.age < 60 ? 'min ago' : …`) and `[class…]`/`[style…]`/`[attr.aria-…]`
+bindings are presentation. Suppress a truly presentational line with
+`// sprig-logic: <reason>` (`<!-- sprig-logic: <reason> -->` in a template).
+
+**Known holes** (the lint lets these through — `logic-placement-corpus.int.test.ts`
+pins each): composing a business identifier in a template string; equality with
+a hard-coded code (`code === "SHIPFREE26"`); clamping to a limit
+(`Math.min(n, MAX_PER_ORDER)`); searching/filtering loaded rows
+(`.filter(… includes(q))`); a comparator without arithmetic
+(`localeCompare`); a threshold on a local (`hoursLeft < 4` after clock math); a
+`switch`/`if` chain on a non-lifecycle field or a bare field (`d.type`,
+`@switch (status)`) — the same shape as UI dispatch. Not being flagged is not
+permission: these are still queries and commands the backend answers.
 
 ## Optimistic UI (the default for every server write)
 

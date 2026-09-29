@@ -449,13 +449,17 @@ async function settleChecks(
           row.ok = r.ok;
           row.measured = r.measured;
           row.evidence = r.diff;
+          // REQ-061: the measurement first, then what the harness noted while
+          // capturing (device scale, the fonts it loaded or could not) — kept.
+          const notes = row.detail;
           row.detail = r.message +
             (c.reference.via
               ? ` (reference resolved from the ${c.reference.via})`
               : "") +
             (c.reference.reason
               ? ` (tolerance reason: ${c.reference.reason})`
-              : "");
+              : "") +
+            (notes ? `\n${notes}` : "");
           if (!r.ok) row.error = r.message;
         } catch (e) {
           row.ok = false;
@@ -479,10 +483,12 @@ async function settleChecks(
           const m = compareMotion(spec, actual);
           row.ok = m.ok;
           row.evidence = actualPath;
+          const notes = row.detail;
           row.detail = `${m.summary}; spec ${c.motion.spec}` +
             (c.motion.via ? ` (resolved from the ${c.motion.via})` : "") +
             `; captured ${actualPath}` +
-            (m.ok ? "" : "\n" + m.differences.join("\n"));
+            (m.ok ? "" : "\n" + m.differences.join("\n")) +
+            (notes ? `\n${notes}` : "");
           if (!m.ok) row.error = m.differences.join("\n");
         } catch (e) {
           row.ok = false;

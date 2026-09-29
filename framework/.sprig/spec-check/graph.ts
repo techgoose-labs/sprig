@@ -130,6 +130,28 @@ export function checkComposition(
       }
     }
   }
+  // REQ-057: page-local units are compared too — `<page>/<selector>` in the page's reach.
+  for (const u of inv.units) {
+    if (u.scope !== "page-local" || !u.page) continue;
+    for (const p of u.usedOn) {
+      if (!pageEntry(graph, p)) {
+        findings.push({
+          where: `${where} ${u.dir}`,
+          message:
+            `page-local ${u.name} is used on page ${p}, which the app does not have`,
+          hint: `build page ${p}, or fix ${u.name}'s usedOn`,
+        });
+      } else if (!pagesOf(p).has(`${u.page}/${u.name}`)) {
+        findings.push({
+          where: `${where} ${u.dir}`,
+          message:
+            `page-local ${u.name} is used on page ${p} per the breakdown, but page ${p} never composes <${u.name}>`,
+          hint:
+            `compose <${u.name}> in pages/${p} (directly or through one of its components) — the app must be faithful to the mock`,
+        });
+      }
+    }
+  }
   return result(
     "composition",
     read,

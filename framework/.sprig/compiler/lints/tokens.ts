@@ -14,7 +14,12 @@
  *      FAMILY (see LENGTH_FAMILIES below: step/radius/space/shadow by token
  *      prefix) — it names only that family's token(s). Lengths inside at-rule
  *      preludes (`@media (min-width: 40rem)`) are not declarations and are not
- *      read; a length no token of its family holds passes.
+ *      read; a length no token of its family holds passes. A whole value that
+ *      equals a composite token of the family (`box-shadow: 0 1px 2px rgb(…)`
+ *      against `--shadow-sm`) is one error naming that token (REQ-049).
+ *      A raw color in a property whose family has NO tokens (a box-shadow when
+ *      the app defines no --shadow-*) says so and names the family to add,
+ *      instead of pointing at a token that does not exist (REQ-060).
  *  (c) a `font-family` literal: one off the system is an error listing the font
  *      tokens; one equal to a token's value is an error naming that token.
  *      `var(…)` and `inherit`/`initial`/`unset`/`revert` pass. The `font`
@@ -177,6 +182,16 @@ function normColor(v: string): string {
 
 function normLength(n: string, unit: string): string {
   return `${parseFloat(n)}${unit.toLowerCase()}`;
+}
+
+const SINGLE_LENGTH_RE = /^\s*(-?(?:\d+\.?\d*|\.\d+))(px|rem)\s*$/i;
+
+/** Canonical spelling of a whole declaration value: case and spacing ignored. */
+function normWhole(v: string): string {
+  return v.trim().toLowerCase().replace(/\s+/g, " ").replace(
+    /\s*([,/()])\s*/g,
+    "$1",
+  );
 }
 
 function normFont(v: string): string {
@@ -371,6 +386,28 @@ export function lintCssText(
       continue;
     }
 
+    // A composite value (more than one length/color) equal to a token of the
+    // property's family is that token — per-length matching can never see it.
+    const family = familyOfProp(prop);
+    const lit = raw.trim();
+    if (family && !SINGLE_LENGTH_RE.test(lit)) {
+      const same = tokensMatching(
+        Object.fromEntries(
+          Object.entries(tokens).filter(([k]) => familyOfToken(k) === family),
+        ),
+        normWhole(lit),
+        normWhole,
+      );
+      if (same.length) {
+        report(
+          vStart + (raw.length - raw.trimStart().length),
+          `${prop} ${lit} is the value of ${same.join(", ")}`,
+          useHint(same),
+        );
+        continue;
+      }
+    }
+
     const hits: { at: number; lit: string }[] = [];
     for (const m of value.matchAll(HEX_RE)) {
       hits.push({ at: m.index!, lit: m[0] });
@@ -391,8 +428,22 @@ export function lintCssText(
       h.lit.includes("(") ||
       !fns.some((f) => h.at > f.at && h.at < f.at + f.lit.length)
     ).sort((a, b) => a.at - b.at);
+    // A property whose family has NO tokens: "use a token" is an instruction
+    // the builder cannot follow — the design system is what is incomplete (REQ-060).
+    const emptyFamily = family &&
+      !Object.keys(tokens).some((k) => familyOfToken(k) === family);
     for (const h of colors) {
       const same = tokensMatching(tokens, normColor(h.lit), normColor);
+      if (!same.length && emptyFamily) {
+        report(
+          vStart + h.at,
+          `${prop}: the design system defines no ${family} tokens — raw color ${h.lit}`,
+          `add \`${
+            TOKEN_PREFIXES[family][0]
+          }-*\` to spec/ui/design-system/css-variables.json or suppress with sprig-token`,
+        );
+        continue;
+      }
       report(
         vStart + h.at,
         `raw color ${h.lit} in ${prop}`,
@@ -402,7 +453,6 @@ export function lintCssText(
       );
     }
 
-    const family = familyOfProp(prop);
     for (const m of family ? value.matchAll(LENGTH_RE) : []) {
       const norm = normLength(m[1], m[2]);
       const inFamily = Object.fromEntries(

@@ -10,12 +10,43 @@
  *       `.length` compared to a numeric literal > 1 inside an event handler;
  *   (d) calling or defining a validate/compute/calculate/derive/total/price/
  *       discount/tax/eligib/score/rank/allocate/schedule function.
- * UI geometry (event/e/window/document/el/this.el/rect/Math/Date roots, names
- * ending in Width|Height|Top|Left|X|Y|Index|Count|Length|Offset|Scroll) is exempt
- * from (a) and (b). `// sprig-logic: <reason>` suppresses a line.
+ * UI geometry (event/e/ev/evt/window/document/el/this.el/rect/Math/Date/
+ * performance roots, `now`, names ending in Width|Height|Top|Left|X|Y|Index|
+ * Count|Length|Offset|Scroll) is exempt from (a) and (b), and a geometry-named
+ * definition (`totalHeight`) from (d). `// sprig-logic: <reason>` suppresses a
+ * line.
+ *
+ * REQ-050 (the adversarial corpus, fixtures/lints/logic-corpus-*) adds:
+ *   (a) a money-named signal read (`subtotal()`, `amount()` …) × a numeric
+ *       literal other than 0 or 1; a member ×/÷ 10|100|1000 inside a
+ *       `.format(` argument is a unit conversion for display, not a rate;
+ *   (b) a THRESHOLD: a member expression vs a numeric literal other than 0/±1
+ *       or an ALL_CAPS constant; the WALL CLOCK: `Date.now()` / `new Date()`
+ *       vs anything but a numeric literal; a `.length` vs a data member —
+ *       each in a branch condition;
+ *   (c) `.exec(` / `.matchAll(` / `.search(`, and a `.length` equal / unequal
+ *       to a literal > 1 anywhere (an exact length is a format);
+ *   (d) date-rule library calls (`isAfter`, `isBefore`, `isPast`, `isFuture`,
+ *       `differenceIn…`, `add…`/`sub…` Days/Weeks/Months/Years/Hours/Minutes/
+ *       BusinessDays);
+ *   (e) ACCESS decided in the client: a `role`/`roles`/`permission(s)`/`plan`/
+ *       `tier`/`entitlement(s)` compared, switched on, used as a lookup key or
+ *       tested with `.includes(`/`.has(`; a `switch` whose cases set
+ *       `can…`/`may…` flags;
+ *   (f) a client RETRY loop: a `while`/`for`/`do` whose body `try`s an
+ *       `await` and catches — retries and idempotency are the server's.
+ * Template-literal interpolations (`${…}`) are scanned like code.
+ *
+ * REQ-050 AMENDMENT: a parenthesised group is an operand (see `group`); (e)
+ * also fires on a `switch` / `if` chain on a record's `status|state|stage|
+ * phase` deciding data in ≥2 branches; every `template.html` under the ui
+ * source is scanned too (see `checkTemplateLogic`).
  */
 import { join } from "@std/path";
 import { declaredSignals } from "../wiring-lint.ts";
+import { parseTemplate } from "../parse.ts";
+import type { Node } from "../node.ts";
+import { collectUiFiles } from "./ui-files.ts";
 import type { Finding, LintResult } from "./lint-types.ts";
 import {
   applySuppressions,
@@ -29,6 +60,15 @@ import {
 } from "./ts-scan.ts";
 
 const QUERY = "this is a query the backend should answer";
+const ACCESS = "access is the backend's call: bind a `can…` flag it answers";
+const RETRY =
+  "retry and idempotency are the server's: send once with an idempotency key";
+const HINT_ACCESS =
+  "have the query return the permission (`canRefund: true`) and bind it; " +
+  "`// sprig-logic: <reason>` if it is truly presentation";
+const HINT_RETRY =
+  "call the command once through `optimistic(…)` and render its failure; " +
+  "`// sprig-logic: <reason>` if it is truly presentation";
 const VALIDATE =
   "validate in the backend; the client checks required/type only";
 const HINT_QUERY =
@@ -107,8 +147,12 @@ const KEYWORDS = new Set([
   "keyof",
 ]);
 const GEOMETRY_ROOTS = new Set([
+  "$event",
   "event",
   "e",
+  "ev",
+  "evt",
+  "performance",
   "window",
   "document",
   "el",
@@ -117,9 +161,27 @@ const GEOMETRY_ROOTS = new Set([
   "Date",
 ]);
 const GEOMETRY_NAME =
-  /^(?:width|height|top|left|x|y|index|count|length|offset|scroll)$|(?:Width|Height|Top|Left|X|Y|Index|Count|Length|Offset|Scroll)$/;
+  /^(?:width|height|top|left|x|y|index|count|length|offset|scroll|now)$|(?:Width|Height|Top|Left|X|Y|Index|Count|Length|Offset|Scroll)$/;
 const DOMAIN_FN =
   /^(validate|compute|calculate|derive|total|price|discount|tax|eligib|score|rank|allocate|schedule)/i;
+/** REQ-050 (d): date-library calls that decide deadlines ("overdue", "due"). */
+const DATE_FN =
+  /^(isAfter|isBefore|isPast|isFuture|differenceIn[A-Z]\w*|(add|sub)(Days|Weeks|Months|Years|Hours|Minutes|BusinessDays))$/;
+/** REQ-050 (a): a signal read with a money name × a literal is a rate. */
+const MONEY_NAME =
+  /(amount|balance|cost|fee|price|total|revenue|cents|tax|salary|discount)/i;
+/** REQ-050 (a): a formatter's argument — ×/÷ a power of ten there is units. */
+const FORMAT_CALLS = new Set(["format", "formatToParts", "formatRange"]);
+const POW10 = new Set([10, 100, 1000]);
+/** REQ-050 (e): names that carry access / entitlement. */
+const ACCESS_NAME =
+  /^(role|roles|permission|permissions|plan|tier|entitlement|entitlements)$/;
+const ACCESS_FLAG = /^(can|may)[A-Z]\w*$/;
+/** REQ-050 AMENDMENT (e): a record's lifecycle field. */
+const LIFECYCLE_FIELD = /^(status|state|stage|phase)$/;
+const MEMBERSHIP = new Set(["includes", "has", "indexOf"]);
+const REGEX_CALLS = new Set(["test", "match", "exec", "matchAll", "search"]);
+const EQUALITY = new Set(["==", "===", "!=", "!=="]);
 const LIFECYCLE = new Set([
   "onBrowserInit",
   "onBrowserDestroy",
@@ -145,6 +207,8 @@ type Operand = {
   end: number;
   names: string[];
   value?: number;
+  /** a parenthesised group whose reads include UI geometry */
+  geo?: boolean;
 };
 
 const other = (i: number): Operand => ({
@@ -186,7 +250,9 @@ function operandBack(toks: Tok[], j: number): Operand {
     const c = toks[k];
     if (isP(c, ")")) {
       const o = matchBracket(toks, k);
-      if (o !== k - 1) return other(j);
+      if (o !== k - 1) {
+        return k === j && isGroupOpen(toks, o) ? group(toks, o, k) : other(j);
+      }
       k = o - 1;
       continue;
     }
@@ -227,6 +293,10 @@ function operandFwd(toks: Tok[], i: number): Operand {
   }
   const lit = literalOperand(t, i);
   if (lit) return lit;
+  if (isP(t, "(") && isGroupOpen(toks, i)) {
+    const close = matchBracket(toks, i);
+    return close < 0 ? other(i) : group(toks, i, close);
+  }
   if (t.kind !== "id" || (KEYWORDS.has(t.value) && t.value !== "this")) {
     return other(i);
   }
@@ -257,8 +327,53 @@ function operandFwd(toks: Tok[], i: number): Operand {
 
 const isData = (o: Operand) => o.kind === "ident" || o.kind === "member";
 
+/** Is the `(` at `o` a grouping paren (not a call's argument list)? */
+function isGroupOpen(toks: Tok[], o: number): boolean {
+  const b = toks[o - 1];
+  if (!b) return true;
+  if (b.kind === "id") return KEYWORDS.has(b.value) && b.value !== "this";
+  return !(isP(b, ")") || isP(b, "]") || b.kind === "tmpl");
+}
+
+/** REQ-050 AMENDMENT: a parenthesised group `( … )` is an operand: geometry
+ *  when any read in it is geometry; a member operand when it reads a member
+ *  (`(1 - this.promoRate)`); an identifier operand when it reads only plain
+ *  identifiers / signal reads (`(1 - rate())` — data × data, but never a rate
+ *  against a literal: `(zoom() - 0.1) * 100`); not an operand when it holds a
+ *  string (`(base() ?? "") + path()` is concatenation) or reads nothing, or
+ *  when it reads no member and holds or feeds a `%` — index wrap-around
+ *  `(active() + 1) % n` and the template floor idiom `(n - (n % 60)) / 60`. */
+function group(toks: Tok[], open: number, close: number): Operand {
+  let member = false, read = false, geo = false;
+  for (let j = open + 1; j < close; j++) {
+    const t = toks[j];
+    if (t.kind === "str" || t.kind === "tmpl") return other(open);
+    if (t.kind !== "id" || isP(toks[j - 1], ".") || isP(toks[j - 1], "?.")) {
+      continue;
+    }
+    const o = operandFwd(toks, j);
+    if (!isData(o)) continue;
+    if (isGeometry(o)) geo = true;
+    if (o.kind === "member") member = true;
+    read = true;
+    j = Math.max(j, o.end);
+  }
+  if (!read) return other(open);
+  const mod = isP(toks[close + 1], "%") || isP(toks[open - 1], "%") ||
+    toks.slice(open + 1, close).some((t) => isP(t, "%"));
+  if (!member && !geo && mod) return other(open);
+  return {
+    kind: member || geo ? "member" : "ident",
+    start: open,
+    end: close,
+    names: ["(…)"],
+    geo,
+  };
+}
+
 function isGeometry(o: Operand): boolean {
   if (!isData(o)) return false;
+  if (o.geo) return true;
   const [root, second] = o.names;
   if (GEOMETRY_ROOTS.has(root) || (root === "this" && second === "el")) {
     return true;
@@ -273,6 +388,93 @@ function isConstant(o: Operand, toks: Tok[]): boolean {
   if (hasCall) return false;
   if (o.names.length === 1) return /^[A-Z][A-Z0-9_]+$/.test(o.names[0]);
   return /^[A-Z]/.test(o.names[0]);
+}
+
+/** An `ALL_CAPS` identifier (a named threshold like `MAX_PER_ORDER`). */
+function isAllCaps(o: Operand, toks: Tok[]): boolean {
+  return o.kind === "ident" && o.names.length === 1 &&
+    /^[A-Z][A-Z0-9_]+$/.test(o.names[0]) &&
+    !toks.slice(o.start, o.end + 1).some((t) => isP(t, "("));
+}
+
+/** A zero-argument call read (`subtotal()`), not a bare identifier. */
+const isCallRead = (o: Operand, toks: Tok[]) =>
+  o.kind === "ident" && toks.slice(o.start, o.end + 1).some((t) => isP(t, "("));
+
+/** `Date.now()` ending at / `new Date()` around an operand: the wall clock. */
+function isClockBack(o: Operand, toks: Tok[]): boolean {
+  const last = toks[o.end];
+  if (!isP(last, ")")) return false;
+  if (o.names.length === 2 && o.names[0] === "Date" && o.names[1] === "now") {
+    return true;
+  }
+  return o.names.length === 1 && o.names[0] === "Date" &&
+    toks[o.start - 1]?.value === "new";
+}
+function isClockFwd(toks: Tok[], i: number): boolean {
+  if (
+    toks[i]?.value === "new" && toks[i + 1]?.value === "Date" &&
+    isP(toks[i + 2], "(") && isP(toks[i + 3], ")")
+  ) return true;
+  return toks[i]?.value === "Date" && isP(toks[i + 1], ".") &&
+    toks[i + 2]?.value === "now" && isP(toks[i + 3], "(") &&
+    isP(toks[i + 4], ")");
+}
+
+/** Line/col of a source offset, from the offsets where lines start. */
+function lineColAt(
+  starts: number[],
+  pos: number,
+): { line: number; col: number } {
+  let lo = 0, hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (starts[mid] <= pos) lo = mid;
+    else hi = mid - 1;
+  }
+  return { line: lo + 1, col: pos - starts[lo] + 1 };
+}
+
+/** REQ-050: the token stream with every template literal's `${…}`
+ *  interpolations spliced in after it as `( … )` groups, positions intact, so
+ *  arithmetic and branching inside a template are scanned like code. */
+function expandTemplates(
+  src: string,
+  toks: Tok[],
+  starts = [0, ...[...src.matchAll(/\n/g)].map((m) => m.index + 1)],
+): Tok[] {
+  const out: Tok[] = [];
+  for (const t of toks) {
+    out.push(t);
+    if (t.kind !== "tmpl") continue;
+    const v = t.value;
+    let i = 1, depth = 0, from = -1;
+    while (i < v.length - 1) {
+      const d = v[i];
+      if (d === "\\") {
+        i += 2;
+        continue;
+      }
+      if (depth === 0 && d === "$" && v[i + 1] === "{") {
+        depth = 1;
+        from = i + 2;
+        i += 2;
+        continue;
+      }
+      if (depth > 0 && d === "{") depth++;
+      if (depth > 0 && d === "}" && --depth === 0) {
+        const base = t.pos + from;
+        const inner = tokenize(v.slice(from, i)).map((x) => {
+          const lc = lineColAt(starts, base + x.pos);
+          return { ...x, pos: base + x.pos, line: lc.line, col: lc.col };
+        });
+        const mark = (value: string): Tok => ({ ...t, kind: "punct", value });
+        out.push(mark("("), ...expandTemplates(src, inner, starts), mark(")"));
+      }
+      i++;
+    }
+  }
+  return out;
 }
 
 /** Token indices covered by TS generic argument lists (`signal<T[]>(…)`). */
@@ -503,9 +705,18 @@ function definitionAt(toks: Tok[], k: number): boolean {
 export function checkLogicSource(
   src: string,
   file: string,
-  opts: { handlers?: Iterable<string> } = {},
+  opts: {
+    handlers?: Iterable<string>;
+    /** only these rule letters (template expressions run "abce") */
+    rules?: string;
+    /** a relational test of a ternary whose every arm holds a string is a
+     *  label, not a branch (template text: `mins < 1 ? 'now' : …`) */
+    labels?: boolean;
+    /** a class / style / aria binding: no (b) at all */
+    presentation?: boolean;
+  } = {},
 ): Pick<LintResult, "findings" | "suppressed"> {
-  const toks = tokenize(src);
+  const toks = expandTemplates(src, tokenize(src));
   const generic = genericSpans(toks);
   const fns = functions(toks, new Set(opts.handlers ?? []));
   const inHandler = (i: number) =>
@@ -521,6 +732,8 @@ export function checkLogicSource(
     tail: string,
     hint: string,
   ) =>
+    (!opts.rules || opts.rules.includes(letter)) &&
+    !(letter === "b" && labelB) &&
     raw.push({
       rule: `logic-placement/${letter}`,
       file,
@@ -530,6 +743,7 @@ export function checkLogicSource(
       hint,
       severity: "error",
     });
+  let labelB = false;
   const defined = new Set<string>();
   for (let k = 0; k < toks.length; k++) {
     if (
@@ -554,9 +768,14 @@ export function checkLogicSource(
       }
       if (isGeometry(L) || isGeometry(R)) continue;
       const bothData = isData(L) && isData(R);
+      const units = (n: Operand) =>
+        (t.value === "/" || t.value === "*") && n.kind === "num" &&
+        POW10.has(n.value ?? 0) &&
+        (FORMAT_CALLS.has(enclosingCallee(toks, k) ?? "") || piped(toks, k));
       const rate = (m: Operand, n: Operand) =>
-        m.kind === "member" && n.kind === "num" && n.value !== 0 &&
-        n.value !== 1;
+        n.kind === "num" && n.value !== 0 && n.value !== 1 && !units(n) &&
+        (m.kind === "member" ||
+          (isCallRead(m, toks) && MONEY_NAME.test(m.names[0])));
       if (bothData || rate(L, R) || rate(R, L)) {
         add(
           toks[L.start],
@@ -570,6 +789,7 @@ export function checkLogicSource(
     }
 
     if (t.kind === "punct" && COMPARE.has(t.value)) {
+      labelB = !!opts.presentation || (!!opts.labels && labelTernary(toks, k));
       let L = operandBack(toks, k - 1);
       let R = operandFwd(toks, k + 1);
       if (ARITH.has(toks[L.start - 1]?.value ?? "")) L = other(L.start);
@@ -578,18 +798,70 @@ export function checkLogicSource(
       const len = [L, R].find((o) => isData(o) && leaf(o) === "length");
       if (len) {
         const n = len === L ? R : L;
-        if (n.kind === "num" && (n.value ?? 0) > 1 && inHandler(k)) {
+        const exact = EQUALITY.has(t.value);
+        if (n.kind === "num" && (n.value ?? 0) > 1 && (exact || inHandler(k))) {
           add(
             toks[L.start],
             "c",
-            `\`${text(L.start, R.end)}\` checks a length in an event handler`,
+            exact
+              ? `\`${
+                text(L.start, R.end)
+              }\` requires an exact length (a format)`
+              : `\`${
+                text(L.start, R.end)
+              }\` checks a length in an event handler`,
             VALIDATE,
             HINT_VALIDATE,
+          );
+        } else if (
+          RELATIONAL.has(t.value) && n.kind === "member" && !isGeometry(n) &&
+          !isConstant(n, toks) && branching(toks, L.start, R.end)
+        ) {
+          add(
+            toks[L.start],
+            "b",
+            `a count checked against a data limit \`${text(L.start, R.end)}\``,
+            QUERY,
+            HINT_QUERY,
           );
         }
         continue;
       }
       if (!RELATIONAL.has(t.value)) continue;
+      const clockL = isData(L) && isClockBack(L, toks);
+      const clockR = isClockFwd(toks, k + 1);
+      if (clockL || clockR) {
+        const from = clockL
+          ? L.start - (toks[L.start - 1]?.value === "new" ? 1 : 0)
+          : exprStart(toks, k - 1);
+        const to = clockR ? clockEnd(toks, k + 1) : exprEnd(toks, k + 1);
+        if ((clockL ? R : L).kind !== "num") {
+          add(
+            toks[from],
+            "b",
+            `compares data to the wall clock \`${text(from, to)}\``,
+            QUERY,
+            HINT_QUERY,
+          );
+        }
+        continue;
+      }
+      const threshold = (m: Operand, n: Operand) =>
+        m.kind === "member" && !isGeometry(m) &&
+        ((n.kind === "num" && ![0, 1, -1].includes(n.value ?? 0)) ||
+          isAllCaps(n, toks));
+      if (
+        (threshold(L, R) || threshold(R, L)) && branching(toks, L.start, R.end)
+      ) {
+        add(
+          toks[L.start],
+          "b",
+          `threshold \`${text(L.start, R.end)}\``,
+          QUERY,
+          HINT_QUERY,
+        );
+        continue;
+      }
       if (!isData(L) || !isData(R) || isGeometry(L) || isGeometry(R)) continue;
       if (isConstant(L, toks) || isConstant(R, toks)) continue;
       if (branching(toks, L.start, R.end)) {
@@ -608,10 +880,7 @@ export function checkLogicSource(
     const prev = toks[k - 1];
     const member = isP(prev, ".") || isP(prev, "?.");
 
-    if (
-      member && (t.value === "test" || t.value === "match") &&
-      isP(toks[k + 1], "(")
-    ) {
+    if (member && REGEX_CALLS.has(t.value) && isP(toks[k + 1], "(")) {
       add(
         t,
         "c",
@@ -626,7 +895,85 @@ export function checkLogicSource(
       continue;
     }
 
+    if (!member && DATE_FN.test(t.value) && isP(toks[k + 1], "(")) {
+      if (prev?.value !== "import" && prev?.value !== "function") {
+        add(t, "d", `calls the date rule \`${t.value}(…)\``, QUERY, HINT_QUERY);
+      }
+      continue;
+    }
+    if (ACCESS_NAME.test(t.value) && accessUse(toks, k)) {
+      add(
+        t,
+        "e",
+        `decides access by \`${t.value}\``,
+        ACCESS,
+        HINT_ACCESS,
+      );
+      continue;
+    }
+    if (t.value === "switch" && isP(toks[k + 1], "(")) {
+      const close = matchBracket(toks, k + 1);
+      const body = close + 1;
+      if (isP(toks[body], "{")) {
+        const end = matchBracket(toks, body);
+        const flag = toks.slice(body, end).find((x, j) =>
+          x.kind === "id" && ACCESS_FLAG.test(x.value) &&
+          (isP(toks[body + j + 1], "=") || isP(toks[body + j + 1], ":"))
+        );
+        if (flag) {
+          add(
+            t,
+            "e",
+            `a \`switch\` sets the \`${flag.value}\` permission`,
+            ACCESS,
+            HINT_ACCESS,
+          );
+        } else if (lifecycleSubject(toks, k + 2, close - 1)) {
+          const arms = caseArms(toks, body, end).filter((a) =>
+            producesData(toks, a[0], a[1])
+          ).length;
+          if (arms >= 2) {
+            add(
+              t,
+              "e",
+              `a \`switch\` on \`${
+                text(k + 2, close - 1)
+              }\` decides data in ${arms} branches`,
+              ACCESS,
+              HINT_ACCESS,
+            );
+          }
+        }
+      }
+      continue;
+    }
+    if (t.value === "if" && prev?.value !== "else" && isP(toks[k + 1], "(")) {
+      const chain = ifChain(toks, k);
+      const onStatus = chain.filter((b) =>
+        b.cond && lifecycleTest(toks, b.cond[0], b.cond[1])
+      );
+      const arms = chain.filter((b) => producesData(toks, b.body[0], b.body[1]))
+        .length;
+      if (onStatus.length >= 2 && arms >= 2) {
+        add(
+          t,
+          "e",
+          `an \`if\` chain on a lifecycle field decides data in ${arms} branches`,
+          ACCESS,
+          HINT_ACCESS,
+        );
+      }
+    }
+    if (
+      (t.value === "while" || t.value === "for" || t.value === "do") &&
+      retryLoop(toks, k)
+    ) {
+      add(t, "f", "retries a server call in a loop", RETRY, HINT_RETRY);
+      continue;
+    }
+
     if (t.value === "computed" || !DOMAIN_FN.test(t.value)) continue;
+    if (GEOMETRY_NAME.test(t.value)) continue;
     if (definitionAt(toks, k)) {
       add(t, "d", `defines \`${t.value}\``, QUERY, HINT_QUERY);
       continue;
@@ -646,6 +993,253 @@ export function checkLogicSource(
   const out: LintResult = { findings: [], suppressed: [], checked: [] };
   applySuppressions(out, file, raw, suppressions(src, "sprig-logic"));
   return out;
+}
+
+/** Does the expression holding operator `k` end in a template pipe
+ *  (`cents / 100 | currency`) at the same bracket depth? */
+function piped(toks: Tok[], k: number): boolean {
+  let depth = 0;
+  for (let j = k + 1; j < toks.length; j++) {
+    const v = toks[j].kind === "punct" ? toks[j].value : "";
+    if (v === "(" || v === "[" || v === "{") depth++;
+    else if (v === ")" || v === "]" || v === "}") {
+      if (--depth < 0) return false;
+    } else if (depth === 0 && v === "|") return true;
+    else if (
+      depth === 0 && (v === "," || v === ";" || v === "?" || v === ":")
+    ) {
+      return false;
+    }
+  }
+  return false;
+}
+
+/** The last token of `new Date()` / `Date.now()` starting at `i`. */
+function clockEnd(toks: Tok[], i: number): number {
+  return toks[i]?.value === "new" ? i + 3 : i + 4;
+}
+
+/** The last token of the call / member chain starting at `i`. */
+function exprEnd(toks: Tok[], i: number): number {
+  let j = i;
+  if (toks[j]?.value === "new") j++;
+  for (;;) {
+    if (isP(toks[j + 1], ".") || isP(toks[j + 1], "?.")) j += 2;
+    else if (isP(toks[j + 1], "(") || isP(toks[j + 1], "[")) {
+      j = matchBracket(toks, j + 1);
+    } else return j;
+    if (j < 0) return i;
+  }
+}
+
+/** The first token of the call / member chain ending at `j`. */
+function exprStart(toks: Tok[], j: number): number {
+  let i = j;
+  for (;;) {
+    if (isP(toks[i], ")") || isP(toks[i], "]")) i = matchBracket(toks, i) - 1;
+    if (i < 0) return j;
+    if (isP(toks[i - 1], ".") || isP(toks[i - 1], "?.")) i -= 2;
+    else return toks[i - 1]?.value === "new" ? i - 1 : i;
+  }
+}
+
+/** Is the access-named token at `k` compared, switched on, used as a lookup
+ *  key, or tested for membership? */
+function accessUse(toks: Tok[], k: number): boolean {
+  const prev = toks[k - 1];
+  const leafAt = isP(prev, ".") || isP(prev, "?.") || !isP(toks[k + 1], ".");
+  if (!leafAt || isP(toks[k + 1], ":") || prev?.value === "type") return false;
+  let end = k;
+  if (isP(toks[end + 1], "(") && isP(toks[end + 2], ")")) end += 2;
+  let start = k;
+  while (isP(toks[start - 1], ".") || isP(toks[start - 1], "?.")) {
+    let j = start - 2;
+    if (isP(toks[j], ")")) j = matchBracket(toks, j) - 1;
+    if (toks[j]?.kind !== "id") break;
+    start = j;
+  }
+  const next = toks[end + 1], before = toks[start - 1];
+  if (next?.kind === "punct" && COMPARE.has(next.value)) return true;
+  if (before?.kind === "punct" && COMPARE.has(before.value)) return true;
+  if (isP(before, "[") && isP(next, "]")) {
+    const recv = toks[start - 2];
+    return recv?.kind === "id" || isP(recv, ")") || isP(recv, "]");
+  }
+  if (
+    isP(next, ".") && MEMBERSHIP.has(toks[end + 2]?.value) &&
+    isP(toks[end + 3], "(")
+  ) return true;
+  if (isP(before, "(") && (isP(next, ")") || isP(next, ","))) {
+    const callee = toks[start - 2];
+    if (callee?.value === "switch") return true;
+    return MEMBERSHIP.has(callee?.value) && isP(toks[start - 3], ".");
+  }
+  return false;
+}
+
+/** Is the expression in tokens [a, b] a data read whose leaf is a lifecycle
+ *  field (`order().status`, `this.state`)? A bare signal (`status()`) is UI
+ *  state and does not count — only a field OF a record. */
+function lifecycleSubject(toks: Tok[], a: number, b: number): boolean {
+  const o = operandFwd(toks, a);
+  return o.kind === "member" && o.end === b &&
+    LIFECYCLE_FIELD.test(o.names[o.names.length - 1]) && !isGeometry(o);
+}
+
+/** Does the condition in tokens [a, b] test a lifecycle field for equality? */
+function lifecycleTest(toks: Tok[], a: number, b: number): boolean {
+  for (let j = a; j <= b; j++) {
+    if (toks[j].kind !== "punct" || !EQUALITY.has(toks[j].value)) continue;
+    const L = operandBack(toks, j - 1);
+    const R = operandFwd(toks, j + 1);
+    if (
+      (L.kind === "member" && lifecycleSubject(toks, L.start, L.end)) ||
+      (R.kind === "member" && lifecycleSubject(toks, R.start, R.end))
+    ) return true;
+  }
+  return false;
+}
+
+/** The token ranges of a switch body's `case`/`default` arms. */
+function caseArms(
+  toks: Tok[],
+  open: number,
+  close: number,
+): [number, number][] {
+  const heads: number[] = [];
+  let depth = 0;
+  for (let j = open + 1; j < close; j++) {
+    const v = toks[j].kind === "punct" ? toks[j].value : "";
+    if (v === "(" || v === "[" || v === "{") depth++;
+    else if (v === ")" || v === "]" || v === "}") depth--;
+    else if (
+      depth === 0 && (toks[j].value === "case" || toks[j].value === "default")
+    ) heads.push(j);
+  }
+  return heads.map((h, i) => [h, (heads[i + 1] ?? close) - 1]);
+}
+
+/** One branch of an if / else-if / else chain: its condition and body. */
+type Branch = { cond: [number, number] | null; body: [number, number] };
+
+/** The branches of the `if` chain starting at token `k`. */
+function ifChain(toks: Tok[], k: number): Branch[] {
+  const out: Branch[] = [];
+  let i = k;
+  for (;;) {
+    let cond: [number, number] | null = null;
+    let at = i;
+    if (toks[i]?.value === "if") {
+      const close = matchBracket(toks, i + 1);
+      if (close < 0) return out;
+      cond = [i + 2, close - 1];
+      at = close + 1;
+    }
+    let end: number;
+    if (isP(toks[at], "{")) end = matchBracket(toks, at);
+    else {
+      end = at;
+      while (end < toks.length && !isP(toks[end], ";")) end++;
+    }
+    if (end < 0) return out;
+    out.push({ cond, body: [at, end] });
+    if (toks[end + 1]?.value !== "else" || !cond) return out;
+    i = end + 2;
+  }
+}
+
+/** Does the branch in tokens [a, b] produce DATA — assign, `.set(`, or return
+ *  a value — rather than only a label / class (a lone string literal)? */
+function producesData(toks: Tok[], a: number, b: number): boolean {
+  const lone = (j: number) =>
+    (toks[j]?.kind === "str" || toks[j]?.kind === "tmpl") &&
+    (isP(toks[j + 1], ";") || isP(toks[j + 1], ")") || isP(toks[j + 1], "}") ||
+      j + 1 > b);
+  for (let j = a; j <= b; j++) {
+    const t = toks[j];
+    if (isP(t, "=") && !lone(j + 1)) return true;
+    if (t.value === "return" && t.kind === "id") {
+      if (!lone(j + 1) && !isP(toks[j + 1], ";") && !isP(toks[j + 1], "}")) {
+        return true;
+      }
+    }
+    if (
+      t.value === "set" && isP(toks[j - 1], ".") && isP(toks[j + 1], "(") &&
+      !lone(j + 2)
+    ) return true;
+  }
+  return false;
+}
+
+/** A `while`/`for`/`do` at `k` whose body `try`s an `await` and catches. */
+function retryLoop(toks: Tok[], k: number): boolean {
+  let body = k + 1;
+  if (toks[k].value !== "do") {
+    if (!isP(toks[k + 1], "(")) return false;
+    body = matchBracket(toks, k + 1) + 1;
+  }
+  if (!isP(toks[body], "{")) return false;
+  const end = matchBracket(toks, body);
+  for (let j = body + 1; j < end; j++) {
+    if (toks[j].value !== "try" || !isP(toks[j + 1], "{")) continue;
+    const tryEnd = matchBracket(toks, j + 1);
+    const awaits = toks.slice(j + 1, tryEnd).some((x) => x.value === "await");
+    if (awaits && toks[tryEnd + 1]?.value === "catch") return true;
+  }
+  return false;
+}
+
+/** Is the comparison at operator `k` the test of a ternary (possibly through
+ *  `&&` / `||`) whose every arm holds a string literal — a label? */
+function labelTernary(toks: Tok[], k: number): boolean {
+  let depth = 0, q = -1;
+  for (let j = k + 1; j < toks.length; j++) {
+    const v = toks[j].kind === "punct" ? toks[j].value : "";
+    if (v === "(" || v === "[" || v === "{") depth++;
+    else if (v === ")" || v === "]" || v === "}") {
+      if (--depth < 0) return false;
+    } else if (depth === 0 && v === "?") {
+      q = j;
+      break;
+    } else if (depth === 0 && (v === "," || v === ";" || v === ":")) {
+      return false;
+    }
+  }
+  if (q < 0) return false;
+  const arms: [number, number][] = [];
+  let from = q + 1, nest = 0;
+  depth = 0;
+  for (let j = q + 1; j <= toks.length; j++) {
+    const v = toks[j]?.kind === "punct" ? toks[j].value : "";
+    if (j === toks.length) {
+      arms.push([from, j - 1]);
+      break;
+    }
+    if (v === "(" || v === "[" || v === "{") depth++;
+    else if (v === ")" || v === "]" || v === "}") {
+      if (--depth < 0) {
+        arms.push([from, j - 1]);
+        break;
+      }
+    } else if (depth === 0 && v === "?") nest++;
+    else if (depth === 0 && v === ":") {
+      if (nest > 0) nest--;
+      else if (arms.length === 0) {
+        arms.push([from, j - 1]);
+        from = j + 1;
+      } else {
+        arms.push([from, j - 1]);
+        break;
+      }
+    } else if (depth === 0 && (v === "," || v === ";")) {
+      arms.push([from, j - 1]);
+      break;
+    }
+  }
+  return arms.length === 2 &&
+    arms.every(([a, b]) =>
+      toks.slice(a, b + 1).some((t) => t.kind === "str" || t.kind === "tmpl")
+    );
 }
 
 /** Is the comparison spanning tokens [a, b] a branch condition? */
@@ -676,6 +1270,173 @@ function templateHandlers(html: string): Set<string> {
   return out;
 }
 
+/** Template children that are not expressions. */
+const NOT_EXPR = new Set([
+  "binding_name",
+  "block",
+  "else_clause",
+  "else_if_clause",
+  "case_clause",
+  "default_clause",
+  "ERROR",
+  "comment",
+]);
+/** A binding whose value only styles or labels the element. */
+const PRESENTATION_BINDING = /^(class|style|attr\.(aria-|role$|title$|data-))/;
+
+/** The `<!-- sprig-logic: <reason> -->` lines of a template (the comment's line
+ *  and the line below it). */
+function templateSuppressions(html: string): Map<number, string> {
+  const out = new Map<number, string>();
+  html.split("\n").forEach((text, idx) => {
+    const m = text.match(/<!--\s*sprig-logic:\s*(\S.*?)\s*-->/);
+    if (!m) return;
+    out.set(idx + 1, m[1]);
+    if (!out.has(idx + 2)) out.set(idx + 2, m[1]);
+  });
+  return out;
+}
+
+/** REQ-050 AMENDMENT — logic-placement over one `template.html`: every
+ *  expression the compiler's parser finds (`@let` values, `{{ }}`
+ *  interpolations, `[prop]` / `[(two-way)]` / `(event)` bindings, `@if` /
+ *  `@else if` / `@switch` subjects) runs rules (a)(b)(c)(e) exactly as in
+ *  logic.ts, at its template line, with two presentation carve-outs for (b):
+ *  a comparison whose ternary arms are all labels (hold a string) renders a
+ *  label, and one inside a `[class…]` / `[style…]` / `[attr.aria-…]` /
+ *  `[attr.role|title|data-…]` binding only styles — both are presentation.
+ *  Everything else a comparison feeds is logic: an `@if` / `@else if`
+ *  condition, a `@let` value and any other `[prop]` binding count as branch
+ *  conditions (`[disabled]="line.qty > line.stock"`). A member ×/÷ 10|100|1000
+ *  piped to a formatter (`cents / 100 | currency`) is units, not a rate. Plus: an `@switch` on, or an
+ *  `@if` chain testing, a record's lifecycle field (`o.status`, `x.state`,
+ *  `…stage`, `…phase`) with two or more branches that render an `(event)`
+ *  binding decides what the user may do — (e). `<!-- sprig-logic: <reason> -->`
+ *  suppresses its line and the next. */
+export async function checkTemplateLogic(
+  html: string,
+  file: string,
+): Promise<Pick<LintResult, "findings" | "suppressed">> {
+  const root = await parseTemplate(html, { allowError: true });
+  const raw: Finding[] = [];
+  const run = (
+    expr: Node,
+    mode: { branch?: boolean; presentation?: boolean },
+  ) => {
+    const row = expr.startPosition.row, col = expr.startPosition.column;
+    const synth = `${mode.branch ? "if (" : "("}\n${
+      " ".repeat(col)
+    }${expr.text}\n${mode.branch ? ") {}" : ");"}`;
+    const r = checkLogicSource(synth, file, {
+      rules: "abce",
+      labels: true,
+      presentation: mode.presentation,
+    });
+    for (const f of r.findings) raw.push({ ...f, line: row + f.line - 1 });
+  };
+  const exprs = (n: Node, skipFirst = false) => {
+    const out: Node[] = [];
+    for (let i = 0; i < n.namedChildCount; i++) {
+      const c = n.namedChild(i);
+      if (!c || NOT_EXPR.has(c.type) || (skipFirst && i === 0)) continue;
+      out.push(c);
+    }
+    return out;
+  };
+  const hasEvent = (n: Node): boolean =>
+    n.type === "event_binding" ||
+    Array.from({ length: n.namedChildCount }, (_, i) => n.namedChild(i))
+      .some((c: Node) => c && hasEvent(c));
+  const lifecycle = (e: Node): boolean => {
+    const walk = (n: Node): boolean => {
+      if (
+        n.type === "member_expression" || n.type === "safe_member_expression"
+      ) {
+        const leaf = n.namedChild(n.namedChildCount - 1);
+        if (leaf && LIFECYCLE_FIELD.test(leaf.text)) return true;
+      }
+      for (let i = 0; i < n.namedChildCount; i++) {
+        const c = n.namedChild(i);
+        if (c && walk(c)) return true;
+      }
+      return false;
+    };
+    return walk(e);
+  };
+  const branchBlocks = (n: Node): { cond: Node | null; block: Node }[] => {
+    const out: { cond: Node | null; block: Node }[] = [];
+    for (let i = 0; i < n.namedChildCount; i++) {
+      const c = n.namedChild(i);
+      if (!c) continue;
+      if (c.type === "block") out.push({ cond: exprs(n)[0] ?? null, block: c });
+      if (c.type === "else_if_clause" || c.type === "else_clause") {
+        out.push(...branchBlocks(c));
+      }
+      if (c.type === "case_clause" || c.type === "default_clause") {
+        for (let j = 0; j < c.namedChildCount; j++) {
+          const bc = c.namedChild(j);
+          if (bc?.type === "block") out.push({ cond: null, block: bc });
+        }
+      }
+    }
+    return out;
+  };
+  const visit = (n: Node) => {
+    switch (n.type) {
+      case "let_declaration":
+        for (const e of exprs(n, true)) run(e, { branch: true });
+        break;
+      case "interpolation":
+      case "event_binding":
+        for (const e of exprs(n)) run(e, {});
+        break;
+      case "property_binding":
+      case "two_way_binding": {
+        const name = n.namedChild(0)?.text ?? "";
+        const presentation = PRESENTATION_BINDING.test(name);
+        for (const e of exprs(n)) run(e, { branch: true, presentation });
+        break;
+      }
+      case "if_block":
+      case "else_if_clause":
+        for (const e of exprs(n)) run(e, { branch: true });
+        break;
+      case "switch_block":
+        for (const e of exprs(n)) run(e, {});
+        break;
+    }
+    if (n.type === "switch_block" || (n.type === "if_block")) {
+      const subjects = n.type === "switch_block" ? exprs(n).slice(0, 1) : [
+        ...exprs(n),
+        ...branchBlocks(n).map((b) => b.cond).filter((c): c is Node => !!c),
+      ];
+      const acting = branchBlocks(n).filter((b) => hasEvent(b.block)).length;
+      if (subjects.some(lifecycle) && acting >= 2) {
+        raw.push({
+          rule: "logic-placement/e",
+          file,
+          line: n.startPosition.row + 1,
+          col: n.startPosition.column + 1,
+          message: `(e) an \`@${
+            n.type === "switch_block" ? "switch" : "if"
+          }\` on a lifecycle field renders different actions in ${acting} branches — ${ACCESS}`,
+          hint: HINT_ACCESS,
+          severity: "error",
+        });
+      }
+    }
+    for (let i = 0; i < n.namedChildCount; i++) {
+      const c = n.namedChild(i);
+      if (c) visit(c);
+    }
+  };
+  visit(root);
+  raw.sort((a, b) => a.line - b.line);
+  const out: LintResult = { findings: [], suppressed: [], checked: [] };
+  applySuppressions(out, file, raw, templateSuppressions(html));
+  return out;
+}
+
 /** Run logic-placement over every island `logic.ts` and page `resolve.ts`. */
 export async function lintLogicPlacement(
   opts: { uiSrc: string },
@@ -689,9 +1450,10 @@ export async function lintLogicPlacement(
     opts.uiSrc,
     (rel) => /(^|\/)(logic|resolve)\.ts$/.test(rel),
   );
-  if (!scoped.length) {
+  const { templates } = await collectUiFiles(opts.uiSrc);
+  if (!scoped.length && !templates.length) {
     result.skipped =
-      `no island logic.ts or page resolve.ts under ${opts.uiSrc}`;
+      `no island logic.ts, page resolve.ts or template.html under ${opts.uiSrc}`;
     return result;
   }
   for (const rel of scoped) {
@@ -708,6 +1470,12 @@ export async function lintLogicPlacement(
       }
     }
     const r = checkLogicSource(src, file, { handlers });
+    result.checked.push(file);
+    result.findings.push(...r.findings);
+    result.suppressed.push(...r.suppressed);
+  }
+  for (const file of templates) {
+    const r = await checkTemplateLogic(await Deno.readTextFile(file), file);
     result.checked.push(file);
     result.findings.push(...r.findings);
     result.suppressed.push(...r.suppressed);

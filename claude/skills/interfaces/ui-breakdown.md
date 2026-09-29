@@ -50,7 +50,11 @@ spec/ui/breakdown/
   `{ "units": [ { "name", "dir", "classification", "scope", "page"?, "usedOn", "tier", "evidence", "dataNeeds" } ], "unassigned": [] }`,
   `dir` relative to `spec/ui/breakdown/`, `scope` `shared`|`page-local`|`page`,
   `tier` `static`|`pure-client`|`optimistic-write`|`realtime` (a write's tier
-  from the prototype's `commands.json` `feedback`). `evidence` names the
+  from the prototype's `commands.json` `feedback`; every unit fits one — a
+  read-only data region is `static`, a page takes its own `logic.ts`'s tier —
+  defined in the breakdown analyst). Pre-contract, `dataNeeds` use the
+  `data-model.md` names and `spec-check` skips binding-drift until
+  `spec/contract/openapi.json` exists. `evidence` names the
   design-system primitive a unit binds to when one exists. It is the source
   `index.md`'s usage matrix is written from.
 - **Tokens are Tailwind v4 `@theme` custom properties** — NOT a
@@ -63,7 +67,8 @@ spec/ui/breakdown/
   document-global, so a spec must not propose a class name daisyUI owns (`stat`,
   `badge`, `list`, `status`, `card-body`, …) for an element of its own — prefix
   own classes (`cm-dot`) or name the daisyUI component deliberately. The list:
-  `docs/sprig/styling.md` → "Reserved class names".
+  `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+  styles".
 - **Each component spec carries:** classification (`static` | `island` |
   `page-composition`) + the interaction tier (static / island; server writes are
   **optimistic UI**, realtime where needed; every case carries `_tier`);

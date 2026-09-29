@@ -41,6 +41,33 @@
 // The runner (../runner/mod.ts) applies _viewport/_theme/_network to every test of
 // the case and turns _reference/_motion into `reference: …` / `motion: …` rows.
 
+import { isNativeTag } from "../../../../../framework/.sprig/compiler/render.ts";
+
+/** Tags the renderer handles itself — never resolved to a component either. */
+const RESERVED_TAGS = [
+  "router-outlet",
+  "content",
+  "ng-content",
+  "ng-container",
+];
+
+/** REQ-061: why a folder's name can never be a component selector (null = it can).
+ *  The renderer emits a native element for a native tag whatever is registered
+ *  (the SAME set the composition check uses), so such a unit never renders. */
+export function selectorRefusal(name: string): string | null {
+  const tag = name.toLowerCase();
+  if (RESERVED_TAGS.includes(tag)) {
+    return `<${tag}> is a tag the renderer handles itself (outlet / content projection), ` +
+      `so a component named "${name}" is never rendered — rename the folder (e.g. "ui-${tag}")`;
+  }
+  if (isNativeTag(tag)) {
+    return `<${tag}> is a native HTML element: the renderer always emits the native element ` +
+      `for that tag, never the component, so "${name}" renders nothing and every check of it ` +
+      `would wait out its timeout — rename the folder (e.g. "ui-${tag}")`;
+  }
+  return null;
+}
+
 export type Kind = "static" | "island";
 /** The top-level folder under src/ a component lives in (e.g. "shared-components", "pages"). */
 export type Root = string;
@@ -82,7 +109,12 @@ export const TIERS = [
 ] as const;
 export type Tier = typeof TIERS[number];
 
-/** Default reference tolerance: the fraction of pixels allowed to differ (REQ-042). */
+/** Default reference tolerance: the fraction of pixels allowed to differ (REQ-042).
+ *  Measured (REQ-051/059): noise ≤ 0.002 (re-renders byte-identical; the mock's
+ *  own card vs its isolate render, fonts loaded, DPR 1: 0.002), the smallest
+ *  drift worth catching (a border-colour step) 0.020, a 1px padding shift
+ *  ≥ 0.089 — 0.01 sits between; a corner-radius step (0.004) slips under it, so
+ *  a case that pins radii sets a lower tolerance (no reason needed). */
 export const DEFAULT_TOLERANCE = 0.01;
 /** Height used when `_viewport` is a bare width — Playwright's own default height. */
 export const DEFAULT_VIEWPORT_HEIGHT = 720;
@@ -178,6 +210,7 @@ export interface Problem {
     | "case-json"
     | "component-file"
     | "component-export"
+    | "component-name"
     | "case-key"
     | "unsupported";
   /** The offending file (fixture/case JSON) or component directory. */
@@ -851,6 +884,15 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
 
       const label = rel.split("/").pop() ?? rel;
       const exportName = label; // sprig selector = folder basename (no PascalCase)
+      const refused = selectorRefusal(label);
+      if (refused) {
+        problems.push({
+          kind: "component-name",
+          path: templatePath,
+          detail: refused,
+        });
+        continue;
+      }
 
       let fixture: Record<string, unknown> = {};
       const fixturePath = `${isolateDir}/fixture.json`;

@@ -23,6 +23,7 @@ import { type CaseMap, checkTierCases } from "./spec-check/tier.ts";
 import {
   type CheckResult,
   type CompositionGraph,
+  type Finding,
   type Inventory,
   result,
   skipped,
@@ -55,6 +56,14 @@ async function readText(p: string): Promise<string | null> {
   } catch (e) {
     if (e instanceof Deno.errors.NotFound) return null;
     throw e;
+  }
+}
+
+async function isDir(p: string): Promise<boolean> {
+  try {
+    return (await Deno.stat(p)).isDirectory;
+  } catch {
+    return false;
   }
 }
 
@@ -103,7 +112,8 @@ export async function specCheck(
   let invProblem: string | undefined;
   let invShape: CheckResult;
   if (invText === null) {
-    invProblem = "no inventory.json — the breakdown's closing pass writes it";
+    invProblem =
+      "no inventory.json — the breakdown analyst's opening pass writes it";
     invShape = skipped(
       "inventory",
       [],
@@ -161,7 +171,7 @@ export async function specCheck(
       where: invWhere,
       message: invProblem!,
       hint:
-        "run the sprig-breakdown-analyst closing pass; it writes inventory.json with units + unassigned",
+        "run the sprig-breakdown-analyst opening pass; it writes inventory.json with units + unassigned",
     }]));
   }
 
@@ -276,7 +286,30 @@ export async function specCheck(
   }
 
   // ── built ──────────────────────────────────────────────────────────────────────
-  if (!opts.uiSrc) {
+  // REQ-057: a path the caller named that is not a directory is a finding, never a skip.
+  const missingDir = async (
+    flag: string,
+    p: string | undefined,
+  ): Promise<Finding | undefined> => {
+    if (!p || await isDir(resolve(p))) return undefined;
+    const where = rel(resolve(p));
+    return {
+      where,
+      message: `${flag} ${where} does not exist (or is not a directory)`,
+      hint: `pass the app's real ${
+        flag === "--ui-src" ? "src dir (e.g. ui/src)" : "dir (e.g. ui)"
+      } — a wrong path must not pass as "not compared"`,
+    };
+  };
+  const uiSrcMissing = await missingDir("--ui-src", opts.uiSrc);
+  const appMissing = opts.graph
+    ? undefined
+    : await missingDir("--app", opts.appDir);
+  if (uiSrcMissing) {
+    checks.push(
+      result("built", [], inventory?.units.length ?? 0, [uiSrcMissing]),
+    );
+  } else if (!opts.uiSrc) {
     checks.push(
       skipped(
         "built",
@@ -288,27 +321,47 @@ export async function specCheck(
   else checks.push(await checkBuilt(inventory, resolve(opts.uiSrc), root));
 
   // ── composition ────────────────────────────────────────────────────────────────
+  const pathFindings = [uiSrcMissing, appMissing].filter((f): f is Finding =>
+    !!f
+  );
   if (!inventory) {
-    checks.push(skipped("composition", [], noInv));
+    checks.push(
+      pathFindings.length
+        ? result("composition", [], 0, pathFindings, [noInv])
+        : skipped("composition", [], noInv),
+    );
+  } else if (pathFindings.length) {
+    checks.push(
+      result("composition", [invWhere], inventory.units.length, pathFindings),
+    );
   } else {
     let graph = opts.graph;
     const read = [invWhere];
-    const extra: string[] = [];
+    let graphFailure: Finding | undefined;
     if (!graph && opts.appDir) {
-      const g = await loadGraph(opts.appDir);
-      if (typeof g === "string") extra.push(`usage matrix not compared: ${g}`);
-      else {
+      const g = await loadGraph(resolve(opts.appDir));
+      const where = rel(resolve(opts.appDir)) || ".";
+      if (typeof g === "string") {
+        // REQ-057: the caller asked for the comparison; not getting a graph is a FAIL.
+        graphFailure = {
+          where,
+          message: `--app ${where}: no composition graph — ${g}`,
+          hint:
+            "point --app at the app dir whose src/ holds pages/ (e.g. ui), or pass --graph <graph.json>",
+        };
+      } else {
         graph = g;
-        read.push(rel(resolve(opts.appDir)));
+        read.push(where);
       }
     }
     const r = checkComposition(inventory, graph, read, invWhere);
-    if (extra.length) {
-      r.notes = extra.concat(
-        (r.notes ?? []).filter((n) =>
-          !n.startsWith("usage matrix not compared")
-        ),
+    if (graphFailure) {
+      r.findings.unshift(graphFailure);
+      r.ok = false;
+      r.notes = (r.notes ?? []).filter((n) =>
+        !n.startsWith("usage matrix not compared")
       );
+      if (!r.notes.length) delete r.notes;
     }
     checks.push(r);
   }

@@ -33,7 +33,7 @@ export function validateInventory(
       where,
       message: "inventory.json is not an object { units, unassigned }",
       hint:
-        'the breakdown\'s closing pass writes { "units": [...], "unassigned": [] }',
+        'the breakdown analyst\'s opening pass writes { "units": [...], "unassigned": [] }',
     });
     return { findings };
   }

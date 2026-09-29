@@ -7,10 +7,19 @@
  *   • `inject(Backend)` not passed straight into `createClient(...)`;
  *   • `.get(` / `.get<T>(` / `.fetch(` on a Backend-injected value with a
  *     literal path.
+ *   • (REQ-054) a call `<client>.<wrapper>(` — `<client>` bound from
+ *     `createClient(…)`, or named `client` — to an operation whose method is not
+ *     GET or POST. The contract waist is queries (GET) and commands (POST); the
+ *     `contract client` generator emits a wrapper for EVERY openapi operation, so
+ *     a PUT/PATCH/DELETE wrapper exists and must not be called. Methods come from
+ *     spec/contract/openapi.json (operationId, via ./contract.ts) and the
+ *     generated client's `name: (…) => req("METHOD", "/path"…)` wrappers. With no
+ *     openapi.json this rule is skipped and a note says why.
  * `// sprig-contract: <reason>` on the line (or the line above) suppresses it.
  * With no contract client there is nothing to enforce: the result says so.
  */
 import { join } from "@std/path";
+import { type ContractOp, OPENAPI_REL, readContractOps } from "./contract.ts";
 import type { Finding, LintResult } from "./lint-types.ts";
 import {
   applySuppressions,
@@ -74,10 +83,13 @@ const isLiteral = (t: Tok | undefined) =>
   !!t && (t.kind === "str" || t.kind === "tmpl");
 
 /** Contract-call findings for one source file, suppressions applied. */
+const WAIST_RULE =
+  "queries are GET, commands are POST; a write that needs PUT/PATCH/DELETE is a command the contract does not have yet";
+
 export function checkContractSource(
   src: string,
   file: string,
-  opts: { island: boolean },
+  opts: { island: boolean; ops?: Map<string, ContractOp> | null },
 ): Pick<LintResult, "findings" | "suppressed"> {
   const toks = tokenize(src);
   const raw: Finding[] = [];
@@ -92,6 +104,16 @@ export function checkContractSource(
       severity: "error",
     });
   const handles = new Set<string>();
+  const clients = new Set<string>(["client"]);
+  for (let k = 1; k < toks.length; k++) {
+    if (
+      toks[k].value === "createClient" && isP(toks[k + 1], "(") &&
+      isP(toks[k - 1], "=")
+    ) {
+      const name = boundName(toks, k - 1);
+      if (name) clients.add(name);
+    }
+  }
 
   for (let k = 0; k < toks.length; k++) {
     const t = toks[k];
@@ -150,6 +172,22 @@ export function checkContractSource(
       continue;
     }
 
+    if (
+      opts.ops && clients.has(t.value) && isP(toks[k + 1], ".") &&
+      toks[k + 2]?.kind === "id" && isP(toks[k + 3], "(")
+    ) {
+      const name = toks[k + 2].value;
+      const op = opts.ops.get(name);
+      if (op && op.method !== "GET" && op.method !== "POST") {
+        add(
+          t,
+          "write-method",
+          `${t.value}.${name}(…) calls ${op.method} ${op.path} — ${WAIST_RULE}`,
+        );
+      }
+      continue;
+    }
+
     if (t.value === "fetch" && isP(toks[k + 1], "(")) {
       const member = isP(prev, ".") || isP(prev, "?.");
       const globalMember = member &&
@@ -183,6 +221,28 @@ export function checkContractSource(
   return out;
 }
 
+const WRAPPER_RE =
+  /([A-Za-z_$][\w$]*)\s*:\s*(?:async\s*)?\([^)]*\)\s*(?::[^=]*)?=>\s*req\s*(?:<[^>]*>)?\(\s*["'](GET|POST|PUT|PATCH|DELETE)["']\s*,\s*(["'`])([^"'`]*)\3/g;
+
+/** wrapper/operationId → { method, path }: the contract's operations
+ *  (openapi.json) plus the generated client's `name: (…) => req("METHOD", …)`
+ *  wrappers under spec/contract/client. null when there is no openapi.json. */
+async function contractWrappers(
+  gitRoot: string,
+): Promise<Map<string, ContractOp> | null> {
+  const ops = await readContractOps(gitRoot);
+  if (!ops) return null;
+  const clientDir = join(gitRoot, "spec", "contract", "client");
+  for (const rel of await tsFiles(clientDir, () => true)) {
+    const src = await Deno.readTextFile(join(clientDir, rel));
+    for (const m of src.matchAll(WRAPPER_RE)) {
+      const known = ops.get(m[1]);
+      ops.set(m[1], { method: m[2], path: known?.path ?? m[4] });
+    }
+  }
+  return ops;
+}
+
 /** Run contract-calls over every `.ts` under `uiSrc` — or report it skipped
  *  when `<gitRoot>/spec/contract/client/` does not exist. */
 export async function lintContractCalls(
@@ -197,11 +257,18 @@ export async function lintContractCalls(
     result.skipped = `no ui source at ${opts.uiSrc}`;
     return result;
   }
+  const ops = await contractWrappers(opts.gitRoot);
+  if (!ops) {
+    result.notes = [
+      `write-method: no ${OPENAPI_REL} at ${opts.gitRoot} — calls to PUT/PATCH/DELETE wrappers are not checked`,
+    ];
+  }
   for (const rel of await tsFiles(opts.uiSrc, () => true)) {
     const file = join(opts.uiSrc, rel);
     const src = await Deno.readTextFile(file);
     const r = checkContractSource(src, file, {
       island: rel === "logic.ts" || rel.endsWith("/logic.ts"),
+      ops,
     });
     result.checked.push(file);
     result.findings.push(...r.findings);

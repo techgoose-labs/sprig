@@ -49,6 +49,9 @@ async function sandbox(opts: {
   runnerHome?: string;
   failInstall?: boolean;
   slowInstall?: boolean;
+  /** REQ-052: the sandbox's stub playwright wants chromium 1000 and, unless this is
+   *  false, `chromium-1000` is in the sandbox browsers path — a box that can launch. */
+  browsers?: boolean;
 } = {}): Promise<Sandbox> {
   const root = await Deno.makeTempDir({ prefix: "isolate-runner-it-" });
   const home = join(root, "home");
@@ -59,6 +62,11 @@ async function sandbox(opts: {
   await Deno.writeTextFile(join(bin, "playwright"), STUB_PLAYWRIGHT, {
     mode: 0o755,
   });
+  await Deno.mkdir(join(bin, "playwright-core"));
+  await Deno.writeTextFile(
+    join(bin, "playwright-core", "browsers.json"),
+    JSON.stringify({ browsers: [{ name: "chromium", revision: "1000" }] }),
+  );
 
   const env: Record<string, string | undefined> = {};
   const saved = { PATH: Deno.env.get("PATH") };
@@ -75,6 +83,9 @@ async function sandbox(opts: {
   set("PATH", `${bin}:${saved.PATH ?? ""}`);
   set("PLAYWRIGHT_BROWSERS_PATH", join(root, "browsers"));
   await Deno.mkdir(join(root, "browsers"));
+  if (opts.browsers !== false) {
+    await Deno.mkdir(join(root, "browsers", "chromium-1000"));
+  }
   if (opts.readOnlyHome) await Deno.chmod(home, 0o555);
 
   const warnings: string[] = [];
@@ -110,7 +121,9 @@ async function exists(p: string): Promise<boolean> {
 /** A runner dir that looks provisioned: what an existing install left behind. */
 async function provision(dir: string, testVersion = "1.0.0"): Promise<void> {
   await Deno.mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
-  await Deno.mkdir(join(dir, "node_modules", "@playwright", "test"), { recursive: true });
+  await Deno.mkdir(join(dir, "node_modules", "@playwright", "test"), {
+    recursive: true,
+  });
   await Deno.writeTextFile(
     join(dir, "node_modules", "@playwright", "test", "package.json"),
     JSON.stringify({ version: testVersion }),
@@ -219,7 +232,10 @@ Deno.test("REQ-007: the runner-incomplete warning names the resolved dir (the `c
 // different Chromium build and cannot launch.
 Deno.test("REQ-007 AMENDMENT 2: playwrightVersionOf keeps a prerelease suffix, reads a plain version, and is undefined on junk", async () => {
   const { playwrightVersionOf } = await import("./runner.ts");
-  assertEquals(playwrightVersionOf("Version 1.64.0-alpha-1789764292000\n"), "1.64.0-alpha-1789764292000");
+  assertEquals(
+    playwrightVersionOf("Version 1.64.0-alpha-1789764292000\n"),
+    "1.64.0-alpha-1789764292000",
+  );
   assertEquals(playwrightVersionOf("Version 1.63.0"), "1.63.0");
   assertEquals(playwrightVersionOf("Version 1.65.0-beta.2\n"), "1.65.0-beta.2");
   assertEquals(playwrightVersionOf("command not found"), undefined);
@@ -245,7 +261,11 @@ Deno.test("REQ-007 AMENDMENT 2: a stale runner (0.9.0 vs system 1.0.0) is reinst
     const r = await ensureRunner({ env: sb.env });
     assertEquals(r.ok, true);
     assertStringIncludes(await npmLog(sb), "i @playwright/test@1.0.0");
-    const pkg = JSON.parse(await Deno.readTextFile(join(dir, "node_modules", "@playwright", "test", "package.json")));
+    const pkg = JSON.parse(
+      await Deno.readTextFile(
+        join(dir, "node_modules", "@playwright", "test", "package.json"),
+      ),
+    );
     assertEquals(pkg.version, "1.0.0");
   } finally {
     await sb.restore();
@@ -271,9 +291,14 @@ Deno.test("REQ-007 AMENDMENT 2: two concurrent provisioners of one fresh dir ins
   const dir = join(sb.root, "runner");
   sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
-    const [a, b] = await Promise.all([ensureRunner({ env: sb.env }), ensureRunner({ env: sb.env })]);
+    const [a, b] = await Promise.all([
+      ensureRunner({ env: sb.env }),
+      ensureRunner({ env: sb.env }),
+    ]);
     assertEquals(a.ok && b.ok, true);
-    const installs = (await npmLog(sb)).split("\n").filter((l) => l.includes("@playwright/test"));
+    const installs = (await npmLog(sb)).split("\n").filter((l) =>
+      l.includes("@playwright/test")
+    );
     assertEquals(installs.length, 1, await npmLog(sb));
     assert(!(await exists(join(dir, ".provisioning"))), "lock left behind");
   } finally {
@@ -285,12 +310,23 @@ Deno.test("REQ-007 AMENDMENT 2: two concurrent provisioners of one fresh dir ins
 // takes the one whose Chromium build is actually installed, not the first one.
 async function fakePlaywright(dir: string, version: string, revision: string) {
   await Deno.mkdir(join(dir, "node_modules", ".bin"), { recursive: true });
-  await Deno.mkdir(join(dir, "node_modules", "playwright-core"), { recursive: true });
+  await Deno.mkdir(join(dir, "node_modules", "playwright-core"), {
+    recursive: true,
+  });
   await Deno.writeTextFile(
     join(dir, "node_modules", "playwright-core", "browsers.json"),
-    JSON.stringify({ browsers: [{ name: "chromium", revision }, { name: "chromium-headless-shell", revision }] }),
+    JSON.stringify({
+      browsers: [{ name: "chromium", revision }, {
+        name: "chromium-headless-shell",
+        revision,
+      }],
+    }),
   );
-  await Deno.writeTextFile(join(dir, "node_modules", ".bin", "playwright"), `#!/bin/sh\necho "Version ${version}"\n`, { mode: 0o755 });
+  await Deno.writeTextFile(
+    join(dir, "node_modules", ".bin", "playwright"),
+    `#!/bin/sh\necho "Version ${version}"\n`,
+    { mode: 0o755 },
+  );
   return join(dir, "node_modules", ".bin");
 }
 
@@ -300,7 +336,11 @@ Deno.test("REQ-007 AMENDMENT 3: of two playwrights on PATH, the one whose chromi
   sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
     const first = await fakePlaywright(join(sb.root, "repo"), "1.63.0", "1243");
-    const second = await fakePlaywright(join(sb.root, "global"), "1.64.0-alpha-1", "1246");
+    const second = await fakePlaywright(
+      join(sb.root, "global"),
+      "1.64.0-alpha-1",
+      "1246",
+    );
     await Deno.mkdir(join(sb.root, "browsers", "chromium_headless_shell-1246"));
     sb.env.PATH = `${first}:${second}:${sb.env.PATH}`;
     const { choosePlaywright } = await import("./runner.ts");
@@ -315,18 +355,156 @@ Deno.test("REQ-007 AMENDMENT 3: of two playwrights on PATH, the one whose chromi
   }
 });
 
-Deno.test("REQ-007 AMENDMENT 3: when no candidate's build is installed, the first on PATH is taken and the gap is said", async () => {
+// REQ-052 — no candidate can launch a browser: a clear failure, never a silent
+// fallback. ensureRunner returns ok:false and ONE warning names every candidate
+// (path + version + the chromium build it wants), the browsers path searched and the
+// builds present there, and the exact fix. Every env is the sandbox's own: PATH is
+// the sandbox bins + /usr/bin:/bin, so the box's global playwright never leaks in.
+const SYS = "/usr/bin:/bin";
+
+async function noMatch(sb: Sandbox): Promise<string> {
+  const r = await ensureRunner({ env: sb.env });
+  assertEquals(
+    r,
+    { ok: false, dir: sb.env.ISOLATE_RUNNER_HOME ?? null },
+    sb.warnings.join("\n"),
+  );
+  assert(
+    !(await npmLog(sb)).includes("@playwright/test"),
+    `installed anyway:\n${await npmLog(sb)}`,
+  );
+  assertEquals(sb.warnings.length, 1, sb.warnings.join("\n---\n"));
+  return sb.warnings[0];
+}
+
+Deno.test("REQ-052: no playwright on PATH => ok:false naming the empty PATH search and the install fix, nothing installed", async () => {
   const sb = await sandbox({ runnerHome: "" });
   const dir = join(sb.root, "runner");
   sb.env.ISOLATE_RUNNER_HOME = dir;
   try {
-    const first = await fakePlaywright(join(sb.root, "repo"), "1.63.0", "1243");
-    sb.env.PATH = `${first}:${sb.env.PATH}`;
+    await Deno.remove(join(sb.root, "bin", "playwright"));
+    sb.env.PATH = `${join(sb.root, "bin")}:${SYS}`;
+    const w = await noMatch(sb);
+    assertStringIncludes(w, "no `playwright` on PATH");
+    assertStringIncludes(w, dir);
+    assertStringIncludes(w, join(sb.root, "browsers"));
+    assertStringIncludes(w, "chromium-1000");
+    assertStringIncludes(w, "npm i -g playwright");
+    assertStringIncludes(w, "playwright install chromium");
+  } finally {
+    await sb.restore();
+  }
+});
+
+Deno.test("REQ-052: candidates whose chromium builds are all absent => ok:false naming each candidate, the builds present, and the npx fix", async () => {
+  const sb = await sandbox({ runnerHome: "", browsers: false });
+  const dir = join(sb.root, "runner");
+  sb.env.ISOLATE_RUNNER_HOME = dir;
+  try {
+    const repo = await fakePlaywright(join(sb.root, "repo"), "1.63.0", "1243");
+    const global = await fakePlaywright(
+      join(sb.root, "global"),
+      "1.64.0-alpha-1",
+      "1246",
+    );
+    await Deno.mkdir(join(sb.root, "browsers", "chromium-1200"));
+    await Deno.mkdir(join(sb.root, "browsers", "ffmpeg-1011"));
+    await Deno.remove(join(sb.root, "bin", "playwright")); // bin keeps only the stub npm
+    sb.env.PATH = `${repo}:${global}:${join(sb.root, "bin")}:${SYS}`;
+    const w = await noMatch(sb);
+    assertStringIncludes(
+      w,
+      `${
+        join(repo, "playwright")
+      } 1.63.0 — wants chromium 1243 (not installed)`,
+    );
+    assertStringIncludes(
+      w,
+      `${
+        join(global, "playwright")
+      } 1.64.0-alpha-1 — wants chromium 1246 (not installed)`,
+    );
+    assertStringIncludes(w, join(sb.root, "browsers"));
+    assertStringIncludes(w, "present: chromium-1200");
+    assert(!w.includes("ffmpeg"), w);
+    assertStringIncludes(
+      w,
+      `PLAYWRIGHT_BROWSERS_PATH=${
+        join(sb.root, "browsers")
+      } npx playwright@1.63.0 install chromium`,
+    );
+  } finally {
+    await sb.restore();
+  }
+});
+
+Deno.test("REQ-052: PLAYWRIGHT_BROWSERS_PATH unset => the message says so and names Playwright's default cache it searched", async () => {
+  const sb = await sandbox({ runnerHome: "" });
+  const dir = join(sb.root, "runner");
+  sb.env.ISOLATE_RUNNER_HOME = dir;
+  sb.env.PLAYWRIGHT_BROWSERS_PATH = undefined;
+  try {
+    sb.env.PATH = `${join(sb.root, "bin")}:${SYS}`;
+    const def = Deno.build.os === "darwin"
+      ? join(sb.home, "Library", "Caches", "ms-playwright")
+      : join(sb.home, ".cache", "ms-playwright");
+    const w = await noMatch(sb);
+    assertStringIncludes(w, "PLAYWRIGHT_BROWSERS_PATH is unset");
+    assertStringIncludes(w, def);
+    assertStringIncludes(w, "present: none");
+    assertStringIncludes(w, "npx playwright@1.0.0 install chromium");
+    // …and that default cache IS where a match is found once the build is there
+    await Deno.mkdir(join(def, "chromium-1000"), { recursive: true });
+    sb.warnings.length = 0;
+    assertEquals(await ensureRunner({ env: sb.env }), { ok: true, dir });
+    assertEquals(sb.warnings, []);
+  } finally {
+    await sb.restore();
+  }
+});
+
+Deno.test("REQ-052: a candidate whose --version can't be parsed is listed as 'unparseable version: <text>', never dropped", async () => {
+  const sb = await sandbox({ runnerHome: "", browsers: false });
+  const dir = join(sb.root, "runner");
+  sb.env.ISOLATE_RUNNER_HOME = dir;
+  try {
+    const junk = join(sb.root, "junk");
+    await Deno.mkdir(junk);
+    await Deno.writeTextFile(
+      join(junk, "playwright"),
+      `#!/bin/sh\necho "garbage out"\n`,
+      { mode: 0o755 },
+    );
+    await Deno.remove(join(sb.root, "bin", "playwright")); // bin keeps only the stub npm
+    sb.env.PATH = `${junk}:${join(sb.root, "bin")}:${SYS}`;
+    const w = await noMatch(sb);
+    assertStringIncludes(
+      w,
+      `${join(junk, "playwright")} unparseable version: garbage out`,
+    );
+    assertStringIncludes(w, "npm i -g playwright");
+    // listed on the happy path too: a matching candidate after it still wins
+    const good = await fakePlaywright(join(sb.root, "good"), "1.5.0", "1500");
+    await Deno.mkdir(join(sb.root, "browsers", "chromium-1500"));
+    sb.env.PATH = `${junk}:${good}:${join(sb.root, "bin")}:${SYS}`;
     const { choosePlaywright } = await import("./runner.ts");
     const c = await choosePlaywright(sb.env);
-    assertEquals(c.ver, "1.63.0");
-    assertStringIncludes(c.why, "not installed");
-    assertStringIncludes(c.why, "playwright install");
+    assertEquals(c.ver, "1.5.0");
+    assertStringIncludes(c.why, "unparseable version: garbage out");
+  } finally {
+    await sb.restore();
+  }
+});
+
+Deno.test("REQ-052: happy path unchanged — the matching candidate is installed, ok:true, no warning", async () => {
+  const sb = await sandbox({ runnerHome: "" });
+  const dir = join(sb.root, "runner");
+  sb.env.ISOLATE_RUNNER_HOME = dir;
+  try {
+    sb.env.PATH = `${join(sb.root, "bin")}:${SYS}`;
+    assertEquals(await ensureRunner({ env: sb.env }), { ok: true, dir });
+    assertStringIncludes(await npmLog(sb), "i @playwright/test@1.0.0");
+    assertEquals(sb.warnings, []);
   } finally {
     await sb.restore();
   }

@@ -12,6 +12,7 @@ import {
   pageLocalOf,
   ScopedRegistry,
 } from "./composition-registry.ts";
+import { inSkippedDir } from "./lints/ui-files.ts";
 
 /** One tag occurrence in a template. */
 export interface TagUse {
@@ -69,7 +70,10 @@ function tagsOf(root: Node, lineOffset = 0): TagUse[] {
 /** Scan `srcDir` (an app's src/) plus its sibling bootstrap/ shell. The registry mirrors
  *  createRenderer's: page-local vs global by folder path, duplicates throw, and the
  *  bootstrap shell is registered under "shell" (it wins over a scanned src/shell). */
-export async function scanApp(srcDir: string): Promise<AppScan> {
+export async function scanApp(
+  srcDir: string,
+  opts: { skipDirs?: Record<string, string> } = {},
+): Promise<AppScan> {
   const appDir = dirname(srcDir);
   const units: Unit[] = [];
   for await (
@@ -80,6 +84,9 @@ export async function scanApp(srcDir: string): Promise<AppScan> {
   ) {
     const dirAbs = dirname(entry.path);
     const relDir = relative(srcDir, dirAbs).replace(/\\/g, "/");
+    // `sprig check` passes its skip list (generated/third-party dirs, REQ-055);
+    // the build scans everything it compiles, the workbench's previews included.
+    if (opts.skipDirs && inSkippedDir(`${relDir}/x`, opts.skipDirs)) continue;
     const source = await Deno.readTextFile(entry.path);
     const local = pageLocalOf(relDir);
     const selector = basename(dirAbs);

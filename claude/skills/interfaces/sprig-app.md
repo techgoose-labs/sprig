@@ -56,6 +56,6 @@ A buildable sprig project (see `sprig:build`):
 `logic-placement`, `tokens`, `duplicate-templates`, `optimistic-writes`);
 `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` exits 0 (every
 breakdown unit built, composition matching the usage matrix);
-`isolate test --json` is green including every `_reference` diff; the prod build
+`sprig isolate test --json` is green including every `_reference` diff; the prod build
 boots and serves; the suite runs green against a freshly-started server. The
 audit records findings + fixes in `fixes.md`.

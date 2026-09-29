@@ -7,7 +7,14 @@ directory:
 
 ```sh
 sprig isolate          # → http://127.0.0.1:8000/   (PORT env to change; picks the next free port)
+sprig isolate test [<unit>/<case>] [--root <app>] --json   # headless run, one row per case
+sprig isolate list [--root <app>]                          # components, cases, routes
 ```
+
+`test` and `list` are subcommands; any other argument must be an existing app
+directory (a dir literally named `test`: pass `./test`). An argument that is
+neither — a typo like `sprig isolate tset` — exits 1 naming it; it is never read
+as an app dir with "nothing to isolate" (REQ-056).
 
 ## A component shows only if it has an `isolate/` folder
 
@@ -42,7 +49,7 @@ src/shared-components/ui-button/
   a page: `(event)` bindings, `onBrowserInit`, signals all work). Viewport
   presets (fit/360/768/1024/ full), zoom, and a stage-background picker. The
   stage does not apply a case's `_viewport`/`_theme` — pick the preset by hand;
-  `isolate test` applies both and is the authority.
+  `sprig isolate test` applies both and is the authority.
 - **Controls** — edit the case's inputs/signals live (declared in
   `fixture.json`).
 - **Console** — the component's console output.
@@ -51,11 +58,17 @@ src/shared-components/ui-button/
 - **HMR** — edit the component's `template.html`/`styles.css`/`logic.ts` (or a
   case's JSON) and the stage hot-swaps **without a restart**.
 
-## Case tests under `isolate test` (headless)
+## Case tests under `sprig isolate test` (headless)
 
-`isolate test <unit> --json` (also `sprig isolate`'s "Run all tests") executes
-each case's `tests/*.spec.ts` with a **Node** Playwright runner, not Deno. Two
-consequences, both measured fleet-killers:
+`sprig isolate test <unit> --json` (also `sprig isolate`'s "Run all tests")
+executes each case's `tests/*.spec.ts` with a **Node** Playwright runner, not
+Deno, plus its `_reference`/`_motion` checks. **Every selected case gets a
+row**: a case with no tests and no `_reference`/`_motion` is a row with
+`"skipped": true` and `skipped — no tests, no _reference`. The report carries
+`passed`/`failed`/`skipped`; a run where **nothing was checked** (every selected
+case skipped, or none selected) is `ok: false` and exits 1 — a fidelity run that
+measures nothing is not green (REQ-056). Two consequences of the Node runner,
+both measured fleet-killers:
 
 1. **The only dialect that loads** is plain Playwright. Every runnable spec
    starts:
@@ -103,7 +116,7 @@ consequences, both measured fleet-killers:
    does not). Route nuance: a component folder under
    `pages/<page>/components/<name>` previews under `/pages/...` (isolate treats
    the subtree as page-scoped), not `/components/...` — always take the route
-   from `isolate list`.
+   from `sprig isolate list`.
 
 2. **Timed behaviors: assert the durable END-STATE, never a transient window.**
    A spec that waits a fixed delay and then expects an ephemeral intermediate
@@ -138,14 +151,21 @@ consequences, both measured fleet-killers:
    { "_motion": { "spec": "motion.json" } } // → row "motion: <unit>/<case>"
    ```
 
-   - `reference:` screenshots the rendered unit at the case's viewport/theme and
-     reports the fraction of differing pixels:
-     `measured 0.004 ≤ tolerance
-     0.010` (pass) or
+   - `reference:` screenshots the rendered unit at the case's viewport/theme —
+     device scale 1, the app's own fonts loaded (its `bootstrap/template.html`
+     head and global stylesheets), laid out in a slot the still's pixel width —
+     and reports the fraction of differing pixels (a channel moved more than
+     4/255): `measured 0.002 ≤ tolerance 0.010` (pass) or
      `measured 0.034 > tolerance 0.010` + a diff PNG path (fail). Default
-     tolerance `0.01`; above it needs a `reason`. Fix the build until the number
-     is under the tolerance — do not raise the tolerance to pass, and never
-     judge fidelity by eye when a reference exists.
+     tolerance `0.01` (measured, REQ-051/059: noise ≤ 0.002, a 1px padding drift
+     ≥ 0.089, a one-step token swap 0.093; a radius step at 0.004 slips under —
+     lower the tolerance for such a case); above it needs a `reason`. Fix the
+     build until the number is under the tolerance — do not raise the tolerance
+     to pass, and never judge fidelity by eye when a reference exists. A row
+     that starts `size mismatch: reference W×H vs render w×h` is a wrong still
+     (breakpoint, crop or device scale), not a tolerance problem; a fallback
+     font in the render means the app's head never loads the design-system font
+     — fix the app, not the case.
    - `_network` fakes run as `page.route` in every test of the case: write the
      story that proves the optimistic write — the UI moves before the server
      answers (`delay:<ms>`), and rolls back on `"fail"`. Rows record

@@ -10,6 +10,7 @@
 import { walk } from "@std/fs/walk";
 import { join, relative } from "@std/path";
 import type { LintResult } from "./lint-types.ts";
+import { inSkippedDir } from "./ui-files.ts";
 
 export type TokKind = "id" | "num" | "str" | "tmpl" | "regex" | "punct";
 
@@ -245,7 +246,8 @@ export function suppressions(src: string, tag: string): Map<number, string> {
 }
 
 /** Every non-test `.ts` file under `root` for which `keep(relPath)` is true,
- *  sorted, as paths relative to `root`. */
+ *  sorted, as paths relative to `root`. Files under a SKIP_DIRS directory
+ *  (generated or third-party, see ui-files.ts) are never returned. */
 export async function tsFiles(
   root: string,
   keep: (rel: string) => boolean,
@@ -260,6 +262,7 @@ export async function tsFiles(
   ) {
     const rel = relative(root, e.path).replaceAll("\\", "/");
     if (/\.test\.ts$/.test(rel) || rel.endsWith(".d.ts")) continue;
+    if (inSkippedDir(rel)) continue;
     if (keep(rel)) out.push(rel);
   }
   return out.sort();

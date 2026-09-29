@@ -1,0 +1,10 @@
+<!-- REQ-061: the shell head the harness reads for fonts before a `_reference`
+     shot — one root-relative stylesheet (named as not served) and one inline
+     @font-face block, so the reference row carries the harness's font notes. -->
+<html>
+<head>
+<link rel="stylesheet" href="/fonts/brand.css" />
+<style>@font-face { font-family: "Nope"; src: local("Nope Sans"); }</style>
+</head>
+<body><div class="app-root"><router-outlet></router-outlet></div></body>
+</html>

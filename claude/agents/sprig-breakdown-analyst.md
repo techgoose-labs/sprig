@@ -121,9 +121,12 @@ deliverable.
    (CSS custom properties in a `:global(...)` block, NOT a `tailwind.config.js`,
    NOT daisyUI themes — but daisyUI components ARE in the build, so never
    propose a daisyUI class name (`stat`, `badge`, `list`, `status`…) for an
-   element of our own; prefix own classes — `docs/sprig/styling.md` → "Reserved
-   class names"). Capture **every theme variant** as parallel columns. Record
-   `prefers-reduced-motion` handling.
+   element of our own; prefix own classes — the reserved list is in
+   `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+   styles … daisyUI's reserved class names"). Capture **every theme variant** as
+   parallel columns, and write one line `Default theme: <name>` — the theme the
+   mock renders with no theme attribute set (spec-writers put it in the `_theme`
+   of every unsuffixed still's case). Record `prefers-reduced-motion` handling.
 4. **The data seam — bind, don't re-derive** (bridge 2 of the cross-repo
    `contract.md`). First check the git root for a ratified contract:
    `spec/contract/openapi.json`, else `spec/runes/*.rune` (or a running keep's
@@ -146,7 +149,9 @@ deliverable.
    - **No contract → the pre-contract `data-model.md`**: the mock data IS the
      implied schema: per entity
      fields/types/value-sets/relationships/cardinality-at-load; how data is
-     generated (seeded/deterministic?); the reverse index; data-shape hazards.
+     generated (seeded/deterministic?); the reverse index; data-shape hazards;
+     per write, the `METHOD /path` the unit will call (e.g.
+     `POST /api/messages`) — a pre-contract case's `_network` keys on it.
      **Schema only — never copy data rows.** (A two-seam prototype's
      `objects/`/`commands.json` are the schema's ground truth even without a
      ratified contract.)
@@ -157,11 +162,27 @@ deliverable.
    "classification": "static"|"island"|"page-composition", "scope":
    "shared"|"page-local"|"page", "page"?, "usedOn": [pages], "tier":
    "static"|"pure-client"|"optimistic-write"|"realtime", "evidence",
-   "dataNeeds": [needs, as named in the binding] } ], "unassigned": [] }`.
+   "dataNeeds": [need names] } ], "unassigned": [] }`.
    `dir` is the path its scope implies: shared → `shared-components/<name>`,
    page → `pages/<page>`, page-local → `pages/<page>/components/<name>`; a
    `static` unit has tier `static` and an island never does; every unit's spec
-   lands at `<dir>/<name>.md` (spec-check fails a missing one).
+   lands at `<dir>/<name>.md` (spec-check fails a missing one). **Tiers — every
+   unit takes exactly one:** `static` — no `logic.ts`; server-rendered, data (if
+   any) from `resolve.ts`/`Backend` — so a read-only data region (a message wall
+   that only reads) is `static`; `pure-client` — a `logic.ts` holding UI state
+   (open/closed, a selected tab, a query param it re-requests) and no server
+   write; `optimistic-write` — a `logic.ts` that sends a command and renders
+   the intent before the reply; `realtime` — pushed data (SSE/socket/poll)
+   updates it in place; a page-composition's tier is the tier of its own
+   `logic.ts` (`static` when it has none or it only loads data on the server —
+   its children carry their own tiers).
+   Of these, only `optimistic-write` requires cases (`pending` +
+   `rolled-back`). **`dataNeeds`** name each data-need as the binding's `need`
+   column does; before a contract exists there is no binding, so write the
+   need's name from the unit's data table in `data-model.md` (its reverse
+   index) — `binding.md` fills the endpoint once the contract lands, and
+   `sprig spec-check` skips binding-drift until `spec/contract/openapi.json`
+   exists.
 
 **CLOSING:** 6. **`index.md`** — page inventory (one line each: purpose +
 components), shared-component **usage matrix** (component × page, from
@@ -182,7 +203,11 @@ root — it fails on a non-empty Unassigned, binding endpoints/DTOs missing from
 `openapi.json`, units with `dataNeeds` but no binding row, optimistic-write
 units without `pending` + `rolled-back` cases, and double assignment. The
 breakdown is not done until it exits 0: assign the region, add the row, or
-report the drift upward, then re-run.
+report the drift upward, then re-run. `spec-check` ships only in a sprig newer
+than 2.1.3: `sprig: unknown command "spec-check"` means the installed sprig is
+older — run `sprig -v`, then `sprig update`, and re-run; if it is still
+unknown, return `blocked: sprig spec-check unavailable (sprig <version>)` —
+never report the breakdown done without its verdict.
 
 ## Resources
 
@@ -197,7 +222,9 @@ report the drift upward, then re-run.
 
 Return: the files you wrote (paths), and — for the OPENING phase — a structured
 **inventory** the orchestrator hands to capture + spec-writers: for each page
-and component its `name`, selector (kebab basename), classification, tier,
+and component its `name`, selector (kebab basename), its `region` — a CSS
+selector that matches exactly the unit's DOM in the mock (capture crops and
+extracts by it; a page's is its view root) — classification, tier,
 shared/page-local (+ evidence), data source, whether it's renderable (needs
 capture), **and its `breakdown_dir` — the ABSOLUTE output folder assigned under
 `<git-root>/spec/ui/breakdown/`** (this is what the orchestrator passes to

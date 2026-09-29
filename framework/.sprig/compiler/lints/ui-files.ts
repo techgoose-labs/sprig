@@ -10,9 +10,11 @@ import type { LintResult } from "./lint-types.ts";
 /** A lint result plus the lines that explain what was left out and why. */
 export type LintReport = LintResult & { notes: string[] };
 
-/** Directories the build does not compile as app units (framework/cli.ts
- *  walks past the same names), so a lint over them would judge generated or
- *  third-party markup. */
+/** The ONE list of directories `sprig check` never judges — every lint
+ *  (templates, styles and `.ts` alike), the composition scan it runs and its
+ *  typecheck walk past them by name — because they hold generated or
+ *  third-party code, not the app's own source. A new generated dir is one
+ *  line here (REQ-055). */
 export const SKIP_DIRS: Record<string, string> = {
   node_modules: "third-party packages",
   ".git": "version control",
@@ -20,7 +22,19 @@ export const SKIP_DIRS: Record<string, string> = {
   isolate: "isolate harness fixtures",
   _isolate: "generated isolate harness",
   dist: "build output",
+  _preview: "generated workbench previews (sprig dev)",
 };
+
+/** Is any directory segment of the `/`-separated relative path `rel` a
+ *  {@link SKIP_DIRS} name? (The file name itself is not a directory.) */
+export function inSkippedDir(
+  rel: string,
+  skip: Record<string, string> = SKIP_DIRS,
+): boolean {
+  return rel.split(/[\\/]/).slice(0, -1).some((seg) =>
+    Object.hasOwn(skip, seg)
+  );
+}
 
 export type UiFiles = {
   /** absolute-or-as-given paths (joined onto uiSrc), sorted */

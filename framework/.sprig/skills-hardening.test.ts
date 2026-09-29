@@ -332,3 +332,31 @@ Deno.test("REQ-033: no touched prompt carries a retired-path word", async () => 
   const retired = ["leg" + "acy", "@dep" + "recated", "kept for " + "compat"];
   for (const f of EVERY) lacks(await doc(f), ...retired);
 });
+
+// ---------------------------------------------------------------- REQ-051/059
+Deno.test("REQ-051: the spec-writer states the measured default tolerance and when to lower or raise it", async () => {
+  has(
+    await doc(SPEC_WRITER),
+    "Leave `tolerance` at its default `0.01` (measured: noise ≤ 0.002, a 1px padding drift ≥ 0.089, a one-step token swap 0.093)",
+    "set a LOWER one (e.g. `0.005`, no `reason` needed) for a case that pins something small",
+    "never to absorb a 2× still, a fallback font or another breakpoint",
+  );
+  has(
+    await doc("skills/sprig:breakdown/references/isolate-format.md"),
+    "default tolerance 0.01 because noise is ≤ 0.002",
+    "a 1px padding drift measures ≥ 0.089",
+  );
+});
+
+Deno.test("REQ-059: stills are shot at DPR 1 on whole pixels; _viewport is the page viewport, the still's width the unit's slot", async () => {
+  has(
+    await doc(CAPTURE),
+    "Shoot every still at `deviceScaleFactor: 1`",
+    "with the unit on whole pixels",
+    "The still's pixel width is the width of the slot the unit sat in",
+  );
+  has(
+    await doc(SPEC_WRITER),
+    "`_viewport` is the PAGE viewport the still was shot at (media queries see it), never the unit's own width",
+  );
+});

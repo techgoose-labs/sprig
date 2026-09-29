@@ -84,8 +84,9 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    - the contract **binding** (`spec/contract/binding.md`; the pre-contract
      `data-model.md` when no contract exists) and
      `spec/ui/breakdown/inventory.json`. Take its **inventory** (every
-     page/component with classification, tier, shared/local, renderable?, and
-     its resolved absolute `breakdown_dir` — the same units it wrote to
+     page/component with classification, tier, shared/local, renderable?, its
+     `region` (the mock DOM selector capture crops by), and its resolved
+     absolute `breakdown_dir` — the same units it wrote to
      `inventory.json`) and surface any **drift errors** it reports. The
      inventory's paths are what you pass downstream — capture and spec-writers
      receive their unit dirs resolved, never a name to go find.

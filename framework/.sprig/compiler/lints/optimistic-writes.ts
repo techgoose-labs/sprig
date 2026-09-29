@@ -40,6 +40,7 @@
  * syntactic stance as the wiring lint; no TypeScript dependency.
  */
 import { declaredSignals } from "../wiring-lint.ts";
+import { readContractOps } from "./contract.ts";
 import type { Finding, LintResult } from "./lint-types.ts";
 import {
   isDir,
@@ -393,28 +394,10 @@ export function lintOptimisticSource(
   return out;
 }
 
-/** operationId → METHOD from `<gitRoot>/spec/contract/openapi.json`, or null. */
+/** operationId → METHOD, read through the one contract reader (./contract.ts). */
 async function contractOps(gitRoot: string | undefined): Promise<ContractOps> {
-  if (!gitRoot) return null;
-  let doc: { paths?: Record<string, Record<string, { operationId?: string }>> };
-  try {
-    doc = JSON.parse(
-      await Deno.readTextFile(
-        join(gitRoot, "spec", "contract", "openapi.json"),
-      ),
-    );
-  } catch {
-    return null;
-  }
-  const ops = new Map<string, string>();
-  for (const item of Object.values(doc.paths ?? {})) {
-    for (const [method, op] of Object.entries(item ?? {})) {
-      if (op && typeof op === "object" && op.operationId) {
-        ops.set(op.operationId, method.toUpperCase());
-      }
-    }
-  }
-  return ops;
+  const ops = await readContractOps(gitRoot);
+  return ops && new Map([...ops].map(([id, op]) => [id, op.method]));
 }
 
 /** Lint every island `logic.ts` under `uiSrc`. Findings name files relative

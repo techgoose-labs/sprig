@@ -23,9 +23,8 @@ opening the source.
 
 The `sprig:breakdown` playbook reaches **spec-writing**, after the analyst's
 classification and the capture evidence exist. The orchestrator fans you out
-**one instance per component/page** (or one instance for 2–3 TINY sibling units
-of the same page — ≤2 states each — when fanning one-per-unit would spawn
-hundreds of agents), passing each unit's context.
+**one instance per component/page** — never a batch of units — passing that
+unit's context.
 
 ## Input contract
 
@@ -70,7 +69,8 @@ sections **and** item 10):
    `card`, `label`, `link`, `toggle`, `tab`, or parts like
    `stat-value`/`card-body`): `sprig build` bundles daisyUI 5 and its rules are
    document-global, so a scoped `.stat { width: 8px }` renders as a stat block
-   (`docs/sprig/styling.md` → "Reserved class names"). Say "daisyUI `status`"
+   (reserved list: `~/.claude/skills/sprig:build/references/component-model.md`
+   → "Scoped styles"). Say "daisyUI `status`"
    explicitly when the source element IS a daisyUI component to keep.
 3. **Props table** — `name · type · default · control widget · signal?`; each
    row maps 1:1 to a `fixture.json` control
@@ -87,12 +87,29 @@ sections **and** item 10):
    "spec/ui/breakdown/<unit dir>/screenshots/<name>@<width>[-<theme>].png"
    (paths resolve case-dir first, then git root; the built unit's `isolate/`
    cannot reach the breakdown by a case-relative path) — the build's pixel diff,
-   not a picture to eyeball. An **optimistic-write** unit always gets a
+   not a picture to eyeball. `_viewport` is the PAGE viewport the still was
+   shot at (media queries see it), never the unit's own width — the runner lays
+   the unit out in a slot the still's pixel width. Leave `tolerance` at its
+   default `0.01` (measured: noise ≤ 0.002, a 1px padding drift ≥ 0.089, a
+   one-step token swap 0.093); set a LOWER one (e.g. `0.005`, no `reason`
+   needed) for a case that pins something small — radii, a hairline, an icon —
+   since a corner-radius step measures only 0.004; a higher one only with a
+   `reason` naming content the build legitimately renders differently (a photo
+   vs a monogram, a live timestamp), never to absorb a 2× still, a fallback
+   font or another breakpoint. An **optimistic-write** unit always gets a
    `pending` case (the intent rendered, reply outstanding — `_network` with
    `"delay:<ms>"` on its command) and a `rolled-back` case (`_network`: {
    "<commandName>": { "status": 500 } } — the HTTP-error path: pre-intent state
    restored, error surfaced); `"fail"` (an aborted connection) is the offline
-   case, added only when the unit shows an offline state.
+   case, added only when the unit shows an offline state. With no
+   `spec/contract/openapi.json`, key `_network` by `"METHOD /path"` — the
+   `METHOD /path` `data-model.md` records for that write (the runner rejects a
+   command-name key without a contract); once the contract exists, key it by
+   the command name from `binding.md`. Every case carries `_theme` explicitly:
+   a suffixed still's theme from its file name, and every other case (an
+   unsuffixed still, a state row) the mock's default theme from
+   `design-tokens.md`'s `Default theme:` line — the app's own default may
+   differ.
 5. **Events** — what it emits and when, each as a **concrete `capture(page)`
    predicate sketch**, not prose — e.g.
    `ev.expect(e => e.source === "button#confirm" && e.type === "click")`. (The
@@ -108,8 +125,9 @@ sections **and** item 10):
 8. **A11y** — roles, labels, focus order/trapping, keyboard, reduced-motion.
 9. **Used on** — list of pages (the shared vs page-local evidence).
 10. **Isolate build plan** — the build-in-isolation recipe: where it lands & its
-    selector (`components/`|`islands/`|`pages/<name>/`; selector = folder
-    basename); the **preview route(s)**
+    selector — `<app>/src/<dir>`, `<dir>` being the unit's inventory `dir`
+    (the analyst's rule: shared → `shared-components/<name>`, page → `pages/<page>`, page-local → `pages/<page>/components/<name>`;
+    selector = folder basename); the **preview route(s)**
     (`/<components|pages>/<category>/<folder>/<case>`, built from
     `fixture.json`, NOT the source path); per case the one-line state + its
     `_reference` still; which **Events** rows become which
@@ -146,7 +164,12 @@ island state); each `cases/<state>/<state>.json` pins REAL captured values
 ```
 
 ```json
-{ "_name": "Greeting", "_tier": "pure-client", "_signals": { "count": 0 } }
+{
+  "_name": "Greeting",
+  "_tier": "pure-client",
+  "_theme": "light",
+  "_signals": { "count": 0 }
+}
 ```
 
 A breakpoint case adds `"_viewport": 700` and

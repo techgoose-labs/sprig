@@ -11,6 +11,7 @@ import { materializeWorkbench } from "../lib/workbench.ts";
 import { buildClient } from "../../framework/.sprig/compiler/build.ts";
 import { formatProblems, printReport } from "../lib/format.ts";
 import { emitJson } from "../lib/json-stdout.ts";
+import { skippedRows, verdict } from "../lib/verdict.ts";
 import { parentEnv, terminate } from "../../framework/.sprig/supervise.ts";
 
 const REPO = fromFileUrl(new URL("../../", import.meta.url));
@@ -162,11 +163,14 @@ export const testCmd = new Command()
       { filter: filter as string | undefined },
       root,
     );
+    // REQ-056 — every selected case gets a row: one with nothing to check is
+    // `skipped`, and a run that checks nothing is not a pass.
+    const skipped = skippedRows(entries, filter as string | undefined);
     if (plan.cases.length === 0 && plan.loose.length === 0) {
-      if (o.json) {
-        printJson({ ok: true, ran: false, total: 0, testResults: [] });
-      } else console.log("No matching tests.");
-      return;
+      const v = verdict(null, skipped);
+      if (o.json) printJson(v);
+      else printReport(v, root);
+      Deno.exit(v.exitCode);
     }
 
     const runner = await ensureRunner();
@@ -292,9 +296,10 @@ export const testCmd = new Command()
         projectRoot: root,
         evidenceDir: o.evidence,
       });
-      if (o.json) printJson(report);
-      else printReport(report, root);
-      code = report.ran && report.failed === 0 ? 0 : 1;
+      const v = verdict(report, skipped);
+      if (o.json) printJson(v);
+      else printReport(v, root);
+      code = v.exitCode;
     } catch (e) {
       const msg = (e as Error).message;
       if (o.json) {

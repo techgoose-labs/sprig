@@ -93,7 +93,7 @@ user story and route:
 - resize to the source's real `@media` breakpoints and re-check;
 - hold each page to its mock: at every page-level still's width/theme, shoot the
   live route and run the page's isolate cases
-  (`SPRIG_WB_ROOT=/tmp/wb-audit isolate test <page> --json` — their `_reference`
+  (`SPRIG_WB_ROOT=/tmp/wb-audit sprig isolate test <page> --json --root <app>` — their `_reference`
   rows are the measured diff); a page whose composed render departs from its
   still (missing region, wrong component, token/layout drift) is a bug (catalog
   F15), and so is an `inventory.json` unit absent from a page in its `usedOn`.

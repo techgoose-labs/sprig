@@ -73,6 +73,9 @@ Pass each one its input contract and summarize what it returns.
    root (→ it generates/refreshes the **typed client** in
    `spec/contract/client/`). It returns a **BUILD BRIEF** (app root, alias
    names, tokens path, isolate command, port base, contract + browser posture) —
+   its `app_root` is **`<app>` below: the directory holding the app's `deno.json`**
+   (and its `src/`), git-root-relative — `ui` in the `ui/src` layout, `.` when
+   `src/` sits at the git root (e.g. fixtures/eval-app); never assume `ui` —
    **inline those ≤8 fact lines into every component prompt** so no builder
    re-derives them; facts inline, bulk behind paths. **Then, for any multi-unit
    build (≥3 units): spawn `sprig-build-analyst` ONCE** (before the first wave,
@@ -109,9 +112,12 @@ Pass each one its input contract and summarize what it returns.
    delegate to **`sprig-build-component`** with its breakdown spec as **resolved
    ABSOLUTE paths you looked up in `index.md` / the breakdown tree ONCE**: the
    unit's breakdown folder, its `<name>.md`, `isolate/`, `screenshots/`, and the
-   target src dir. A unit is green when its `isolate test --json` rows pass —
-   every `_reference` pixel-diff row within tolerance included — AND
-   `sprig check ui` reports no finding against its folder (the interactive workbench does not yet apply `_viewport`/`_theme`; the runner, `sprig isolate test`, is authoritative). Never brief a specialist with just a name and "glob for it" —
+   target src dir (`<app>/src/<dir>`, `<dir>` the unit's `inventory.json`
+   `dir`). A unit is green when its rows of
+   `sprig isolate test <unit> --json --root <app>` pass — every `_reference`
+   pixel-diff row within tolerance included; an exit 1 "nothing was checked"
+   means the filter or `--root` matched no case, not green — AND
+   `sprig check <app>` reports no finding against its folder (the interactive workbench does not yet apply `_viewport`/`_theme`; the runner, `sprig isolate test`, is authoritative). Never brief a specialist with just a name and "glob for it" —
    a measured fleet did that 652 times and every agent re-searched the tree the
    orchestrator already held. Each unit must be green in `sprig isolate`
    **before** the units that compose it — and start each composition the moment
@@ -175,12 +181,17 @@ Pass each one its input contract and summarize what it returns.
      trail** — two diagnoses and a hypothesis history is a well-documented bug
      report for the human, not silent churn.
 3. **Verify the whole app.** After units are green: first the whole-suite
-   receipt — one `SPRIG_WB_ROOT=/tmp/wb-final isolate test --json` at the app
-   root, every case in a single run (units were only ever proven one at a time;
+   receipt — one `SPRIG_WB_ROOT=/tmp/wb-final sprig isolate test --json --root <app>`
+   (no filter), every case in a single run (units were only ever proven one at a time;
    a composition can break a sibling's case and per-unit verdicts won't show it)
-   — then, from the git root, `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui`
+   — then, from the directory holding `spec/` (the git root; add `--root .` to
+   both commands when it is not), `sprig spec-check spec/ui/breakdown --ui-src <app>/src --app <app>`
    (every inventory unit built, the usage matrix equal to the composition
-   graph, no double assignment) and `sprig check ui` (typecheck, wiring, and the
+   graph, no double assignment) and `sprig check <app>` — in the `ui/src`
+   layout `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` and
+   `sprig check ui`; with `src/` at that root
+   `sprig spec-check spec/ui/breakdown --ui-src src --app .` and `sprig check .`
+   (`sprig check` runs typecheck, wiring, and the
    `contract-calls` / `logic-placement` / `tokens` / `duplicate-templates` /
    `optimistic-writes` lints). The build is red on any finding from either;
    route each finding to the owning unit's builder — a suppression comment is

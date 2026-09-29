@@ -44,6 +44,7 @@ import {
   type LintResult,
 } from "./.sprig/compiler/lints/lint-types.ts";
 import { lintContractCalls } from "./.sprig/compiler/lints/contract-calls.ts";
+import { SKIP_DIRS } from "./.sprig/compiler/lints/ui-files.ts";
 import { lintLogicPlacement } from "./.sprig/compiler/lints/logic-placement.ts";
 import { lintTokens } from "./.sprig/compiler/lints/tokens.ts";
 import { lintDuplicateTemplates } from "./.sprig/compiler/lints/duplicate-templates.ts";
@@ -78,7 +79,12 @@ import {
   isGeneratedServe,
   isLegacyServe,
 } from "./.sprig/serve-marker.ts";
-import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
+import {
+  commandHelp,
+  parseIsolateArgs,
+  USAGE,
+  wantsHelp,
+} from "./.sprig/usage.ts";
 import {
   findLive,
   IDLE_EXIT_ENV,
@@ -838,11 +844,7 @@ async function collectSource(
     const p = join(dir, e.name);
     if (e.isDirectory) {
       // static/ is build output (regenerated); the rest are vendored/scaffold/VCS — never source.
-      if (
-        ["node_modules", ".git", "static", "isolate", "_isolate"].includes(
-          e.name,
-        )
-      ) continue;
+      if (Object.hasOwn(SKIP_DIRS, e.name)) continue;
       await collectSource(p, out);
     } else if (/\.(?:tsx?|jsx?|mjs)$/.test(e.name)) {
       out.push(p);
@@ -986,10 +988,7 @@ async function collectTs(dir: string, out: string[] = []): Promise<string[]> {
   for await (const e of Deno.readDir(dir)) {
     const p = join(dir, e.name);
     if (e.isDirectory) {
-      if (
-        e.name === "isolate" || e.name === "_isolate" ||
-        e.name === "node_modules"
-      ) continue;
+      if (Object.hasOwn(SKIP_DIRS, e.name)) continue; // generated / third-party (REQ-055)
       await collectTs(p, out);
     } else if (
       e.isFile && e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")
@@ -1030,7 +1029,9 @@ async function check(appDir = ".", rootArg?: string): Promise<void> {
   const files = await collectTs(srcDir);
   try {
     if (files.length === 0) {
-      console.log(`sprig check: no .ts files under ${srcDir} — nothing to typecheck`);
+      console.log(
+        `sprig check: no .ts files under ${srcDir} — nothing to typecheck`,
+      );
     } else {
       const res = await new Deno.Command("deno", {
         args: ["check", "--config", cfgPath, ...files],
@@ -1058,7 +1059,9 @@ async function check(appDir = ".", rootArg?: string): Promise<void> {
   // COMPOSITION (REQ-024/025): every tag resolves, no undeclared shadowing — the
   // same check the build gates on, so `sprig check` is the one pre-flight.
   try {
-    await assertComposition(srcDir, "sprig check");
+    await assertComposition(srcDir, "sprig check", console.log, {
+      skipDirs: SKIP_DIRS,
+    });
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     red.push("composition");
@@ -1073,7 +1076,10 @@ async function check(appDir = ".", rootArg?: string): Promise<void> {
     ["logic-placement", () => lintLogicPlacement({ uiSrc: srcDir })],
     ["tokens", () => lintTokens({ uiSrc: srcDir })],
     ["duplicate-templates", () => lintDuplicateTemplates({ uiSrc: srcDir })],
-    ["optimistic-writes", () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot })],
+    [
+      "optimistic-writes",
+      () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot }),
+    ],
   ];
   for (const [name, run] of lints) {
     const r = await run();
@@ -2541,6 +2547,73 @@ async function isolate(appDir = ".", open = true): Promise<void> {
   Deno.exit(code);
 }
 
+function isDirSync(p: string): boolean {
+  try {
+    return Deno.statSync(p).isDirectory;
+  } catch {
+    return false;
+  }
+}
+
+/** `sprig isolate test|list` (REQ-056) — run the workbench runner (cli/main.ts) on
+ *  `appAbs` and exit with its code. A test run gets a PRIVATE workbench (a pre-set
+ *  SPRIG_WB_ROOT wins) so concurrent runs — parallel build agents each testing their
+ *  own unit — never rebuild one shared workbench under each other. */
+async function isolateRunner(
+  sub: "test" | "list",
+  appAbs: string,
+  args: string[],
+): Promise<void> {
+  const root = installRoot();
+  await assertWorkbench(root);
+  const env: Record<string, string> = {
+    ...Deno.env.toObject(),
+    ...parentEnv(), // the runner watches us: if we die without warning, it exits (REQ-004)
+  };
+  if (sub === "test") {
+    env.SPRIG_WB_ROOT = Deno.env.get("SPRIG_WB_ROOT") ??
+      `${workbenchRoot(appAbs)}-test-${Deno.pid}`;
+  }
+  const child = new Deno.Command(Deno.execPath(), {
+    args: [
+      "run",
+      "-A",
+      "--unstable-kv",
+      "--config",
+      join(root, "deno.json"),
+      join(root, "cli", "main.ts"),
+      sub,
+      "--root",
+      appAbs,
+      ...args,
+    ],
+    cwd: root,
+    env,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  }).spawn();
+  let stopping = false;
+  const stop = async (code: number): Promise<void> => {
+    if (stopping) return;
+    stopping = true;
+    await terminate(child, 3000);
+    Deno.exit(code);
+  };
+  for (
+    const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143], [
+      "SIGHUP",
+      129,
+    ]] as const
+  ) {
+    try {
+      Deno.addSignalListener(sig, () => void stop(code));
+    } catch { /* signal not supported here */ }
+  }
+  const { code } = await child.status;
+  Deno.exit(code);
+}
+
 /** Read this install's own version (from the package deno.json) and publish time (from the
  *  runtime bundle's `framework/.sprig/build-info.json` stamp). `..` from framework/cli.ts is the
  *  install root, both in a checkout and in ~/.sprig. `publishedAt` is null on a dev/checkout
@@ -2766,7 +2839,11 @@ switch (cmd) {
   case "spec-check": {
     // REQ-032: the breakdown's machine checks — unassigned, binding drift, tier
     // cases, built coverage, composition vs usage matrix, double assignment.
-    const { positional, values } = splitArgs(rest, ["--root", "--ui-src", "--app"]);
+    const { positional, values } = splitArgs(rest, [
+      "--root",
+      "--ui-src",
+      "--app",
+    ]);
     const gitRoot = values["--root"]
       ? resolve(values["--root"])
       : gitRepoRoot(Deno.cwd()) ?? Deno.cwd();
@@ -2824,8 +2901,22 @@ switch (cmd) {
     await version();
     break;
   case "isolate": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await isolate(appArg, !rest.includes("--no-open"));
+    // REQ-056 — `test`/`list` are the workbench runner's; anything else must be an
+    // existing app dir (the dev workbench). A typo is an error, never a green no-op.
+    const plan = parseIsolateArgs(rest, isDirSync);
+    if (plan.kind === "error") {
+      console.error(plan.message);
+      Deno.exit(1);
+    }
+    if (plan.kind === "dev") await isolate(plan.app, plan.open);
+    else {
+      await isolateRunner(plan.sub, resolve(plan.app), [
+        ...plan.args,
+        ...(plan.evidence !== undefined
+          ? ["--evidence", resolve(plan.evidence)]
+          : []),
+      ]);
+    }
     break;
   }
   case undefined:

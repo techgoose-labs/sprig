@@ -36,7 +36,8 @@ sources (nothing to render).
   self-contained single-file mock) and YOUR assigned PORT. Don't rediscover this per agent —
   a wrong guess shows empty seam-fed states and you'd screenshot a lie.
 - **UNITS** — the components/pages to capture (from the analyst's inventory):
-  each with its selector/DOM region and target output dirs
+  each with its `region` (the analyst's CSS selector for the unit's DOM in the
+  mock — crop and extract by exactly it) and target output dirs
   (`<unit>/screenshots/`, `<unit>/js/`, `<unit>/css/`).
 - **BREAKPOINTS / THEMES** — the source's real `@media` widths (read them from
   the CSS; don't guess) and any theme attribute (e.g. `[data-theme="dark"]`).
@@ -90,6 +91,12 @@ see what landed).
    `screenshots/<name>@<width>-<theme>.png` (a non-default theme), `<name>` the
    unit's name, `<width>` the viewport width shot at — so each still becomes
    one isolate case's `_viewport`/`_theme`/`_reference` with no renaming.
+   Shoot every still at `deviceScaleFactor: 1` (the runner renders at 1; a 2×
+   still fails as a size mismatch), after `document.fonts.ready` with the mock's
+   fonts loaded, and with the unit on whole pixels (a box at a fractional
+   `y`/`x` — `boundingBox()` — gets `position: relative; top/left` nudging it to
+   the next whole pixel first). The still's pixel width is the width of the
+   slot the unit sat in; the runner lays the unit out in exactly that width.
 3. **Motion (per animated unit)** — extract, don't describe:
    `document.getAnimations()` + `effect.getKeyframes()` + `getComputedTiming()`
    for trigger/properties/keyframes/duration/delay/easing. `getAnimations()` is
@@ -102,7 +109,7 @@ see what landed).
    spec-writer's `_motion` case points at it. Cases cite these files
    git-root-relative (`spec/ui/breakdown/<unit dir>/screenshots/…`), so write
    them only under the unit's own `screenshots/` and never rename them. One live (unscrubbed) instrumented run →
-   dropped-frame %, max frame time, CLS into `jank.md`.
+   dropped-frame %, max frame time, CLS into the unit's `screenshots/jank.md`.
 4. **Jank lints** — run the static CSS + JS checklists from the recipes over the
    extracted CSS _and_ JS: layout-property keyframes, `transition: all`,
    animated `box-shadow`/`filter`, missing `will-change`; and the JS side —

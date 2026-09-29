@@ -127,7 +127,12 @@ Deno.test({
       // _tier + the verdict
       assertEquals(fail.tier, "optimistic-write");
       assertEquals(match.tier, "static");
-      assertEquals([report.total, report.failed, p.code], [10, 2, 1], all);
+      // REQ-056: swatch/bare has nothing to check — a skipped row, not a pass
+      assertEquals(
+        [report.total, report.passed, report.failed, report.skipped, p.code],
+        [11, 8, 2, 1, 1],
+        all,
+      );
       assert(report.evidenceDir.startsWith(wb), report.evidenceDir);
       // nothing written into the fixture
       for await (const e of Deno.readDir(FIXTURE)) {
@@ -139,5 +144,147 @@ Deno.test({
     } finally {
       await Deno.remove(wb, { recursive: true });
     }
+  },
+});
+
+// REQ-056 (e2e) — `sprig isolate <subcommand>` through the real `sprig` CLI
+// (framework/cli.ts): `test` runs the workbench runner, a case with nothing to
+// check is a skipped row, a run where every case is skipped is "nothing was
+// checked" (exit 1), `list` answers (no keep 404), and an arg that is neither a
+// subcommand nor a dir is an error naming it.
+const SPRIG = fromFileUrl(new URL("../../framework/cli.ts", import.meta.url));
+
+async function sprig(args: string[], wb?: string) {
+  const p = await new Deno.Command(Deno.execPath(), {
+    args: ["run", "-A", "--unstable-kv", SPRIG, ...args],
+    cwd: REPO,
+    env: {
+      ...Deno.env.toObject(),
+      NO_COLOR: "1",
+      ...(wb ? { SPRIG_WB_ROOT: wb } : {}),
+    },
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  return {
+    code: p.code,
+    out: new TextDecoder().decode(p.stdout),
+    err: new TextDecoder().decode(p.stderr),
+  };
+}
+
+Deno.test({
+  name:
+    "REQ-056: `sprig isolate test --json` runs the runner and reports a skipped row for a case with nothing to check",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const wb = await Deno.makeTempDir({ prefix: "wb-req056-e2e-" });
+    try {
+      const r = await sprig([
+        "isolate",
+        "test",
+        "swatch",
+        "--root",
+        FIXTURE,
+        "--json",
+        "--port",
+        String(freePort()),
+      ], wb);
+      const report = JSON.parse(r.out);
+      const rows: (Row & { skipped?: boolean })[] = report.testResults ?? [];
+      const all = rows.map((x) =>
+        `${x.skipped ? "SKIP" : x.ok ? "ok  " : "RED "} ${x.title}`
+      ).join("\n") + `\n${report.error ?? ""}\n${r.err.slice(-1500)}`;
+      // the runner ran: real reference rows came back from the browser
+      assert(
+        rows.find((x) =>
+          x.title === "reference: swatch/match"
+        )?.ok,
+        all,
+      );
+      const bare = rows.find((x) => x.title === "skipped: swatch/bare");
+      assert(bare, all);
+      assertEquals([bare.skipped, bare.detail], [
+        true,
+        "skipped — no tests, no _reference",
+      ]);
+      assertEquals(
+        [report.passed, report.failed, report.skipped],
+        [4, 1, 1],
+        all,
+      );
+      assertEquals(report.total, rows.length);
+      assertEquals(r.code, 1, all); // swatch/drift is red
+    } finally {
+      await Deno.remove(wb, { recursive: true });
+    }
+  },
+});
+
+Deno.test({
+  name:
+    "REQ-056: `sprig isolate test` where every case is skipped exits 1 — nothing was checked",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const j = await sprig([
+      "isolate",
+      "test",
+      "swatch/bare",
+      "--root",
+      FIXTURE,
+      "--json",
+    ]);
+    assertEquals(j.code, 1, j.err);
+    const report = JSON.parse(j.out);
+    assertEquals([report.ok, report.passed, report.failed, report.skipped], [
+      false,
+      0,
+      0,
+      1,
+    ]);
+    assertStringIncludes(report.error, "nothing was checked");
+    assertEquals(report.testResults[0].title, "skipped: swatch/bare");
+
+    const h = await sprig([
+      "isolate",
+      "test",
+      "swatch/bare",
+      "--root",
+      FIXTURE,
+    ]);
+    assertEquals(h.code, 1);
+    assertStringIncludes(h.out + h.err, "skipped — no tests, no _reference");
+    assertStringIncludes(h.out + h.err, "nothing was checked");
+  },
+});
+
+Deno.test({
+  name:
+    "REQ-056: `sprig isolate list --root <app>` lists the cases (no keep 404)",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const r = await sprig(["isolate", "list", "--root", FIXTURE]);
+    assertEquals(r.code, 0, r.err);
+    assertStringIncludes(r.out, "swatch ›");
+    assertStringIncludes(r.out, "bare");
+  },
+});
+
+Deno.test({
+  name:
+    "REQ-056: `sprig isolate tset` is an error naming the arg, never a silent 'nothing to isolate'",
+  sanitizeResources: false,
+  sanitizeOps: false,
+  fn: async () => {
+    const r = await sprig(["isolate", "tset", "--json"]);
+    assertEquals(r.code, 1);
+    assertStringIncludes(
+      r.err,
+      "sprig isolate: 'tset' is not a subcommand (test|list) and not a directory",
+    );
+    assert(!(r.out + r.err).includes("Nothing to isolate"), r.out);
   },
 });

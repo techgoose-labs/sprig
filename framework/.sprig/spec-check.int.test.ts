@@ -95,6 +95,10 @@ const CASES: [string, string, string[]][] = [
     "filter-bar has no template.html",
     "island filter-bar (tier pure-client) has no logic.ts",
   ]],
+  // REQ-057: a page-local unit the breakdown puts on a page is compared too, not only shared.
+  ["fail-composition-page-local", "composition", [
+    "page-local stat-card is used on page dashboard per the breakdown, but page dashboard never composes <stat-card>",
+  ]],
   ["fail-composition", "composition", [
     "shadowing",
     "page archive never composes <task-row>",
@@ -104,7 +108,9 @@ const CASES: [string, string, string[]][] = [
 ];
 
 for (const [overlay, name, expected] of CASES) {
-  Deno.test(`REQ-032: ${overlay} fails exactly the ${name} check, naming each offender with a fix`, async () => {
+  // REQ-057 owns the page-local composition row; the rest are REQ-032's.
+  const req = overlay === "fail-composition-page-local" ? "REQ-057" : "REQ-032";
+  Deno.test(`${req}: ${overlay} fails exactly the ${name} check, naming each offender with a fix`, async () => {
     const root = await tree(overlay);
     try {
       const r = await run(root);
@@ -131,8 +137,13 @@ Deno.test("REQ-032: a missing inventory.json FAILS unassigned (its absence is th
     assertEquals(failed(r), ["unassigned"]);
     assertStringIncludes(
       check(r, "unassigned").findings[0].message,
-      "no inventory.json — the breakdown's closing pass writes it",
+      "no inventory.json — the breakdown analyst's opening pass writes it",
     );
+    // REQ-057: the analyst writes inventory.json in its OPENING pass
+    // (claude/agents/sprig-breakdown-analyst.md step 5), so the hint must send you there.
+    const hint = check(r, "unassigned").findings[0].hint;
+    assertStringIncludes(hint, "opening pass");
+    assert(!hint.includes("closing pass"), hint);
     for (
       const n of [
         "inventory",
@@ -273,6 +284,101 @@ Deno.test("REQ-032: with appDir, composition runs on the compiler's real composi
     assertEquals(check(r, "composition").findings.map((f) => f.message), [
       "task-row is used on page archive per the breakdown, but page archive never composes <task-row>",
     ]);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-057: --app naming a directory that does not exist FAILS composition, naming the path — never ok with a note", async () => {
+  const root = await tree();
+  try {
+    const r = await specCheck({
+      gitRoot: root,
+      breakdownDir: join(root, "spec/ui/breakdown"),
+      uiSrc: join(root, "ui/src"),
+      appDir: join(root, "nope-app"),
+    });
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), ["composition"], text);
+    const f = check(r, "composition").findings;
+    assertEquals(f.length, 1, text);
+    assertStringIncludes(f[0].message, "nope-app");
+    assertStringIncludes(f[0].message, "does not exist");
+    assertStringIncludes(text, "spec-check composition: FAIL (1 finding)");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-057: --app naming a directory the compiler cannot read a graph from FAILS composition with the reason", async () => {
+  const root = await tree();
+  try {
+    await Deno.mkdir(join(root, "empty-app"));
+    const r = await specCheck({
+      gitRoot: root,
+      breakdownDir: join(root, "spec/ui/breakdown"),
+      uiSrc: join(root, "ui/src"),
+      appDir: join(root, "empty-app"),
+    });
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), ["composition"], text);
+    assertStringIncludes(
+      check(r, "composition").findings[0].message,
+      "empty-app",
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-057: --ui-src naming a directory that does not exist FAILS built and composition, each naming the path once", async () => {
+  const root = await tree();
+  try {
+    const r = await specCheck({
+      gitRoot: root,
+      breakdownDir: join(root, "spec/ui/breakdown"),
+      uiSrc: join(root, "nope/src"),
+      graph: JSON.parse(
+        await Deno.readTextFile(join(root, "composition-graph.json")),
+      ) as CompositionGraph,
+    });
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), ["built", "composition"], text);
+    for (const n of ["built", "composition"]) {
+      const f = check(r, n).findings;
+      assertEquals(f.length, 1, text);
+      assertStringIncludes(f[0].message, "nope/src");
+      assertStringIncludes(f[0].message, "does not exist");
+    }
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-057: the CLI exits 1 when --app points at a missing directory, printing composition FAIL with the path", async () => {
+  const root = await tree();
+  try {
+    const o = await new Deno.Command(Deno.execPath(), {
+      args: [
+        "run",
+        "-A",
+        CLI,
+        "--root",
+        root,
+        "--ui-src",
+        join(root, "ui/src"),
+        "--app",
+        join(root, "ui-missing"),
+      ],
+      stdout: "piped",
+      stderr: "piped",
+      cwd: REPO,
+    }).output();
+    const out = new TextDecoder().decode(o.stdout);
+    assertEquals(o.code, 1, out + new TextDecoder().decode(o.stderr));
+    assertStringIncludes(out, "spec-check composition: FAIL (1 finding)");
+    assertStringIncludes(out, "ui-missing");
+    assert(!out.includes("usage matrix not compared"), out);
   } finally {
     await Deno.remove(root, { recursive: true });
   }
