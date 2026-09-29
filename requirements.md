@@ -1940,3 +1940,31 @@ Tests:
   split; the workbench caveat in builder + playbook.
 - integration — n/a: docs.
 - e2e — n/a: docs.
+
+## REQ-042 AMENDMENT — `_reference` and `_motion.spec` resolve from the case dir, then the git root
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+The breakdown's stills live under `<git root>/spec/ui/breakdown/<unit>/screenshots/`,
+and the `isolate/` folder is copied into the built component under `ui/src`, so a
+case-dir-relative path could not reach them after the build. `resolveCaseFile`
+(`discover/mod.ts`) now tries the case dir first, then the git root (the nearest
+`.git` above the project); the case records which (`via: "case dir" | "git root"`)
+and the `reference:` / `motion:` row's `detail` says it ("reference resolved from
+the git root"). Neither found → a `case-key` problem naming both paths tried.
+`_motion.spec` follows the same rule. The spec-writer writes git-root-relative
+paths (`spec/ui/breakdown/…/screenshots/<name>@<width>[-<theme>].png`,
+`…/screenshots/motion.json`).
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-042
+  AMENDMENT ×1): case dir wins, git root second, both tried when absent, no git
+  root → one path.
+- integration — `server/src/core/business/discover/case-keys.int.test.ts`
+  (REQ-042 AMENDMENT ×1): git-root-relative `_reference` and `_motion.spec`
+  resolve with `via: "git root"`; a missing one names both paths;
+  `server/src/core/business/runner/case-run.int.test.ts`: the row detail names
+  the resolution.
+- e2e — `cli/commands/test.e2e.test.ts` (unchanged fixture, case-dir paths).

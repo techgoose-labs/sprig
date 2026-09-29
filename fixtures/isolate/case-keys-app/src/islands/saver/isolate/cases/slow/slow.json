@@ -1,0 +1,5 @@
+{
+  "_name": "Slow save → no wait",
+  "_tier": "optimistic-write",
+  "_network": { "POST /api/save": "delay:4000" }
+}

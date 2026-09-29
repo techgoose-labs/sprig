@@ -40,7 +40,9 @@ src/shared-components/ui-button/
   cases. `⌘K` / "Jump to a case…" to fuzzy-find.
 - **Stage** — the selected case rendered in an iframe (it hydrates exactly as in
   a page: `(event)` bindings, `onBrowserInit`, signals all work). Viewport
-  presets (fit/360/768/1024/ full), zoom, and a stage-background picker.
+  presets (fit/360/768/1024/ full), zoom, and a stage-background picker. The
+  stage does not apply a case's `_viewport`/`_theme` — pick the preset by hand;
+  `isolate test` applies both and is the authority.
 - **Controls** — edit the case's inputs/signals live (declared in
   `fixture.json`).
 - **Console** — the component's console output.
@@ -119,6 +121,50 @@ consequences, both measured fleet-killers:
    is NOT a server/port/process problem: do not restart servers, kill processes,
    or debug the runner install over this verdict.
 
+4. **Case keys the runner applies — faithful to the mock, measured.** A case
+   JSON's `_` keys are a closed list (full reference: `isolate-format.md`); an
+   unknown one is a config error naming the key and the file, and the run stops
+   before anything starts. Each of the case's own specs runs inside a generated
+   wrapper that applies the case's keys, and some keys add their own rows:
+
+   ```jsonc
+   { "_viewport": 375 }                     // or { "width": 1024, "height": 600 }
+   { "_theme": "dark" }                     // <html data-theme="dark"> from first paint
+   { "_reference": "reference.png" }        // → row "reference: <unit>/<case>"
+   { "_reference": { "image": "r.png", "tolerance": 0.03, "reason": "photo vs monogram" } }
+   { "_network": { "POST /api/todos": "fail", "createTodo": "delay:3000",
+                   "GET /api/todos": { "status": 200, "body": [] } } }
+   { "_tier": "optimistic-write" }          // on every row of the case
+   { "_motion": { "spec": "motion.json" } } // → row "motion: <unit>/<case>"
+   ```
+
+   - `reference:` screenshots the rendered unit at the case's viewport/theme and
+     reports the fraction of differing pixels:
+     `measured 0.004 ≤ tolerance
+     0.010` (pass) or
+     `measured 0.034 > tolerance 0.010` + a diff PNG path (fail). Default
+     tolerance `0.01`; above it needs a `reason`. Fix the build until the number
+     is under the tolerance — do not raise the tolerance to pass, and never
+     judge fidelity by eye when a reference exists.
+   - `_network` fakes run as `page.route` in every test of the case: write the
+     story that proves the optimistic write — the UI moves before the server
+     answers (`delay:<ms>`), and rolls back on `"fail"`. Rows record
+     `network <key> → <action>: fired N×`; `fired 0×` means the fake never
+     matched (wrong path or method). Command names map through
+     `spec/contract/openapi.json` at the git root.
+   - `motion:` compares `document.getAnimations()` of the rendered case (paused
+     at start, after hydration) with the captured spec — duration, easing,
+     keyframe count — and fails naming each difference.
+
+   `_reference` / `_motion.spec` paths resolve from the case folder, then from
+   the git root (the breakdown's `spec/ui/breakdown/…/screenshots/`); a missing
+   file is a discovery error naming both paths.
+
+   Captures, diff PNGs and the generated specs go to the run's **evidence dir**,
+   never the project: `--evidence <dir>`, else
+   `$SPRIG_WB_ROOT/evidence/<stamp>`, else a temp dir. A dir inside the project
+   is refused.
+
 The preview route is `/<components|pages>/<category>/<folder>/<case>` from
 `fixture.json` — never derived from the source path.
 
@@ -135,9 +181,16 @@ execute under the pre-provisioned Node Playwright install; each spawn has a
 **hard ~120s timeout** (a hung suite comes back as `error: "timeout"`, not a
 hang); `ISOLATE_BASE_URL` is the only wiring a spec needs — no
 `playwright.config.*` is required (one at the app root is auto-detected IF
-present, otherwise defaults apply); the JSON report shape is
-`{ ok, ran, total, passed, failed, testResults[], error? }` and
-`--failures-only` trims `testResults` to red rows while keeping the counts.
+present and lends its settings; the tests always come from the generated case
+wrappers); the JSON report shape is
+`{ ok, ran, total, passed, failed, testResults[], error?, evidenceDir }`, each
+row
+`{ title, caseName, unit, route, tier?, file, line?, ok, error?, detail?,
+measured?, tolerance?, evidence? }`
+(`detail` = what the row applied or measured, printed for passing rows too;
+`evidence` = the diff PNG / captured motion JSON), and `--failures-only` trims
+`testResults` to red rows while keeping the counts. `--port <n>` pins the
+spawned preview server's port.
 
 ## How it works (internals)
 

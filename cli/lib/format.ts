@@ -12,6 +12,7 @@ const HEAD: Record<Problem["kind"], string> = {
   "case-json": "malformed case JSON",
   "component-file": "unresolved component file",
   "component-export": "component export not found",
+  "case-key": "invalid case key",
   "unsupported": "feature not yet supported",
 };
 
@@ -76,6 +77,11 @@ export function printReport(report: TestReport, root: string): void {
     const head = t.caseName ? colors.dim(t.caseName + " › ") : "";
     if (t.ok) {
       console.log(`  ${colors.green("✓")} ${head}${t.title}`);
+      if (t.detail) {
+        console.log(
+          colors.dim(t.detail.split("\n").map((l) => "      " + l).join("\n")),
+        );
+      }
     } else {
       const where = rel(t.file, root) + (t.line ? `:${t.line}` : "");
       console.log(
@@ -86,6 +92,13 @@ export function printReport(report: TestReport, root: string): void {
       if (t.error) {
         console.log(t.error.split("\n").map((l) => "      " + l).join("\n"));
       }
+      if (t.detail && t.detail !== t.error) {
+        const extra = t.detail.split("\n").filter((l) => !t.error?.includes(l));
+        if (extra.length) {
+          console.log(colors.dim(extra.map((l) => "      " + l).join("\n")));
+        }
+      }
+      if (t.evidence) console.log(`      ↳ evidence: ${t.evidence}`);
       if (t.screenshot) console.log(`      ↳ screenshot: ${t.screenshot}`);
     }
   }
@@ -94,4 +107,7 @@ export function printReport(report: TestReport, root: string): void {
   console.log(
     "\n" + (report.failed ? colors.red(summary) : colors.green(summary)) + ".",
   );
+  if (report.evidenceDir) {
+    console.log(colors.dim(`evidence: ${report.evidenceDir}`));
+  }
 }

@@ -1,0 +1,11 @@
+[
+  {
+    "selector": "span.dot",
+    "name": "pulse",
+    "duration": 1200,
+    "easing": "ease-in-out",
+    "keyframeCount": 3,
+    "iterations": "Infinity",
+    "capturedFrom": "the mock, 1280px, light"
+  }
+]
