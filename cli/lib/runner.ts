@@ -65,12 +65,15 @@ export async function ensureRunner(): Promise<RunnerEnsure> {
     io: "inherit" | "null",
   ): Promise<boolean> => {
     try {
+      // npm's own chatter ("added 3 packages") goes to stderr, never stdout:
+      // under --json stdout is exactly one report (REQ-007 AMENDMENT).
       const r = await new Deno.Command("npm", {
         args,
         cwd: dir,
-        stdout: io,
+        stdout: io === "inherit" ? "piped" : "null",
         stderr: io,
       }).output();
+      if (io === "inherit" && r.stdout.length) await Deno.stderr.write(r.stdout);
       return r.success;
     } catch {
       if (!npmMissing) {

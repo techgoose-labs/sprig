@@ -1968,3 +1968,23 @@ Tests:
   `server/src/core/business/runner/case-run.int.test.ts`: the row detail names
   the resolution.
 - e2e — `cli/commands/test.e2e.test.ts` (unchanged fixture, case-dir paths).
+
+## REQ-007 AMENDMENT — npm's install chatter never lands in the `--json` stdout
+
+> "the app will be faithful to the mock" → the runner's `_reference`/`_motion`
+> rows are read from `isolate test --json`, whose stdout is promised to be
+> exactly one JSON document.
+
+On a fresh box the first `isolate test` provisions the Playwright runner with
+`npm i`, whose stdout was inherited — so "added 3 packages in 1s" preceded the
+report and `JSON.parse` failed (REQ-040..045's e2e went red under the gate,
+where the runner is always fresh). Now the runner's `npm` helper pipes npm's
+stdout and forwards it to stderr; stdout stays the report.
+
+Tests:
+
+- e2e — `cli/lib/runner.e2e.test.ts` (REQ-007, extended): the stub npm now
+  prints "added 3 packages in 1s" on `i`; the CLI's stdout must start with `{`
+  and parse as the report (red before the fix, green after).
+- unit / integration — n/a: the seam is the real CLI's stdout on a fresh
+  runner dir; the e2e is the smallest honest test.
