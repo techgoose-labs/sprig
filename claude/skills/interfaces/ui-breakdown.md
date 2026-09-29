@@ -3,7 +3,9 @@
 > **Producer:** breakdown · **Consumer:** build · Pipeline: design → prototype →
 > breakdown → build → audit
 
-A **`spec/ui/breakdown/`** directory detailed enough that `build` can rebuild
+A **`spec/ui/breakdown/`** directory (under the app root — the dir holding the
+app's `deno.json` and the prototype's `spec/`; the git root is the fallback)
+detailed enough that `build` can rebuild
 each page and component **mechanically, without opening the source.** This is
 the **translation boundary**: whatever the source used (daisyUI, inline styles,
 bespoke CSS), what crosses into `build` here is framework-neutral **tokens +
@@ -34,7 +36,7 @@ spec/ui/breakdown/
 
 - **The data seam is a BINDING, not a re-derived schema** (bridge 2 of the
   cross-repo [`contract.md`](../../../contract.md)): when a ratified contract
-  exists at the git root (`spec/contract/openapi.json`, or `spec/runes/*.rune` /
+  exists at the app root (`spec/contract/openapi.json`, or `spec/runes/*.rune` /
   a running keep's `/docs/<m>/json`), breakdown writes
   **`spec/contract/binding.md`** — every component/page data-need bound to a
   real endpoint + DTO (reads → **query** endpoints, writes → **command** verbs)
@@ -49,7 +51,7 @@ spec/ui/breakdown/
 - **`inventory.json`** —
   `{ "units": [ { "name", "dir", "classification", "scope", "page"?, "usedOn", "tier", "evidence", "dataNeeds" } ], "unassigned": [] }`,
   `dir` relative to `spec/ui/breakdown/`, `scope` `shared`|`page-local`|`page`,
-  `tier` `static`|`pure-client`|`optimistic-write`|`realtime` (a write's tier
+  `tier` `static`|`pure-client`|`optimistic-write`|`confirmed-write`|`realtime` (a write's tier
   from the prototype's `commands.json` `feedback`; every unit fits one — a
   read-only data region is `static`, a page takes its own `logic.ts`'s tier —
   defined in the breakdown analyst). Pre-contract, `dataNeeds` use the
@@ -67,7 +69,7 @@ spec/ui/breakdown/
   document-global, so a spec must not propose a class name daisyUI owns (`stat`,
   `badge`, `list`, `status`, `card-body`, …) for an element of its own — prefix
   own classes (`cm-dot`) or name the daisyUI component deliberately. The list:
-  `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+  `sprig:build/references/component-model.md` → "Scoped
   styles".
 - **Each component spec carries:** classification (`static` | `island` |
   `page-composition`) + the interaction tier (static / island; server writes are
@@ -87,7 +89,7 @@ spec/ui/breakdown/
   `.tsx`. Case JSON carries the **real captured values** the screenshot shows;
   each breakpoint/theme still is a case with `_viewport`/`_theme` and a
   `_reference` to it; an optimistic-write unit has `pending` + `rolled-back`
-  cases.
+  cases, a confirmed-write unit a `pending` case.
 - **`index.md` carries the build order** (tokens → shared components →
   page-local → page compositions), the interaction-tier summary, and the
   Unassigned list — which must be empty (`sprig spec-check` fails otherwise).
@@ -108,7 +110,7 @@ spec/ui/breakdown/
 Breakdown: `sprig spec-check spec/ui/breakdown` exits 0 — Unassigned empty,
 every `dataNeeds` entry bound, every bound endpoint/DTO present in
 `openapi.json`, no unit assigned twice, every optimistic-write unit carrying
-`pending` + `rolled-back` cases. Build: `sprig isolate test --json` is green for
+`pending` + `rolled-back` cases and every confirmed-write unit a `pending` case. Build: `sprig isolate test --json` is green for
 every component **and page**, including each case's `_reference` pixel-diff row
 within tolerance; then
 `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` (every inventory

@@ -2684,3 +2684,379 @@ Tests:
   the `reference: tile/plain` row (measured 0.000) carries the font notes; the
   native-name app exits 1 with the `base` problem, no run. Red before:
   `Expected: 411 Received: 1280`, and `base` ran to `element(s) not found`.
+
+## REQ-064 — spec-check counts the app shell on every page; `confirmed-write` is a tier that proves `pending` only
+
+> "A unit composed by the shell counts as used on every page the shell wraps." —
+> "Tier `confirmed-write` … with the case requirement "pending" only (no
+> rolled-back — nothing to roll back; the reply is awaited)."
+
+A full breakdown→build run on `fixtures/kennel-app` ended RED on composition
+with 9 false positives: top-bar, main-nav and theme-toggle are on every page
+per the inventory, and the scaffolder composed them once in `src/shell`. The
+compiler's graph already carries the shell — `composition-scan.ts` scans
+`src/shell/template.html` (or registers `bootstrap/template.html`) as the
+shared component keyed `shell` — but `spec-check/graph.ts` only walked page
+templates. Now whatever the shell reaches (directly or through a component)
+counts on every page, both for "used on page P" and for the stale-matrix
+check. A unit neither the page nor the shell composes reads "… but it is not
+composed by <page> or the shell". Separately, the run had no tier for a write
+that awaits the server's reply; `confirmed-write` is now a tier
+(`spec-check/types.ts`), and tier-cases requires its `pending` case only.
+On a copy of kennel-app, composition goes from FAIL (9 findings) to ok.
+
+Tests:
+
+- unit — `framework/.sprig/spec-check/graph.test.ts` (REQ-064 ×3: shell-composed
+  units pass on every page; a shell unit missing a page is a stale matrix; the
+  "not composed by <page> or the shell" text), `framework/.sprig/spec-check/tier.test.ts`
+  (REQ-064 ×2: confirmed-write with only `pending` passes; without it fails
+  naming only `pending`).
+- integration — `framework/.sprig/spec-check.int.test.ts` (REQ-064 ×5: fixtures
+  `fixtures/spec-check/pass-composition-shell`, `pass-confirmed-write` pass
+  every check; `fail-composition-nowhere`, `fail-confirmed-write` fail exactly
+  one check; the real `compositionGraph` of `pass-composition-shell` passes and
+  fails with the new text once the shell stops composing top-bar).
+- e2e — n/a: a CLI check with no page; the integration rows drive `specCheck`
+  and the real compiler graph.
+
+## REQ-067 — build provenance and the composition root come from the APP's own root, never a parent project's
+
+> "build info comes from the app's own root (the dir holding deno.json) — its
+> `.infra/git.json` if present, else `git` for that dir's repo HEAD (the worktree
+> branch/commit), else "unknown"; never a parent project's file." — "when the app
+> root is not the git root, `sprig build <app>` must resolve the composition root
+> serve.ts relative to the APP root and say exactly that in its refusal if absent
+> ("no serve.ts at <app>; a UI-only build is `--ui-only`"). Make the message name
+> both paths it tried."
+
+A breakdown→build run on `fixtures/kennel-app` found both. `writeBuildInfo`
+walked up from the app past its root into the sprig repo's `.infra/git.json`,
+so every `<head>` claimed commit 219f86e on main built 2026-07-16; and the
+composed build took the sprig repo's hand-written git-root `serve.ts` for the
+app's, refusing until the scaffolder switched to `--ui-only`. Now
+`projectRootOf` (framework/cli.ts) is the app dir itself unless the app is a
+package of the enclosing composition root (`<root>/ui`, `<root>/app`, or a
+workspace member); `resolveBuildInfo` reads only that root: `.infra/git.json`
+→ git HEAD (`commit`, `branch`, origin url) → `"unknown"` (the legacy `git`
+block in deno.json is no longer read). An app that is its own project builds
+its client bundle beside its own `serve.ts` and leaves it as written; without
+one, `sprig build` refuses before touching anything, naming `<app>/serve.ts`
+and the enclosing root's `serve.ts` and the `--ui-only` command.
+
+Tests:
+
+- unit — `framework/cli-build.test.ts` (REQ-067 ×5: the app's `.infra/git.json`
+  wins without asking git; no `.infra` → git HEAD of the app root, not the
+  parent's stamp; no git → "unknown"; a non-member app is its own root, a
+  workspace member is the parent's; `<root>/ui|app` belong to the root).
+- integration — `framework/cli-build.int.test.ts` (REQ-067 ×3, the real CLI on
+  a temp git repo with a stamped parent `.infra/git.json` and its own serve.ts:
+  no app serve.ts → exit 1 naming both paths + `--ui-only`, tree byte-identical;
+  app serve.ts → build ok, both serve.ts untouched, build-info = the repo HEAD
+  and branch; `--ui-only` → build-info = the repo HEAD, not the parent stamp).
+- e2e — n/a: a CLI build with no page of its own; the integration rows run the
+  real CLI end to end and read the baked `build-info.json`.
+
+## REQ-065 — the lints judge what the code does, not what it is called: a breakdown→build run's false positives and misses
+
+> A full breakdown→build run on `fixtures/kennel-app` — "FALSE POSITIVES (must
+> pass without a suppression)" / "FALSE NEGATIVES (must be caught)".
+
+Each verdict, read at its line, and the rule it changed:
+
+- **logic-placement (d), false positive** — day-stats `total()` was
+  `return this.day()?.kennelsTotal ?? this.kennelsTotal();` (scratchpad run
+  record, agent-07-build-day-stats). A (d)-named DEFINITION now bites only when
+  its body does work: arithmetic, a comparison, a ternary / branch / loop, a
+  computed lookup (`T[x]`), or a call with arguments other than a formatter
+  (`format`, `toFixed`, `toLocale…`, `String`/`Number`/`Boolean`); `??`, `?.`,
+  `||`, `&&` and zero-argument reads are a passthrough. Calls to such an
+  accessor are not (d) either. Calls to an unknown domain-named function with
+  arguments still are.
+- **logic-placement (c), false positive** — main-nav's first cut ran
+  `RegExp.test(` on `location.pathname` (agent-07-build-main-nav-r2). A regex
+  whose subject is the current URL (`location`, `pathname`, `href`, `hash`,
+  `route`, a `…Route`/`…Pathname`/`…Href` name, a template literal of them) or
+  whose pattern is route-named (`DOG_ROUTE.test(p)`, `const route = new
+  RegExp(…)`) is presentation routing. A regex on a URL the user TYPED stays
+  (c) (corpus `website-url-regex`).
+- **tokens `gap: 0.25rem`, false positive of the family inference** —
+  `spec/ui/design-system/css-variables.json` has no space tokens at all (its
+  `_note` drops the daisyUI `--size-*` params); the app's `--size-field` /
+  `--size-selector` (0.25rem) are daisyUI control-size params the scaffolder
+  re-added, and the `--size` prefix put them in the space family, so the hint
+  told a builder to write `gap: var(--size-field)`. daisyUI's params
+  (`--size-field`, `--size-selector`, `--border`, `--depth`, `--noise`) are in
+  no family and the families note names them. The REQ-060 empty-family message
+  is NOT extended to lengths: REQ-027 AMENDMENT 2 holds a length only to a
+  token of its family, and an empty space family would turn every raw length
+  into an error (13 in kennel-app, 10 in eval-app).
+- **tokens inside `@font-face`, false positive** — the scaffolder's
+  `font-family: 'Caveat'` descriptors were "off-system font" (21-scaffolder-fix).
+  `@font-face` blocks declare a font; nothing in them (`font-family`, `src`,
+  `unicode-range`, `font-display`, `size-adjust`, …) is read.
+- **optimistic-writes, miss** — close-day-control `await closeDay(id)` wraps
+  the POST. One level of local helper: a call (`name(…)` or `this.name(…)`) to
+  a function the same file names whose OWN body awaits a server write is an
+  awaited server write. A helper whose write carries its own reasoned
+  `// sprig-wait:` is a declared wait its callers inherit (the repo app's
+  `runAll` → `runCase`).
+- **logic-placement (e), miss** — dog-actions `OFFERED_FROM:
+  Record<DogCommand, DogStatus>` is keyed by COMMAND, valued by STATUS, and
+  read as `this.status() === OFFERED_FROM[cmd]`. A STATUS TABLE is a module
+  `const` typed `Record<XStatus, …>` / `Record<…, XStatus>` (a type named
+  `…Status|State|Stage|Phase`), or an object / `new Map` whose keys or values
+  are all values of such a union in the file. Its read is (e) when a
+  status-valued read is compared, or when it is keyed by a record's lifecycle
+  field and its values are not all strings (`ACTIONS[order().status]`); a
+  status → label / class table passes.
+- **`notes().length` shown as a count** — presentation, passes (unchanged,
+  now pinned). What IS covered today: a `.length` equal / unequal to a literal
+  > 1 (c), relational to a literal > 1 inside a handler (c), relational to a
+  data member in a branch (b). NOT covered: `@if (xs().length > 3)` and
+  `.length` arithmetic (`length` is a geometry name, exempt from (a)).
+
+Calibration: `app/src` 0 findings / 0 sprig-logic, 3 sprig-wait suppressions;
+bullshit-app, eval-app, eval/audit-app, sprig-app, spec-check/clean 0 findings.
+kennel-app now reports the 2 OFFERED_FROM reads (e) and lists its sprig-wait.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/logic-placement.test.ts` (REQ-065:
+  passthrough accessors clean, the same names doing work flagged; REQ-023 (d)
+  positives now do work); `framework/.sprig/compiler/lints/optimistic-writes.test.ts`
+  (REQ-065 ×3: helper-wrapped write, read-only/timer helper control, inherited
+  helper sprig-wait).
+- integration — `framework/.sprig/compiler/lints/logic-placement-corpus.int.test.ts`
+  (smuggled `status-offered-table`, `status-actions-lookup`,
+  `website-url-regex`; legit `passthrough-total-getter`, `route-regex-nav`,
+  `status-label-table`, `template-length-count`);
+  `framework/.sprig/compiler/lints/mutations.int.test.ts` (REQ-065 ×4:
+  `@font-face` green + control, daisyUI param gap green + `--space-1` control,
+  helper write bites + read-only helper control; REQ-049 (d) definition
+  mutation now does work). Red before: 5 REQ-065 tests and 4 corpus cases
+  failed against the HEAD lints.
+- e2e — n/a: source lints with no page; `sprig check` wiring is REQ-048's.
+
+## REQ-063 — a `_reference` stage is the app's page colour, case paths resolve from the `--root` app, a `_motion` case can name its trigger
+
+> a full breakdown→build run on fixtures/kennel-app ended 381 rows, 266 passed,
+> 115 failed (114 `_reference`, 1 `_motion`): the runner's stage paints
+> `#f3eee2` behind the unit and ignores the case/fixture `background` and the
+> `_theme` page colour; `_reference` still paths and `_network` command names
+> resolve against the nearest `.git`, not the `--root` app; dog-card's `_motion`
+> red was a hover-only animation the runner never triggered.
+
+- the stage behind a `_reference` capture is the colour the unit sits on in
+  the app: the case's `_reference.background`, else `fixture.json`'s
+  `background`, else the app's page background for the case's `_theme` — the
+  `body` (else `html`) `background` its shell declares (`src/shell/styles.css`,
+  `bootstrap/styles.css`, the shell head's `<style>`), resolved in the browser
+  under the theme — else the design system's `--color-base-100`, else white.
+  Never the workbench's paper. The row names it
+  (`stage background rgb(243, 234, 219) — the app's page background
+  (src/shell/styles.css body) under theme brand`). An explicit colour that does
+  not resolve fails the row. (`runner/harness.ts` `appPageBackground`,
+  `stageBackgrounds`, `paintStage`; `runner/mod.ts` `planRun`.)
+- `_reference` / `_motion.spec` paths resolve against the case dir, then the
+  app root (`--root`), then the git root; `_network` command names map through
+  the app root's `spec/contract/openapi.json`, else the git root's. The row says
+  which (`resolved from the app root`); an app at the git root is the app root.
+  (`discover/mod.ts` `resolveCaseFile`, `readOperations`.)
+- `_motion` may declare `"trigger": "hover" | "focus" | "click" | "load"`
+  (default `load`); the runner performs it on the unit's root before reading
+  the animations and the row says `after trigger <t>` plus
+  `motion trigger: <t> on <el>`. An unknown trigger is a discovery error; a
+  `load` case with a missing animation names the key that would start it.
+- dog-heading (14 cases) before → after: default 0.948 → 0.000, every case
+  0.740–0.973 → ≤ 0.0002 (14 red → 14 green). The whole kennel-app run: 381
+  rows, 266/115 → 347/34 (reference reds 114 → 33).
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-063 ×3:
+  resolveCaseFile case dir → app root → git root; `_motion.trigger` parse;
+  `_reference.background` parse), `server/src/core/business/runner/harness.test.ts`
+  (REQ-063 ×3: appPageBackground, stageBackgrounds order, wrapper payload +
+  harness source), `server/src/core/business/runner/case-run.test.ts` (REQ-063:
+  planRun's stage background precedence). Red before: 8 failed (no
+  `appPageBackground`/`stageBackgrounds` exports, no `trigger`, `via` "git root").
+- integration — `server/src/core/business/discover/case-keys.int.test.ts`
+  (REQ-063: an app below a git root resolves its stills, motion spec and
+  contract from the app root; a repo-only still from the git root).
+- e2e — `server/src/core/business/runner/stage.e2e.test.ts` (REQ-063): the real
+  `isolate test --json` on `fixtures/isolate/stage-app` — a transparent heading
+  measures 0.000 on base-200 light and dark and on an explicit white; the rows
+  name the colour and "resolved from the app root"; a hover-only transition is
+  green with `trigger: "hover"` and red without. Red before: every case refused
+  at discovery (`"_reference" image not found — tried …/cases/default/spec/… and
+  <git root>/spec/…`).
+
+## REQ-063 AMENDMENT — the runner accepts every tier spec-check knows (`confirmed-write`)
+
+> spec-check added tier `confirmed-write` (cases: `pending` only) in
+> framework/.sprig/spec-check/tier.ts, but the runner's own TIERS list did not
+> include it, so a case with `_tier: "confirmed-write"` was refused at discovery.
+
+- `discover/mod.ts` re-exports spec-check's `TIERS` / `Tier`
+  (`framework/.sprig/spec-check/types.ts`, which imports nothing) — one list,
+  no copy. The runner derives no required cases from a tier (spec-check owns
+  that rule), so nothing else changes.
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-063
+  AMENDMENT): `_tier: "confirmed-write"` parses clean and the runner's TIERS
+  equal spec-check's. Red before: `"_tier" must be one of static | pure-client |
+  optimistic-write | realtime — got "confirmed-write"`.
+
+## REQ-066 — the breakdown and build prompts say what worked in the kennel-app run, one sentence per gap
+
+> A full breakdown→build run on `fixtures/kennel-app` found the prose stopped an
+> agent at nine points: "Fix each with the smallest true sentence and pin it with
+> one assertion … named "REQ-066: <gap>"."
+
+1. Breakdown paths are APP-ROOT-relative (the dir holding the app's `deno.json`
+   and the prototype's `spec/`; `--root <app>` names it); the git root is the
+   fallback — breakdown SKILL.md, analyst, capture, spec-writer, ui-breakdown.md;
+   a `_network` command name maps through the `--root` app's
+   `spec/contract/openapi.json`, else the git root's, and the row says which
+   (isolate.md, isolate-format.md).
+2. Agents read the `references/` dir next to the SKILL.md that spawned them
+   (installed or repo copy), never a hardcoded home path, and list the files by
+   name; both SKILL.md orchestrators pass that absolute path in every brief.
+   (The synced guardrail block, `scripts/agent-guardrail.md`, still names
+   `~/.claude/skills/…`.)
+3. Tier `confirmed-write` (the island awaits the reply; `pending` case only;
+   `feedback: confirmed` → `confirmed-write`) in the analyst, spec-writer and
+   ui-breakdown.md.
+4. Capture stills: hide the annotate overlay and host chrome, unstick sticky
+   elements or crop below them, shoot a grid unit at its natural row height; no
+   animations → `{"animations": []}`.
+5. Scaffolder/serving.md: explicit `Frontend({ app: sprigApp, assetsDir })` for
+   an app whose `src/` + `static/` sit beside its `serve.ts` (bare `Frontend()`
+   answered 500); an own-project app builds beside its own `serve.ts`, else
+   `sprig build --ui-only <app>`; the design-system token copy keeps the shared
+   tokens on the default theme and adds daisyUI's `--size-selector`,
+   `--size-field`, `--border`, `--depth`, `--noise`.
+6. A class island receives `[prop]` bindings only through `constructor(ctx)`
+   (`ctx.input`), with the code shape.
+7. The workbench is stopped by the `pid` in `/tmp/wb-<PORT>/isolate.json`, not
+   `$!` (which printed `g1` under the guarded shell).
+8. The prod smoke GETs every route in `src/mod.ts` (one with a real id): HTTP
+   200, the page's own template (not load-error / not-found), the island root
+   present; an all-error app FAILS.
+9. Decision: `spec/contract/openapi.json` must exist before any write island is
+   built; nothing derives it from the seams (`contract snapshot` only copies
+   them to `spec/contract/draft/`), so the build reports `no contract` for each
+   write island and never invents a state service.
+
+Tests:
+
+- unit — `framework/.sprig/skills-dryrun.test.ts` (REQ-066 ×10, one per gap plus
+  the `_network` contract root; REQ-058 tier + reference assertions updated to
+  the new sentences). Red before: 9 failed (then 1 for the `_network` paragraphs),
+  green after with `skills-hardening.test.ts`.
+- integration — n/a: prompt prose; the claims were checked against the real CLI
+  (`sprig isolate` live-file pid + kill, `sprig build` on a kennel-app copy,
+  `packages/keep/mod.ts` Frontend, `compiler/mod.ts` `new Cls(makeServerCtx(…))`).
+- e2e — n/a: prompt prose with no page.
+
+## REQ-062 — the kennel fixture is a green end-to-end build: check, spec-check, map, isolate
+
+> "Iterate until all four commands are green … Then write
+> framework/kennel-app.e2e.test.ts: four Deno.tests named "REQ-062: <check> is
+> green on the kennel fixture"." The coordinator adds: derive
+> `spec/contract/openapi.json` from the two seams, generate the client with the
+> real generator, rewire the islands through it, and a fifth test "REQ-062: the
+> kennel fixture's contract-calls lint runs, not skips".
+
+`fixtures/kennel-app` (24 units, 3 pages, built by the breakdown→build pipeline)
+proves the whole toolchain on a real mock: with the app root as `--root`,
+`sprig check` is green with every lint RUNNING (contract-calls checks the UI
+against a contract, not skipped), `sprig spec-check` is ok, `sprig map
+--compose` draws the graph, and `sprig isolate test --json` reports failed 0,
+passed > 0 (381 rows: every `_reference`, `_motion`, `_network` and case spec).
+What the fixture now carries, by the book:
+
+1. Allowed actions are server-decided: the dog DTO carries `allowedActions`
+   (the commands it accepts now) and `allowedAfter` (per allowed command, what
+   it accepts once that lands — the optimistic intent); dog-actions renders
+   only what they list. The client `OFFERED_FROM` status table is gone.
+2. `spec/contract/openapi.json` is derived from the seams: each
+   `objects/<type>.json` → `GET /api/<type>` + `GET /api/<type>/{id}`, each
+   `commands.json` verb → a `POST /api/<type>/<verb>` command
+   (`x-sprig-feedback`, `x-sprig-command`); `spec/contract/client/` is
+   generated by `@dev-tools/contract` (`contract client`); resolves read and
+   islands write only through it (writes inside `optimistic(...)`; `day.close`
+   is the `confirmed-write` tier with its `pending` case). The scaffold's unused
+   state service is deleted.
+3. dog-detail maps statuses only: a dog 404 while the day read answers is
+   not-found; a 404 on both (no backend/route) or any other failure is
+   load-error.
+4. Shadow tokens `--shadow-sm/md/lg` (sm from the mock's computed shadow) in the
+   design system and the app; dog-card transitions `box-shadow` to
+   `--shadow-sm` on hover as the captured motion does (`trigger: "hover"`).
+5. Every `_reference` red was resolved at its cause: stills shot at a
+   fractional x/y recaptured on whole pixels; the stage colour a unit sits on
+   named in its fixture; the theme-toggle moon icon matched to the mock's.
+
+Tests:
+
+- e2e — `framework/kennel-app.e2e.test.ts` ×5 ("REQ-062: sprig check is green
+  on the kennel fixture", "… spec-check …", "… map --compose …", "… isolate
+  test …" asserting failed === 0 and passed > 0, and "REQ-062: the kennel
+  fixture's contract-calls lint runs, not skips"). Green: 5 passed.
+- unit / integration — n/a: the fixture is the subject; its units' own
+  behaviour is pinned by its 381 isolate rows, run by the e2e above.
+
+## REQ-068 — the kennel fixture's findings, fixed at their cause: app-root contract lookup, a real binding, dotted command names, a stage that carries the page text
+
+> the kennel fixture … surfaced these: `sprig check <app>` without `--root`
+> takes the git root, so contract-calls SKIPS when the app holds its own
+> spec/contract … no spec/contract/binding.md exists because the breakdown ran
+> pre-contract … `_network` command names must be plain identifiers, so the
+> two-seam prototype's dotted names (`dog.checkIn`) are refused … the
+> `_reference` stage takes only the app's page background, not its text colour
+> or font.
+
+1. `sprig check` and `sprig spec-check` look the contract up at the APP root
+   first (the nearest dir holding deno.json; for spec-check the `--app` dir),
+   then the git root (or `--root`) — the runner's REQ-063 order. The
+   contract-calls and optimistic-writes "checked" lines end
+   `— contract: <dir>/spec/contract (app root|git root)`; spec-check's
+   binding-drift notes which root's contract it read. The kennel check tests
+   run WITHOUT `--root`.
+2. `fixtures/kennel-app/spec/contract/binding.md` binds every inventory
+   dataNeed to the contract (`| unit | need | kind | endpoint | dto |`,
+   `## Drift` none) — spec-check runs 7 of 7 green. A rolled-back case may fail
+   its bound command by operationId or x-sprig-command (tier-cases takes both
+   names from the contract, as isolate's `_network` does).
+3. A `_network` key may be an operationId or an operation's
+   `x-sprig-command` (`dog.checkIn`); an unknown name's error lists both forms.
+4. A `_reference` stage also inherits the shell body's `color`, `font-family`,
+   `font-size` and `line-height` (body, else html; as written, resolved under the
+   case's `_theme`, applied to body + the stage, never html), and the row lists
+   them ("stage text …"). The kennel icon-badge workaround (its styles.css
+   font-family/color rules and the two classes naming them) is deleted;
+   isolate stays 381 passed / 0 failed.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/contract.test.ts` ("REQ-068:
+  resolveContractRoot …", "REQ-068: appRootOf …");
+  `framework/.sprig/spec-check/tier.test.ts` ("REQ-068: checkTierCases — a
+  rolled-back case may fail its bound command by operationId or
+  x-sprig-command …"); `server/src/core/business/discover/case-keys.test.ts`
+  ("REQ-068: _network — a key may be an operation's x-sprig-command …");
+  `server/src/core/business/runner/harness.test.ts` ("REQ-068: appPageText …",
+  "REQ-068: the harness stage inherits the shell body's text …").
+- integration — `framework/.sprig/compiler/lints/contract-calls.int.test.ts`
+  ("REQ-068: an app below the git root holding its own spec/contract …");
+  `server/src/core/business/discover/case-keys.int.test.ts` ("REQ-068: a
+  case's _network may name a command by its x-sprig-command …").
+- e2e — `framework/kennel-app.e2e.test.ts` (check without `--root`; "REQ-062 /
+  REQ-068: spec-check binds the kennel breakdown to the app's own contract —
+  binding-drift runs, 7 of 7 checks"); `server/src/core/business/runner/stage.e2e.test.ts`
+  (the row lists "stage text color rgb(59, 42, 30) …").

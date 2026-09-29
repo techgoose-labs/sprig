@@ -1,0 +1,16 @@
+{
+  "_name": "Walking, long name wraps @375",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "id": "d03",
+  "name": "Sir Reginald Barksworth-Fluffington III",
+  "kennel": "K03",
+  "breed": "Cavalier King Charles Spaniel",
+  "ownerName": "Hannah Lindqvist",
+  "status": "walking",
+  "arrival": "09:30",
+  "overdue": false,
+  "overdueBy": "",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/dog-card-long-name-walking@375.png"
+}

@@ -43,8 +43,10 @@ You read the source code; you do not render the mock or write per-component
   folder — its `objects/` + `commands.json` are the declared data seams, read
   them, and each command's `feedback`; a pre-contract single-file
   `spec/ui/<app>-prototype.html`; or any HTML/folder/image/PDF).
-- **OUTPUT DIR** — always `<git-root>/spec/ui/breakdown/`. Resolve the root with
-  `git rev-parse --show-toplevel`; never search the filesystem for it or for
+- **OUTPUT DIR** — always `<app-root>/spec/ui/breakdown/` (the app root is the
+  directory holding the app's `deno.json` and the prototype's `spec/`; the git
+  root, `git rev-parse --show-toplevel`, is the fallback); it arrives resolved —
+  never search the filesystem for it or for
   anything under it (no `find /` / whole-disk scans — they pin every CPU core
   for minutes).
 - **PHASE** — `opening` or `closing`. For closing, the list of component/page
@@ -54,7 +56,7 @@ All paths arrive resolved. A passed path that doesn't exist → return
 `blocked: <path>
 missing`; don't hunt for a replacement. **Knowledge boundary:**
 this definition + the SOURCE files + the `ui-breakdown` contract
-(`~/.claude/skills/interfaces/ui-breakdown.md`) + the design system's
+(`interfaces/ui-breakdown.md`) + the design system's
 `spec/ui/design-system/components.md` (when it exists) are all your reference
 material — never read another skill's SKILL.md (orchestrator playbooks).
 
@@ -90,7 +92,7 @@ deliverable.
    finer **tier** (`static` / `pure-client` / `optimistic-write` / `realtime`);
    a write's tier comes from the prototype's `commands.json` `feedback` when
    present — `feedback: instant` → `optimistic-write`; `feedback: confirmed` →
-   the unit waits on that reply, so its evidence records
+   `confirmed-write`: the unit waits on that reply, so its evidence records
    `waits: <command> — <does reason>` (the build marks the await
    `// sprig-wait: <reason>`). Record each region's **data source**
    (`resolve.ts` / `Backend` / an island call through the typed client),
@@ -110,7 +112,7 @@ deliverable.
    `<name>: sets by <origin island> → edits by <…> → reads by <…>`, shell-scoped
    (survives navigation) or page-scoped. Islands share state ONLY via the
    `sets:`/`reads:`/`edits:` template verbs
-   (`~/.claude/skills/sprig:build/references/wiring.md`); pages receive it via
+   (`sprig:build/references/wiring.md`); pages receive it via
    `<router-outlet reads:x>`. **Never** prescribe a `state/*.ts` module, an
    exported signal, a shared store, a nested live parent island, or a
    prop-drilled handle for this — and `ctx.output()` does not cross island
@@ -122,13 +124,13 @@ deliverable.
    NOT daisyUI themes — but daisyUI components ARE in the build, so never
    propose a daisyUI class name (`stat`, `badge`, `list`, `status`…) for an
    element of our own; prefix own classes — the reserved list is in
-   `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+   `sprig:build/references/component-model.md` → "Scoped
    styles … daisyUI's reserved class names"). Capture **every theme variant** as
    parallel columns, and write one line `Default theme: <name>` — the theme the
    mock renders with no theme attribute set (spec-writers put it in the `_theme`
    of every unsuffixed still's case). Record `prefers-reduced-motion` handling.
 4. **The data seam — bind, don't re-derive** (bridge 2 of the cross-repo
-   `contract.md`). First check the git root for a ratified contract:
+   `contract.md`). First check the app root for a ratified contract:
    `spec/contract/openapi.json`, else `spec/runes/*.rune` (or a running keep's
    `/docs/<m>/json`).
    - **Contract exists → write `spec/contract/binding.md`**: ONE table with the
@@ -161,7 +163,7 @@ deliverable.
    `{ "units": [ { "name", "dir" (relative to the breakdown dir),
    "classification": "static"|"island"|"page-composition", "scope":
    "shared"|"page-local"|"page", "page"?, "usedOn": [pages], "tier":
-   "static"|"pure-client"|"optimistic-write"|"realtime", "evidence",
+   "static"|"pure-client"|"optimistic-write"|"confirmed-write"|"realtime", "evidence",
    "dataNeeds": [need names] } ], "unassigned": [] }`.
    `dir` is the path its scope implies: shared → `shared-components/<name>`,
    page → `pages/<page>`, page-local → `pages/<page>/components/<name>`; a
@@ -172,12 +174,15 @@ deliverable.
    that only reads) is `static`; `pure-client` — a `logic.ts` holding UI state
    (open/closed, a selected tab, a query param it re-requests) and no server
    write; `optimistic-write` — a `logic.ts` that sends a command and renders
-   the intent before the reply; `realtime` — pushed data (SSE/socket/poll)
+   the intent before the reply; `confirmed-write` — the island awaits the
+   server's reply before showing the change (control disabled while pending);
+   it needs a `pending` case only — no `rolled-back`, nothing was shown to roll
+   back. `realtime` — pushed data (SSE/socket/poll)
    updates it in place; a page-composition's tier is the tier of its own
    `logic.ts` (`static` when it has none or it only loads data on the server —
    its children carry their own tiers).
-   Of these, only `optimistic-write` requires cases (`pending` +
-   `rolled-back`). **`dataNeeds`** name each data-need as the binding's `need`
+   Of these, `optimistic-write` requires cases (`pending` + `rolled-back`)
+   and `confirmed-write` a `pending` case; no other tier requires cases. **`dataNeeds`** name each data-need as the binding's `need`
    column does; before a contract exists there is no binding, so write the
    need's name from the unit's data table in `data-model.md` (its reverse
    index) — `binding.md` fills the endpoint once the contract lands, and
@@ -198,8 +203,8 @@ Events/Motion). Confirm every interaction has a tier, every island is justified,
 every live panel is marked request-response vs pushed with an honest-empty note,
 and every component/page has a runnable `isolate/` proposal + Isolate build
 plan. Anything unmapped → `unassigned` in `inventory.json` and the Unassigned
-list in `index.md`. Then RUN `sprig spec-check spec/ui/breakdown` from the git
-root — it fails on a non-empty Unassigned, binding endpoints/DTOs missing from
+list in `index.md`. Then RUN `sprig spec-check spec/ui/breakdown --root .` from
+the app root — it fails on a non-empty Unassigned, binding endpoints/DTOs missing from
 `openapi.json`, units with `dataNeeds` but no binding row, optimistic-write
 units without `pending` + `rolled-back` cases, and double assignment. The
 breakdown is not done until it exits 0: assign the region, add the row, or
@@ -211,9 +216,16 @@ never report the breakdown done without its verdict.
 
 ## Resources
 
-- The `ui-breakdown` contract (`../interfaces/ui-breakdown.md`, installed at
-  `~/.claude/skills/interfaces/ui-breakdown.md`) defines the artifact shape
-  you're filling.
+- The `ui-breakdown` contract (`interfaces/ui-breakdown.md`) defines the
+  artifact shape you're filling.
+- **References:** a `<skill>/references/<file>` path means the `references/`
+  dir next to the SKILL.md that spawned you (installed or repo copy), never a
+  hardcoded home path — sibling skill dirs (`sprig:build/`, `sprig:breakdown/`,
+  `interfaces/`) sit beside that skill's dir, and your brief carries the
+  absolute path. `sprig:breakdown/references/`: `capture-recipes.md`,
+  `isolate-format.md`. `sprig:build/references/`: `INDEX.md`,
+  `component-model.md`, `isolate.md`, `routing.md`, `serving.md`,
+  `templates.md`, `wiring.md`.
 - For **image/PDF** sources: visual analysis only — sample pixels, record sample
   coordinates (`#4f46e5 @ (312,88)`), mark inferred sections "described, not
   extracted — verify during build"; scale output to the evidence.
@@ -227,7 +239,7 @@ selector that matches exactly the unit's DOM in the mock (capture crops and
 extracts by it; a page's is its view root) — classification, tier,
 shared/page-local (+ evidence), data source, whether it's renderable (needs
 capture), **and its `breakdown_dir` — the ABSOLUTE output folder assigned under
-`<git-root>/spec/ui/breakdown/`** (this is what the orchestrator passes to
+`<app-root>/spec/ui/breakdown/`** (this is what the orchestrator passes to
 capture, spec-writers, and later the build; downstream agents never search for
 their folder) — plus any binding **drift errors**. For CLOSING, report the
 `sprig spec-check` verdict (its last line) and any completeness gaps. Return
@@ -244,10 +256,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

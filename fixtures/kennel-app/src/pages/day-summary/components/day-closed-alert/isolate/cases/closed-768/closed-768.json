@@ -1,0 +1,8 @@
+{
+  "_name": "Closed day — 768, brand",
+  "_tier": "pure-client",
+  "_viewport": 768,
+  "_theme": "brand",
+  "_signals": { "closed": true },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/day-closed-alert/screenshots/day-closed-alert@768.png"
+}

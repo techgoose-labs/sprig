@@ -81,7 +81,8 @@ Deno.test("REQ-058: every unit fits a tier; only optimistic-write requires pendi
     "a page-composition's tier is the tier of its own `logic.ts`",
     "`pure-client` — a `logic.ts` holding UI state",
     "`realtime` — pushed data",
-    "only `optimistic-write` requires cases (`pending` + `rolled-back`)",
+    // REQ-066: confirmed-write joined the tiers; it needs `pending` only.
+    "`optimistic-write` requires cases (`pending` + `rolled-back`)",
   );
 });
 
@@ -120,11 +121,12 @@ Deno.test("REQ-058: a unit lands at its inventory `dir`, not components/|islands
   has(c, "`<app>/src/<dir>`");
 });
 
-Deno.test("REQ-058: reserved class names point at an installed reference, not docs/sprig/styling.md", async () => {
+Deno.test("REQ-058: reserved class names point at the skill reference, not docs/sprig/styling.md", async () => {
+  // REQ-066: the reference is named relative to the skills dir, never ~/.claude.
   for (const f of [ANALYST, SPEC_WRITER, COMPONENT, UI_BREAKDOWN]) {
     const s = await doc(f);
     lacks(s, "docs/sprig/styling.md");
-    has(s, "~/.claude/skills/sprig:build/references/component-model.md");
+    has(s, "sprig:build/references/component-model.md");
   }
 });
 
@@ -158,4 +160,159 @@ Deno.test("REQ-058: one spec-writer per unit — the prompt no longer offers bat
 
 Deno.test("REQ-058: jank.md has a path", async () => {
   has(await doc(CAPTURE), "`screenshots/jank.md`");
+});
+
+// ---------------------------------------------------------------- REQ-066
+// A full breakdown → build run on fixtures/kennel-app stopped at each gap
+// below; each fix is one sentence, pinned here.
+
+const BUILD_ANALYST = "agents/sprig-build-analyst.md";
+const SERVING = "skills/sprig:build/references/serving.md";
+const GUARDRAIL =
+  /<!-- BEGIN sprig-agent-guardrail[\s\S]*?<!-- END sprig-agent-guardrail -->/;
+
+Deno.test("REQ-066: breakdown paths are app-root-relative; the git root is the fallback", async () => {
+  const b = await doc(BREAKDOWN);
+  lacks(b, "always `<git-root>/spec/ui/breakdown/`");
+  has(
+    b,
+    "always `<app-root>/spec/ui/breakdown/`",
+    "the directory holding the app's `deno.json`",
+    "the git root (`git rev-parse --show-toplevel`) is the fallback",
+  );
+  lacks(await doc(ANALYST), "always `<git-root>/spec/ui/breakdown/`");
+  const s = await doc(SPEC_WRITER);
+  lacks(s, "GIT-ROOT-relative", "git-root-relative");
+  has(s, "APP-ROOT-relative");
+  lacks(await doc(CAPTURE), "git-root-relative");
+});
+
+Deno.test("REQ-066: agents read the skill's own references/ dir, never a hardcoded home path", async () => {
+  const agents = [
+    ANALYST,
+    CAPTURE,
+    SPEC_WRITER,
+    COMPONENT,
+    SCAFFOLDER,
+    BUILD_ANALYST,
+  ];
+  for (const f of [...agents, BREAKDOWN, BUILD, UI_BREAKDOWN]) {
+    lacks((await doc(f)).replace(GUARDRAIL, ""), "~/.claude/skills");
+  }
+  for (const f of agents) {
+    has(
+      await doc(f),
+      "the `references/` dir next to the SKILL.md that spawned you (installed or repo copy), never a hardcoded home path",
+      "`capture-recipes.md`, `isolate-format.md`",
+      "`INDEX.md`, `component-model.md`, `isolate.md`, `routing.md`, `serving.md`, `templates.md`, `wiring.md`",
+    );
+  }
+  for (const f of [BREAKDOWN, BUILD]) {
+    has(
+      await doc(f),
+      "the absolute path of the `references/` dir next to this SKILL.md",
+    );
+  }
+});
+
+Deno.test("REQ-066: a confirmed (awaited) write has its own tier — confirmed-write, pending only", async () => {
+  const a = await doc(ANALYST);
+  has(
+    a,
+    "`confirmed-write` — the island awaits the server's reply before showing the change (control disabled while pending); it needs a `pending` case only — no `rolled-back`, nothing was shown to roll back.",
+    "`feedback: confirmed` → `confirmed-write`",
+    '"optimistic-write"|"confirmed-write"',
+  );
+  has(
+    await doc(SPEC_WRITER),
+    "A **confirmed-write** unit gets a `pending` case only — no `rolled-back`, nothing was shown to roll back",
+  );
+});
+
+Deno.test("REQ-066: stills hide host chrome, clear sticky elements, keep a grid unit's natural height; no motion is an empty list", async () => {
+  has(
+    await doc(CAPTURE),
+    "hide the annotate overlay and any host chrome before a still",
+    "unstick sticky elements or crop below them",
+    "capture a grid unit at its natural row height",
+    'a unit with no animations writes `{"animations": []}`',
+  );
+});
+
+Deno.test("REQ-066: the scaffolder writes what served in the run — explicit Frontend args, --ui-only, daisyUI params", async () => {
+  const s = await doc(SCAFFOLDER);
+  lacks(s, "→ `ui/src/css-variables.json` verbatim");
+  has(
+    s,
+    'Frontend({ app: sprigApp, assetsDir: fromFileUrl(new URL("./static", import.meta.url)) })',
+    "bare `Frontend()` answers 500",
+    "sprig build --ui-only <app>",
+    "`--size-selector`, `--size-field`, `--border`, `--depth`, `--noise`",
+    '`@plugin "daisyui" { themes: false; }`',
+  );
+  has(
+    await doc(SERVING),
+    'Frontend({ app: sprigApp, assetsDir: fromFileUrl(new URL("./static", import.meta.url)) })',
+    "sprig build --ui-only <app>",
+  );
+});
+
+Deno.test("REQ-066: a class island receives [prop] bindings only through constructor(ctx)", async () => {
+  has(
+    await doc(COMPONENT),
+    "A class island receives its `[prop]` bindings only through `constructor(ctx)`",
+    "constructor(ctx?: ComponentCtx) {",
+    'this.closed.set(ctx.input("closed", this.closed())() ?? this.closed());',
+  );
+});
+
+Deno.test("REQ-066: the workbench PID comes from its isolate.json, not `$!`", async () => {
+  const c = await doc(COMPONENT);
+  lacks(c, "& echo $! >");
+  has(
+    c,
+    "`$!` is not a PID under every shell",
+    "`kill` the `pid` in `/tmp/wb-<your PORT>/isolate.json`",
+  );
+});
+
+Deno.test("REQ-066: the prod smoke names its URLs and pass criteria; an all-error app fails", async () => {
+  for (const f of [BUILD, SCAFFOLDER]) {
+    has(
+      await doc(f),
+      "every route in `src/mod.ts` at least once, one with a real id from the fixture data",
+      "HTTP 200, the page's own template rendered — not the load-error or not-found state",
+      'the island\'s root element (`<sprig-island data-sel="<island>">`) present',
+      "an app where every page renders an error state FAILS the smoke",
+    );
+  }
+});
+
+Deno.test("REQ-066: a write island needs spec/contract/openapi.json — without it the build reports no contract", async () => {
+  const b = await doc(BUILD);
+  has(
+    b,
+    "`spec/contract/openapi.json` must exist before any island with a server write is built",
+    "nothing in this toolchain derives it from the two seams",
+    "`contract snapshot <prototype>` only copies `objects/` + `commands.json` to `spec/contract/draft/`",
+    "reports `no contract` for each write island",
+    "never invents a state service",
+  );
+  has(
+    await doc(COMPONENT),
+    "return `blocked: no contract`",
+    "never route its writes to a local state service",
+  );
+});
+
+Deno.test("REQ-066: a _network command name maps through the --root app's contract, else the git root's", async () => {
+  for (const f of [ISOLATE_REF, ISOLATE_FORMAT]) {
+    const s = await doc(f);
+    lacks(s, "`spec/contract/openapi.json` at the git root");
+    has(
+      s,
+      "`spec/contract/openapi.json` at the `--root` app, else at the git root",
+      "the row says which",
+    );
+  }
 });

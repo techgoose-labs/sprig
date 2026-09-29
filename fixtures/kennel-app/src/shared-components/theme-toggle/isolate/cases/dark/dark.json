@@ -1,0 +1,11 @@
+{
+  "_name": "Dark (brand-dark) — moon showing, 1280",
+  "_tier": "pure-client",
+  "_theme": "brand-dark",
+  "_viewport": 1280,
+  "_signals": { "theme": "brand-dark" },
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/shared-components/theme-toggle/screenshots/theme-toggle@1280-brand-dark.png",
+    "tolerance": 0.005
+  }
+}

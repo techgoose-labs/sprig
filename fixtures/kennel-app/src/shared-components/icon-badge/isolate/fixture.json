@@ -1,0 +1,11 @@
+{
+  "category": "shared-components",
+  "folder": "icon-badge",
+  "controls": {
+    "icon": { "type": "select", "options": ["calendar-clock", "house", "footprints", "log-out", "alarm-clock"], "value": "calendar-clock" },
+    "tone": { "type": "select", "options": ["info", "success", "accent", "outline", "error"], "value": "info" },
+    "soft": { "type": "boolean", "value": false },
+    "size": { "type": "select", "options": ["md", "sm"], "value": "md" },
+    "label": { "type": "text", "value": "Booked" }
+  }
+}

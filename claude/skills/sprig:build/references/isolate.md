@@ -149,6 +149,8 @@ both measured fleet-killers:
                    "GET /api/todos": { "status": 200, "body": [] } } }
    { "_tier": "optimistic-write" }          // on every row of the case
    { "_motion": { "spec": "motion.json" } } // → row "motion: <unit>/<case>"
+   { "_motion": { "spec": "motion.json", "trigger": "hover" } } // hover|focus|click|load
+   { "_reference": { "image": "r.png", "background": "#ffffff" } } // explicit stage colour
    ```
 
    - `reference:` screenshots the rendered unit at the case's viewport/theme —
@@ -159,7 +161,15 @@ both measured fleet-killers:
      `measured 0.034 > tolerance 0.010` + a diff PNG path (fail). Default
      tolerance `0.01` (measured, REQ-051/059: noise ≤ 0.002, a 1px padding drift
      ≥ 0.089, a one-step token swap 0.093; a radius step at 0.004 slips under —
-     lower the tolerance for such a case); above it needs a `reason`. Fix the
+     lower the tolerance for such a case); above it needs a `reason`. The
+     **stage behind the unit** is the colour it sits on in the app (REQ-063):
+     the case's `_reference.background`, else the fixture's `background`, else
+     the app's page background under the case's `_theme` — the `body` (else
+     `html`) background its shell declares (`src/shell/styles.css`,
+     `bootstrap/styles.css`, the shell head), else the design system's
+     `--color-base-100`, else white — never the workbench's own paper. The row
+     names it: `stage background rgb(243, 234, 219) — the app's page background
+     (src/shell/styles.css body) under theme brand`. Fix the
      build until the number is under the tolerance — do not raise the tolerance
      to pass, and never judge fidelity by eye when a reference exists. A row
      that starts `size mismatch: reference W×H vs render w×h` is a wrong still
@@ -171,14 +181,21 @@ both measured fleet-killers:
      answers (`delay:<ms>`), and rolls back on `"fail"`. Rows record
      `network <key> → <action>: fired N×`; `fired 0×` means the fake never
      matched (wrong path or method). Command names map through
-     `spec/contract/openapi.json` at the git root.
+     `spec/contract/openapi.json` at the `--root` app, else at the git root;
+     the row says which (`network <key> (the app root's contract) → …`).
    - `motion:` compares `document.getAnimations()` of the rendered case (paused
      at start, after hydration) with the captured spec — duration, easing,
-     keyframe count — and fails naming each difference.
+     keyframe count — and fails naming each difference. An animation that only
+     starts on interaction needs `"trigger": "hover" | "focus" | "click"`
+     (default `"load"`: nothing performed): the runner performs it on the
+     unit's root before reading the animations, and the row says
+     `after trigger hover`. An unknown trigger is a discovery error.
 
    `_reference` / `_motion.spec` paths resolve from the case folder, then from
-   the git root (the breakdown's `spec/ui/breakdown/…/screenshots/`); a missing
-   file is a discovery error naming both paths.
+   the app root (the `--root` app — the breakdown's
+   `spec/ui/breakdown/…/screenshots/`), then from the git root (REQ-063); the
+   row says which (`resolved from the app root`); a missing file is a discovery
+   error naming every path tried.
 
    Captures, diff PNGs and the generated specs go to the run's **evidence dir**,
    never the project: `--evidence <dir>`, else

@@ -42,6 +42,14 @@ The orchestrator passes — absolute, already resolved:
   copy it in verbatim.
 - **UNIT LIST** for this build (from `index.md` build order).
 - On a refresh pass: the paths of the units built so far.
+- **References:** a `<skill>/references/<file>` path means the `references/`
+  dir next to the SKILL.md that spawned you (installed or repo copy), never a
+  hardcoded home path — sibling skill dirs (`sprig:build/`, `sprig:breakdown/`,
+  `interfaces/`) sit beside that skill's dir, and your brief carries the
+  absolute path. `sprig:breakdown/references/`: `capture-recipes.md`,
+  `isolate-format.md`. `sprig:build/references/`: `INDEX.md`,
+  `component-model.md`, `isolate.md`, `routing.md`, `serving.md`,
+  `templates.md`, `wiring.md`.
 
 ## Procedure
 
@@ -62,7 +70,7 @@ The orchestrator passes — absolute, already resolved:
    - **Channels** — the cross-island state map, one line per channel:
      `<name>: sets by <origin> → edits by <…> → reads by <…> · shell|page scope`.
      Islands share state ONLY via the `sets:`/`reads:`/`edits:` template verbs
-     (`~/.claude/skills/sprig:build/references/wiring.md`) — never a
+     (`sprig:build/references/wiring.md`) — never a
      `state/*.ts` signal module, a shared store, a nested live parent island, or
      `ctx.output()` across an island boundary (outputs are template-internal).
      If `index.md`'s seams prescribe a store module or an exported signal,
@@ -113,10 +121,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

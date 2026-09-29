@@ -1,0 +1,31 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the card names
+   its own face and ink rather than relying on the app body. */
+.overdue-pickups-card {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+/* The stills show a solid 1px rule in the text colour between rows (the mock's
+   divide-base-content/10 colour rule never matched, so the border fell back to
+   currentColor) — pinned here rather than relying on the utility's default. */
+.overdue-pickups-list > .overdue-pickups-row:not(:last-child) {
+  border-bottom: var(--border) solid currentColor;
+}
+
+.overdue-pickups-owner {
+  color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+.overdue-pickups-empty {
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}
+
+/* The mock's global heading rule (display face, 700, tight leading) sits
+   unlayered above Tailwind's text-2xl line-height; the isolate stage has no
+   app heading rule, so the title carries it. */
+.overdue-pickups-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}

@@ -1,0 +1,4 @@
+{
+  "_name": "Same spec, no trigger — nothing animates on load",
+  "_motion": { "spec": "spec/motion/lift-card.json" }
+}

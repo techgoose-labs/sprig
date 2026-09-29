@@ -290,3 +290,83 @@ export function c() { n.set(1); }
 `);
   assertEquals(r.exempt.noWrite, 1);
 });
+
+Deno.test("REQ-065: an awaited local helper that itself awaits a server write IS an awaited server write", () => {
+  // fixtures/kennel-app close-day-control: `await closeDay(id)` wraps the POST
+  const src = `import { signal } from "@techgoose-labs/sprig";
+async function closeDay(id: string): Promise<Partial<Day>> {
+  const res = await fetch(\`/api/days/\${id}/close\`, { method: "POST" });
+  return res.json();
+}
+async function loadDay(id: string) {
+  return (await fetch(\`/api/days/\${id}\`)).json();
+}
+export default class CloseDay {
+  day = signal({});
+  pending = signal(false);
+  async close() {
+    const reply = await closeDay("today");
+    this.day.set(reply);
+  }
+  async spin() {
+    this.pending.set(true);
+    const reply = await this.post2("today");
+    this.day.set(reply);
+  }
+  async post2(id: string) {
+    return await closeDay(id);
+  }
+  async refresh() {
+    this.day.set(await loadDay("today"));
+  }
+}
+`;
+  const r = lint(src);
+  assertEquals(
+    r.findings.map((f) => `${f.line} ${f.message.split(" — ")[0]}`),
+    [
+      "13 server write awaited before the UI changed",
+      // one level only: post2 → closeDay is two helpers deep from spin
+    ],
+  );
+  assertMatch(r.findings[0].message, /\(in close,/);
+  // the helper's reason on the await still suppresses
+  const wait = lint(
+    src.replace(
+      `    const reply = await closeDay("today");`,
+      `    // sprig-wait: the server may refuse the close\n    const reply = await closeDay("today");`,
+    ),
+  );
+  assertEquals(wait.findings, []);
+  assertEquals(wait.suppressed.map((s) => s.reason), [
+    "the server may refuse the close",
+  ]);
+});
+
+Deno.test("REQ-065: control — an awaited local helper that only reads, or writes no server, is not a server write", () => {
+  const r = lint(`const items = signal([]);
+async function load() { return (await fetch("/api/items")).json(); }
+async function pause(ms: number) { await new Promise((r) => setTimeout(r, ms)); }
+export async function refresh() { items.set(await load()); }
+export async function later() { await pause(10); items.set([]); }
+`);
+  assertEquals(r.findings, []);
+});
+
+Deno.test("REQ-065: a helper whose write already carries a reasoned sprig-wait is a declared wait — its callers inherit it", () => {
+  // app/src workbench: runAll awaits runCase, whose POST is marked sprig-wait
+  const r = lint(`const running = signal(false);
+async function runCase(c: string) {
+  // sprig-wait: a test run is the server's verdict
+  const res = await fetch("/api/run", { method: "POST" });
+  return res.ok;
+}
+export async function runAll() {
+  running.set(true);
+  await runCase("a");
+  running.set(false);
+}
+`);
+  assertEquals(r.findings, []);
+  assertEquals(r.exempt.noWrite, 1, "runCase itself writes no signal");
+});

@@ -1,0 +1,16 @@
+{
+  "_name": "Default (booked) @1024",
+  "_tier": "static",
+  "_viewport": 1024,
+  "_theme": "brand",
+  "id": "d01",
+  "name": "Biscuit",
+  "kennel": "K01",
+  "breed": "Golden Retriever",
+  "ownerName": "Priya Raman",
+  "status": "booked",
+  "arrival": "07:00",
+  "overdue": false,
+  "overdueBy": "",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/dog-card@1024.png"
+}

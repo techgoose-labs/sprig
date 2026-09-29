@@ -352,6 +352,23 @@ export function planRun(
         ...(c.theme ? { theme: c.theme } : {}),
         ...(c.network ? { network: c.network } : {}),
         ...(c.reference ? { reference: c.reference } : {}),
+        // REQ-063: an explicit stage colour — the case's, else the fixture's;
+        // neither → the harness resolves the app's page colour for the theme.
+        ...(c.reference?.background
+          ? {
+            stageBackground: {
+              value: c.reference.background,
+              from: "the case's _reference.background",
+            },
+          }
+          : c.reference && e.background
+          ? {
+            stageBackground: {
+              value: e.background,
+              from: "the fixture's background",
+            },
+          }
+          : {}),
         ...(c.motion ? { motion: c.motion } : {}),
         files,
       });
@@ -484,7 +501,16 @@ async function settleChecks(
           row.ok = m.ok;
           row.evidence = actualPath;
           const notes = row.detail;
-          row.detail = `${m.summary}; spec ${c.motion.spec}` +
+          // REQ-063: the row names the trigger it performed; a missing
+          // animation after a bare load points at the key that would start it.
+          const trigger = c.motion.trigger ?? "load";
+          const hint = !m.ok && trigger === "load" &&
+              m.differences.some((d) => d.includes(": missing"))
+            ? `\n(trigger load — an animation that starts on hover, focus or click needs "_motion": { "trigger": "hover" | "focus" | "click" })`
+            : "";
+          if (hint) m.differences.push(hint.slice(1));
+          row.detail =
+            `${m.summary} after trigger ${trigger}; spec ${c.motion.spec}` +
             (c.motion.via ? ` (resolved from the ${c.motion.via})` : "") +
             `; captured ${actualPath}` +
             (m.ok ? "" : "\n" + m.differences.join("\n")) +

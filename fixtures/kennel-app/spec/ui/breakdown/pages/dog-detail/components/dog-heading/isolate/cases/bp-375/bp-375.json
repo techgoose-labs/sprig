@@ -1,0 +1,9 @@
+{
+  "_name": "Biscuit, booked (375)",
+  "_tier": "pure-client",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading@375.png",
+  "name": "Biscuit",
+  "_signals": { "status": "booked", "overdue": false, "overdueBy": "" }
+}

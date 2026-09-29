@@ -56,24 +56,27 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
   `spec/ui/<app>-prototype/` folder (glob `spec/ui/*-prototype/`; a pre-contract
   single file `spec/ui/*-prototype.html`). If the user points at a different
   mock (any HTML/screenshot/PDF), use that. When a ratified contract exists at
-  the git root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input —
+  the app root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input —
   the data seam binds against it (bridge 2).
-- **Output** — always `<git-root>/spec/ui/breakdown/`, and nowhere else. Resolve
-  the git root **once** with `git rev-parse --show-toplevel` and build the path
-  from it (`"$(git rev-parse --show-toplevel)"/spec/ui/breakdown`); create
-  `spec/ui/` if absent. Derive the path automatically; never ask. Every artifact
+- **Output** — always `<app-root>/spec/ui/breakdown/`, and nowhere else. The
+  app root is the directory holding the app's `deno.json` and the `spec/` the
+  prototype sits in (a fixture or monorepo package keeps its own;
+  `--root <app>` names it to `sprig spec-check` and `sprig isolate test`); the
+  git root (`git rev-parse --show-toplevel`) is the fallback when no such dir
+  exists (the composed `ui/` + `server/` layout keeps `spec/` there). Resolve
+  it **once** and build the path from it; create `spec/ui/` if absent. Derive the path automatically; never ask. Every artifact
   this skill and its agents produce — the `.md` specs, `isolate/` folders, and
   **every screenshot / filmstrip PNG** — lives under that one directory. The
   directory shape is the `ui-breakdown` contract
   (`../interfaces/ui-breakdown.md`).
 - **NEVER search the filesystem for a breakdown artifact.** You always know
-  where it is: under `<git-root>/spec/ui/breakdown/`. Do not run `find /`,
+  where it is: under `<app-root>/spec/ui/breakdown/`. Do not run `find /`,
   `find ~`, or any whole-disk / home-dir scan to locate a screenshot or output
   file — that pins every CPU core for minutes. If a file you expect isn't at its
-  known path, it wasn't written there; re-derive the path from the git root or
+  known path, it wasn't written there; re-derive the path from the app root or
   re-run the step that writes it. Scope any legitimate lookup to
-  `<git-root>/spec/ui/breakdown` (e.g.
-  `find "$(git rev-parse --show-toplevel)/spec/ui/breakdown" -name '*.png'`).
+  `<app-root>/spec/ui/breakdown` (e.g.
+  `find "<app-root>/spec/ui/breakdown" -name '*.png'`).
 
 ## The flow
 
@@ -147,8 +150,10 @@ breakdown in a fresh session.
   and summarize its return between hops.
 - **Orchestrator conduct:** after spawning agents, END YOUR TURN — task
   notifications re-invoke you; never `sleep`-poll between passes. Never search
-  the filesystem yourself (skill references live at exact
-  `~/.claude/skills/<skill>/references/` paths).
+  the filesystem yourself (skill references live at exact paths: pass each
+  specialist the absolute path of the `references/` dir next to this SKILL.md
+  (installed or repo copy) — and its sibling `sprig:build/references/` — in
+  its brief).
 - **Brief completely — a specialist that searches was under-briefed.** Every
   path you pass is absolute and copied verbatim from a stage return (the
   analyst's inventory, capture's file lists) — never retyped, never "glob for
@@ -159,7 +164,7 @@ breakdown in a fresh session.
   (snapshot → mutate → call → roll back). Performance is the build's job; here
   only flag expensive data _shapes_.
 - Page-local by default; promote to `shared-components/` only with evidence.
-- **Bind, don't re-derive** (bridge 2): with a ratified contract at the git
+- **Bind, don't re-derive** (bridge 2): with a ratified contract at the app
   root, every data-need binds to a real endpoint + DTO in
   `spec/contract/binding.md`; a mismatch is a **drift error** surfaced in
   `index.md`, never papered over with an invented schema.

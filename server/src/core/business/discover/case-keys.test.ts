@@ -9,6 +9,7 @@ import {
   parseCaseValues,
   pathPattern,
   resolveCaseFile,
+  TIERS,
 } from "./mod.ts";
 
 const CTX = { caseDir: "/p/src/components/btn/isolate/cases/big" };
@@ -185,6 +186,44 @@ Deno.test("REQ-043: _network — command names map through the contract's operat
   assertStringIncludes(miss.errors[0], "createTodo"); // lists what exists
 });
 
+Deno.test("REQ-068: _network — a key may be an operation's x-sprig-command (dotted), as the two-seam contract carries it; unknown names list both forms", () => {
+  const operations = operationsFromOpenApi({
+    servers: [{ url: "/api" }],
+    paths: {
+      "/dog/check-in": {
+        post: { operationId: "dogCheckIn", "x-sprig-command": "dog.checkIn" },
+      },
+      "/day/close": {
+        post: { operationId: "dayClose", "x-sprig-command": "day.close" },
+      },
+      "/dog": { get: { operationId: "dogList" } },
+    },
+  });
+  const v = parseCaseValues({
+    _network: {
+      "dog.checkIn": "fail",
+      dogCheckIn: "delay:10",
+      "day.close": "delay:50",
+    },
+  }, { ...CTX, operations });
+  assertEquals(v.errors, [], only(v.errors));
+  assertEquals(v.network?.map((r) => [r.key, r.method, r.path]), [
+    ["dog.checkIn", "POST", "/api/dog/check-in"],
+    ["dogCheckIn", "POST", "/api/dog/check-in"],
+    ["day.close", "POST", "/api/day/close"],
+  ]);
+  const miss = parseCaseValues({ _network: { "dog.fetch": "fail" } }, {
+    ...CTX,
+    operations,
+  });
+  assertEquals(miss.errors.length, 1, only(miss.errors));
+  assertStringIncludes(miss.errors[0], `"dog.fetch"`);
+  assertStringIncludes(miss.errors[0], "operationId");
+  assertStringIncludes(miss.errors[0], "x-sprig-command");
+  assertStringIncludes(miss.errors[0], "dogCheckIn"); // lists operationIds
+  assertStringIncludes(miss.errors[0], "day.close"); // lists x-sprig-commands
+});
+
 Deno.test("REQ-043: _network — bad keys and bad actions are errors naming the key", () => {
   const v = parseCaseValues({
     _network: {
@@ -231,7 +270,10 @@ Deno.test("REQ-044: _tier — one of static | pure-client | optimistic-write | r
 Deno.test("REQ-045: _motion — { spec } resolves relative to the case dir; junk is an error", () => {
   const v = parseCaseValues({ _motion: { spec: "motion.json" } }, CTX);
   assertEquals(v.errors, []);
-  assertEquals(v.motion, { spec: `${CTX.caseDir}/motion.json` });
+  assertEquals(v.motion, {
+    spec: `${CTX.caseDir}/motion.json`,
+    trigger: "load",
+  });
   for (const bad of ["motion.json", {}, { spec: 3 }]) {
     const b = parseCaseValues({ _motion: bad }, CTX);
     assertEquals(b.motion, undefined);
@@ -239,32 +281,112 @@ Deno.test("REQ-045: _motion — { spec } resolves relative to the case dir; junk
   }
 });
 
-Deno.test("REQ-042 AMENDMENT: resolveCaseFile — the case dir first, then the git root, else both paths tried", async () => {
+Deno.test("REQ-042 AMENDMENT / REQ-063: resolveCaseFile — the case dir first, then the app root, then the git root, else every path tried", async () => {
   const have = (...ps: string[]) => (p: string) =>
     Promise.resolve(ps.includes(p));
-  const caseDir = "/r/ui/src/x/isolate/cases/big";
+  const caseDir = "/r/apps/web/src/x/isolate/cases/big";
+  const roots = { app: "/r/apps/web", git: "/r" };
   assertEquals(
     await resolveCaseFile(
       caseDir,
       "ref.png",
-      "/r",
-      have(`${caseDir}/ref.png`, "/r/ref.png"),
+      roots,
+      have(`${caseDir}/ref.png`, "/r/apps/web/ref.png", "/r/ref.png"),
     ),
     { path: `${caseDir}/ref.png`, via: "case dir" },
+  );
+  // REQ-063: an app below the git root — its own spec/ wins over the repo's
+  const shot = "spec/ui/breakdown/x/screenshots/a@375.png";
+  assertEquals(
+    await resolveCaseFile(
+      caseDir,
+      shot,
+      roots,
+      have(`/r/apps/web/${shot}`, `/r/${shot}`),
+    ),
+    { path: `/r/apps/web/${shot}`, via: "app root" },
+  );
+  assertEquals(
+    await resolveCaseFile(caseDir, shot, roots, have(`/r/${shot}`)),
+    { path: `/r/${shot}`, via: "git root" },
+  );
+  assertEquals(await resolveCaseFile(caseDir, "nope.png", roots, have()), {
+    tried: [`${caseDir}/nope.png`, "/r/apps/web/nope.png", "/r/nope.png"],
+  });
+  // app at the git root: one path, named the app root
+  assertEquals(
+    await resolveCaseFile(
+      caseDir,
+      shot,
+      { app: "/r", git: "/r" },
+      have(`/r/${shot}`),
+    ),
+    { path: `/r/${shot}`, via: "app root" },
   );
   assertEquals(
     await resolveCaseFile(
       caseDir,
-      "spec/ui/breakdown/x/screenshots/a@375.png",
-      "/r",
-      have("/r/spec/ui/breakdown/x/screenshots/a@375.png"),
+      "nope.png",
+      { app: null, git: null },
+      have(),
     ),
-    { path: "/r/spec/ui/breakdown/x/screenshots/a@375.png", via: "git root" },
+    { tried: [`${caseDir}/nope.png`] },
   );
-  assertEquals(await resolveCaseFile(caseDir, "nope.png", "/r", have()), {
-    tried: [`${caseDir}/nope.png`, "/r/nope.png"],
-  });
-  assertEquals(await resolveCaseFile(caseDir, "nope.png", null, have()), {
-    tried: [`${caseDir}/nope.png`],
-  });
+});
+
+Deno.test("REQ-063: _motion.trigger — hover | focus | click | load (default load); anything else is an error naming it", () => {
+  assertEquals(
+    parseCaseValues({ _motion: { spec: "m.json" } }, CTX).motion?.trigger,
+    "load",
+  );
+  for (const t of ["hover", "focus", "click", "load"] as const) {
+    const v = parseCaseValues({ _motion: { spec: "m.json", trigger: t } }, CTX);
+    assertEquals(v.errors, []);
+    assertEquals(v.motion, { spec: `${CTX.caseDir}/m.json`, trigger: t });
+  }
+  for (const bad of ["press", "", 3, "Hover"]) {
+    const v = parseCaseValues(
+      { _motion: { spec: "m.json", trigger: bad } },
+      CTX,
+    );
+    assertEquals(v.motion, undefined);
+    assertEquals(v.errors.length, 1, only(v.errors));
+    assertStringIncludes(v.errors[0], `"_motion".trigger`);
+    assertStringIncludes(v.errors[0], "hover | focus | click | load");
+    assertStringIncludes(v.errors[0], JSON.stringify(bad));
+  }
+});
+
+Deno.test("REQ-063: _reference.background — an explicit stage colour for the capture; empty is an error", () => {
+  const v = parseCaseValues(
+    { _reference: { image: "r.png", background: "#ffffff" } },
+    CTX,
+  );
+  assertEquals(v.errors, []);
+  assertEquals(v.reference?.background, "#ffffff");
+  assertEquals(
+    parseCaseValues({ _reference: "r.png" }, CTX).reference?.background,
+    undefined,
+  );
+  for (const bad of ["", 7, "  "]) {
+    const b = parseCaseValues(
+      { _reference: { image: "r.png", background: bad } },
+      CTX,
+    );
+    assertEquals(b.reference, undefined);
+    assertStringIncludes(b.errors[0] ?? "", `"_reference".background`);
+  }
+});
+
+Deno.test("REQ-063 AMENDMENT: _tier accepts every tier spec-check knows — confirmed-write included, the lists are one", async () => {
+  const v = parseCaseValues({ _tier: "confirmed-write" }, CTX);
+  assertEquals(v.errors, [], only(v.errors));
+  assertEquals(v.tier, "confirmed-write");
+  const { TIERS: SPEC_CHECK_TIERS } = await import(
+    "../../../../../framework/.sprig/spec-check/types.ts"
+  );
+  assertEquals([...TIERS], [...SPEC_CHECK_TIERS]);
+  for (const t of SPEC_CHECK_TIERS) {
+    assertEquals(parseCaseValues({ _tier: t }, CTX).errors, [], t);
+  }
 });

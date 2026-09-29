@@ -38,10 +38,15 @@
 //   _viewport   px width | {width,height}  _theme      data-theme on <html>
 //   _reference  reference PNG (+tolerance) _network    page.route fakes
 //   _tier       interaction tier           _motion     captured getAnimations() spec
+//                                          (+ trigger: hover/focus/click/load)
 // The runner (../runner/mod.ts) applies _viewport/_theme/_network to every test of
 // the case and turns _reference/_motion into `reference: …` / `motion: …` rows.
 
 import { isNativeTag } from "../../../../../framework/.sprig/compiler/render.ts";
+import {
+  type Tier,
+  TIERS,
+} from "../../../../../framework/.sprig/spec-check/types.ts";
 
 /** Tags the renderer handles itself — never resolved to a component either. */
 const RESERVED_TAGS = [
@@ -100,14 +105,10 @@ export type MockSpec =
   | true
   | { stub?: boolean; props?: Record<string, unknown> };
 
-/** The interaction tier a case exercises (REQ-044) — recorded, consumed by spec-check. */
-export const TIERS = [
-  "static",
-  "pure-client",
-  "optimistic-write",
-  "realtime",
-] as const;
-export type Tier = typeof TIERS[number];
+/** The interaction tier a case exercises (REQ-044) — recorded, consumed by spec-check.
+ *  ONE list (REQ-063 AMENDMENT): spec-check's, re-exported, so a tier it accepts
+ *  (e.g. `confirmed-write`, REQ-064) is never refused here at discovery. */
+export { type Tier, TIERS };
 
 /** Default reference tolerance: the fraction of pixels allowed to differ (REQ-042).
  *  Measured (REQ-051/059): noise ≤ 0.002 (re-renders byte-identical; the mock's
@@ -124,14 +125,24 @@ export interface Viewport {
   height: number;
 }
 
-/** Where a case-relative file was found: beside the case, or from the git root. */
-export type ResolvedVia = "case dir" | "git root";
+/** Where a case-relative file was found: beside the case, from the app root
+ *  (`--root`), or from the git root above it (REQ-063). */
+export type ResolvedVia = "case dir" | "app root" | "git root";
+
+/** The roots a case path falls back to, in order (REQ-063): the app `--root`
+ *  names, then the git root above it. Either may be absent. */
+export interface CaseRoots {
+  app: string | null;
+  git: string | null;
+}
 
 export interface ReferenceSpec {
   /** Absolute path of the reference PNG. */
   image: string;
   tolerance: number;
   reason?: string;
+  /** REQ-063: an explicit stage colour behind the capture (`_reference.background`). */
+  background?: string;
   via?: ResolvedVia;
 }
 
@@ -149,16 +160,33 @@ export interface NetworkRule {
   /** Regex source matched against the request URL's pathname. */
   pattern: string;
   action: NetworkAction;
+  /** A command-name key: whose spec/contract/openapi.json mapped it (REQ-063). */
+  via?: "app root" | "git root";
 }
+
+/** What starts a `_motion` case's animations (REQ-063): performed on the unit's
+ *  root before the animations are read; `load` = nothing, just open the case. */
+const MOTION_TRIGGERS = ["hover", "focus", "click", "load"] as const;
+export type MotionTrigger = typeof MOTION_TRIGGERS[number];
 
 export interface MotionRef {
   /** Absolute path of the captured motion JSON. */
   spec: string;
   via?: ResolvedVia;
+  /** Absent = "load" (the parser always sets it). */
+  trigger?: MotionTrigger;
 }
 
-/** Contract operations by operationId → the method + path the typed client calls. */
-export type Operations = Map<string, { method: string; path: string }>;
+/** Contract operations by operationId → the method + path the typed client calls.
+ *  `via` (REQ-063): which root's spec/contract/openapi.json they came from. */
+export type Operations =
+  & Map<string, { method: string; path: string }>
+  & {
+    via?: "app root" | "git root";
+    /** REQ-068: each operation's `x-sprig-command` (the seam verb, e.g.
+     *  `dog.checkIn`) → the same method + path its operationId maps to. */
+    commands?: Map<string, { method: string; path: string }>;
+  };
 
 export interface CaseDef {
   name: string;
@@ -231,11 +259,6 @@ async function exists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function pascal(s: string): string {
-  return s.split(/[-_\s]+/).filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
 }
 
 async function* walkDirs(root: string): AsyncGenerator<string> {
@@ -333,23 +356,37 @@ function caseRelative(caseDir: string, p: string): string {
   return parts.join("/");
 }
 
-/** Resolve a case file path: relative to the case dir first, then to the git root
- *  (the breakdown's stills live under `<git root>/spec/ui/breakdown/…`, which a
- *  case copied into the build can't reach relatively). Absent both: every path tried. */
+/** Resolve a case file path: relative to the case dir first, then to the app root
+ *  (`--root`), then to the git root above it (REQ-063) — the breakdown's stills live
+ *  under `<app>/spec/ui/breakdown/…`, which a case copied into the build can't reach
+ *  relatively, and an app need not sit at the git root (a fixture, a monorepo
+ *  package). An app AT the git root is tried once, as the app root. Absent every
+ *  one: every path tried. */
 export async function resolveCaseFile(
   caseDir: string,
   given: string,
-  root: string | null,
+  roots: CaseRoots,
   has: (p: string) => Promise<boolean> = exists,
 ): Promise<{ path: string; via: ResolvedVia } | { tried: string[] }> {
-  const tried = [caseRelative(caseDir, given)];
-  if (!given.startsWith("/") && root) tried.push(caseRelative(root, given));
-  for (const [i, p] of tried.entries()) {
-    if (await has(p)) {
-      return { path: p, via: i === 0 ? "case dir" : "git root" };
+  const candidates: [string, ResolvedVia][] = [
+    [caseRelative(caseDir, given), "case dir"],
+  ];
+  if (!given.startsWith("/")) {
+    for (
+      const [root, via] of [[roots.app, "app root"], [
+        roots.git,
+        "git root",
+      ]] as const
+    ) {
+      if (!root) continue;
+      const p = caseRelative(root, given);
+      if (!candidates.some(([q]) => q === p)) candidates.push([p, via]);
     }
   }
-  return { tried };
+  for (const [p, via] of candidates) {
+    if (await has(p)) return { path: p, via };
+  }
+  return { tried: candidates.map(([p]) => p) };
 }
 
 /** A `_network` path → a regex source over the URL pathname: `{id}` and `:id` match
@@ -369,7 +406,7 @@ export function pathPattern(path: string): string {
 /** Read a contract's operationIds → { method, path } (path prefixed by the first
  *  server URL's pathname, the base the typed client calls). */
 export function operationsFromOpenApi(doc: unknown): Operations {
-  const ops: Operations = new Map();
+  const ops = new Map() as Operations;
   if (!isObj(doc)) return ops;
   let base = "";
   const servers = doc.servers;
@@ -385,11 +422,11 @@ export function operationsFromOpenApi(doc: unknown): Operations {
     if (!isObj(item)) continue;
     for (const [method, op] of Object.entries(item)) {
       if (!METHODS.includes(method.toUpperCase()) || !isObj(op)) continue;
-      if (typeof op.operationId === "string") {
-        ops.set(op.operationId, {
-          method: method.toUpperCase(),
-          path: base + path,
-        });
+      const target = { method: method.toUpperCase(), path: base + path };
+      if (typeof op.operationId === "string") ops.set(op.operationId, target);
+      const cmd = op["x-sprig-command"];
+      if (typeof cmd === "string" && cmd) {
+        (ops.commands ??= new Map()).set(cmd, target);
       }
     }
   }
@@ -500,12 +537,24 @@ export function parseCaseValues(
         err(
           `"_reference".tolerance ${tol} is above the default ${DEFAULT_TOLERANCE} — add a "reason" saying why`,
         );
+      } else if (
+        r.background !== undefined &&
+        !(typeof r.background === "string" && r.background.trim())
+      ) {
+        err(
+          `"_reference".background must be a CSS colour (the stage behind the capture) — got ${
+            JSON.stringify(r.background)
+          }`,
+        );
       } else {
         out.reference = {
           image: caseRelative(ctx.caseDir, r.image),
           tolerance: tol,
           ...(typeof r.reason === "string" && r.reason.trim()
             ? { reason: r.reason }
+            : {}),
+          ...(typeof r.background === "string"
+            ? { background: r.background.trim() }
             : {}),
         };
       }
@@ -534,25 +583,31 @@ export function parseCaseValues(
           } else if (!m[2].startsWith("/")) {
             err(`"_network" key "${key}": the path must start with "/"`);
           } else [method, path] = [m[1].toUpperCase(), m[2]];
-        } else if (/^[A-Za-z_$][\w$]*$/.test(key)) {
+        } else if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(key)) {
+          // REQ-068: an operationId (`dogCheckIn`) or an operation's
+          // x-sprig-command (`dog.checkIn`, the two-seam prototype's verb)
           if (!ctx.operations) {
             err(
-              `"_network" key "${key}" is a command name, but there is no spec/contract/openapi.json at the git root to map it — use "METHOD /path"`,
+              `"_network" key "${key}" is a command name, but there is no spec/contract/openapi.json at the app root or the git root to map it — use "METHOD /path"`,
             );
           } else {
-            const op = ctx.operations.get(key);
+            const op = ctx.operations.get(key) ??
+              ctx.operations.commands?.get(key);
             if (op) [method, path] = [op.method, op.path];
             else {
+              const cmds = [...(ctx.operations.commands?.keys() ?? [])];
               err(
-                `"_network" key "${key}" is not an operationId in spec/contract/openapi.json — known: ${
-                  [...ctx.operations.keys()].slice(0, 20).join(", ")
+                `"_network" key "${key}" is neither an operationId nor an x-sprig-command in spec/contract/openapi.json — operationIds: ${
+                  [...ctx.operations.keys()].slice(0, 20).join(", ") || "(none)"
+                }; x-sprig-command: ${
+                  cmds.slice(0, 20).join(", ") || "(none)"
                 }`,
               );
             }
           }
         } else {
           err(
-            `"_network" key "${key}" must be "METHOD /path" or a contract command name`,
+            `"_network" key "${key}" must be "METHOD /path", an operationId or an x-sprig-command from the contract`,
           );
         }
         const action = parseNetworkAction(raw);
@@ -562,7 +617,15 @@ export function parseCaseValues(
         }
         if (!method || !path) bad = true;
         if (method && path && typeof action !== "string") {
-          rules.push({ key, method, path, pattern: pathPattern(path), action });
+          const via = !m && ctx.operations?.via;
+          rules.push({
+            key,
+            method,
+            path,
+            pattern: pathPattern(path),
+            action,
+            ...(via ? { via } : {}),
+          });
         }
       }
       if (!bad) out.network = rules;
@@ -574,14 +637,26 @@ export function parseCaseValues(
           }`,
         );}
     } else if (k === "_motion") {
-      if (isObj(v) && typeof v.spec === "string" && v.spec) {
-        out.motion = { spec: caseRelative(ctx.caseDir, v.spec) };
-      } else {
+      const trigger = isObj(v) && v.trigger !== undefined ? v.trigger : "load";
+      if (!(isObj(v) && typeof v.spec === "string" && v.spec)) {
         err(
-          `"_motion" must be { "spec": "<path to the captured motion JSON>" } — got ${
+          `"_motion" must be { "spec": "<path to the captured motion JSON>", "trigger"?: "hover" | "focus" | "click" | "load" } — got ${
             JSON.stringify(v)
           }`,
         );
+      } else if (!(MOTION_TRIGGERS as readonly unknown[]).includes(trigger)) {
+        err(
+          `"_motion".trigger must be one of ${
+            MOTION_TRIGGERS.join(" | ")
+          } (what starts the animation, performed on the unit's root; default load) — got ${
+            JSON.stringify(trigger)
+          }`,
+        );
+      } else {
+        out.motion = {
+          spec: caseRelative(ctx.caseDir, v.spec),
+          trigger: trigger as MotionTrigger,
+        };
       }
     } else {
       err(`unknown case key "${k}" — known keys: ${KNOWN_KEYS.join(", ")}`);
@@ -622,54 +697,6 @@ export function scanExports(
   return { names: [...names], hasDefault };
 }
 
-async function findComponentFile(
-  dir: string,
-  exportName: string,
-  problems: Problem[],
-): Promise<string> {
-  const tsx: string[] = [];
-  for await (const e of Deno.readDir(dir)) {
-    if (e.isFile && /\.tsx?$/.test(e.name)) tsx.push(e.name);
-  }
-  const exact = tsx.find((n) => n.replace(/\.tsx?$/, "") === exportName);
-  const ci = tsx.find((n) =>
-    n.replace(/\.tsx?$/, "").toLowerCase() === exportName.toLowerCase()
-  );
-  const pick = exact ?? ci ?? tsx[0];
-  // No exact or case-insensitive match: we either fall back to an arbitrary
-  // .tsx (Vite then imports the wrong component) or find none. Surface it now.
-  if (!exact && !ci) {
-    problems.push({
-      kind: "component-file",
-      path: dir,
-      detail: pick
-        ? `no file matching export "${exportName}" — falling back to ${pick}`
-        : `no .tsx file for export "${exportName}"`,
-    });
-  } else {
-    // The file matched by name — now verify it actually EXPORTS the component.
-    // The preview resolves `default` then the named export; anything else used to
-    // render the wrong export silently. Catch it here, before the preview builds.
-    try {
-      const { names, hasDefault } = scanExports(
-        await Deno.readTextFile(`${dir}/${pick}`),
-      );
-      if (!hasDefault && !names.includes(exportName)) {
-        problems.push({
-          kind: "component-export",
-          path: `${dir}/${pick}`,
-          detail: `no default export and no export named "${exportName}" — ` +
-            `exports seen: ${names.join(", ") || "none"}`,
-        });
-      }
-    } catch { /* unreadable — the preview's own error card will surface it */ }
-  }
-  // When nothing resolves, return "" rather than a misleading "${dir}/" — callers
-  // can treat the empty string as "no component file" instead of building a bogus
-  // path that fails cryptically (e.g. an attempt to import a directory) under --force.
-  return pick ? `${dir}/${pick}` : "";
-}
-
 async function collectTests(testsDir: string): Promise<TestRef[]> {
   const out: TestRef[] = [];
   if (!(await exists(testsDir))) return out;
@@ -693,7 +720,7 @@ async function collectCases(
   folder: string,
   problems: Problem[],
   operations: Operations | null,
-  root: string | null,
+  roots: CaseRoots,
 ): Promise<CaseDef[]> {
   const casesDir = `${isolateDir}/cases`;
   const cases: CaseDef[] = [];
@@ -730,7 +757,7 @@ async function collectCases(
     const given = (x: unknown) =>
       typeof x === "string" ? x : isObj(x) ? String(x.image ?? x.spec) : "";
     if (v.reference) {
-      const r = await resolveCaseFile(caseDir, given(raw._reference), root);
+      const r = await resolveCaseFile(caseDir, given(raw._reference), roots);
       if ("tried" in r) {
         problems.push({
           kind: "case-key",
@@ -743,7 +770,7 @@ async function collectCases(
       } else v.reference = { ...v.reference, image: r.path, via: r.via };
     }
     if (v.motion) {
-      const r = await resolveCaseFile(caseDir, given(raw._motion), root);
+      const r = await resolveCaseFile(caseDir, given(raw._motion), roots);
       const bad = "tried" in r
         ? `not found — tried ${r.tried.join(" and ")}`
         : await motionSpecProblem(r.path);
@@ -754,7 +781,7 @@ async function collectCases(
           detail: `"_motion" spec ${bad} (in ${jsonPath})`,
         });
         v.motion = undefined;
-      } else v.motion = { spec: r.path, via: r.via };
+      } else v.motion = { ...v.motion, spec: r.path, via: r.via };
     }
     const props = { ...v.props };
     const signals = { ...(v.signals ?? {}) };
@@ -825,22 +852,36 @@ async function gitRoot(dir: string): Promise<string | null> {
   }
 }
 
-/** The contract's operations from `<git root>/spec/contract/openapi.json`, or null
- *  when there is no such file (then `_network` accepts only "METHOD /path" keys). */
-async function loadOperations(
-  projectRoot: string,
-  problems: Problem[] = [],
-): Promise<Operations | null> {
-  const root = (await gitRoot(projectRoot)) ?? projectRoot;
-  return await readOperations(root, problems);
-}
-
+/** The contract's operations from `<app root>/spec/contract/openapi.json`, else
+ *  `<git root>/spec/contract/openapi.json` (REQ-063), tagged with the root they
+ *  came from; null when neither exists (then `_network` accepts only
+ *  "METHOD /path" keys). */
 async function readOperations(
-  root: string,
+  roots: CaseRoots,
   problems: Problem[],
 ): Promise<Operations | null> {
+  for (
+    const [root, via] of [[roots.app, "app root"], [
+      roots.git,
+      "git root",
+    ]] as const
+  ) {
+    if (!root) continue;
+    const ops = await readContract(root, problems);
+    if (ops === undefined) continue;
+    if (ops) ops.via = via;
+    return ops;
+  }
+  return null;
+}
+
+/** undefined = no contract file there; null = one that can't be read (a problem). */
+async function readContract(
+  root: string,
+  problems: Problem[],
+): Promise<Operations | null | undefined> {
   const file = `${root}/spec/contract/openapi.json`;
-  if (!(await exists(file))) return null;
+  if (!(await exists(file))) return undefined;
   try {
     return operationsFromOpenApi(JSON.parse(await Deno.readTextFile(file)));
   } catch (e) {
@@ -864,8 +905,13 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
   }
   const entries: ComponentEntry[] = [];
   const problems: Problem[] = [];
-  const repoRoot = await gitRoot(projectRoot);
-  const operations = await readOperations(repoRoot ?? projectRoot, problems);
+  // REQ-063: case paths and contract command names resolve against the app
+  // `--root` names first, then the git root above it.
+  const caseRoots: CaseRoots = {
+    app: projectRoot,
+    git: await gitRoot(projectRoot),
+  };
+  const operations = await readOperations(caseRoots, problems);
 
   for (const { dir: root, target } of roots) {
     const prefix = target === "page" ? "pages" : "components";
@@ -956,7 +1002,7 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
         folder,
         problems,
         operations,
-        repoRoot,
+        caseRoots,
       );
 
       entries.push({

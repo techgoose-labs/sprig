@@ -106,14 +106,16 @@ banner show it), never ignored.
 | `_reference` | the captured still the render is pixel-compared against               |
 | `_network`   | fakes for the case's requests (`fail` / `delay:<ms>` / a response)    |
 | `_tier`      | `static` \| `pure-client` \| `optimistic-write` \| `realtime`         |
-| `_motion`    | `{ "spec": "<captured motion JSON>" }` — animations compared to it    |
+| `_motion`    | `{ "spec": "<captured motion JSON>", "trigger"? }` — animations compared to it |
 
 Paths (`_reference`, `_motion.spec`) resolve **relative to the case folder
-first, then relative to the git root**; the file must exist at discovery — a
-missing one is an error naming both paths tried, not a skipped check, and the
-report row says which resolution was used. **Write git-root-relative paths** to
-the breakdown's own captures — the `isolate/` folder is copied into the built
-component under `ui/src`, where a case-relative path can't reach them:
+first, then relative to the app root (the `--root` app), then relative to the
+git root**; the file must exist at discovery — a missing one is an error naming
+every path tried, not a skipped check, and the report row says which resolution
+was used. **Write app-root-relative paths (the `--root` app), falling back to
+the git root** to the breakdown's own captures — the `isolate/` folder is copied
+into the built component under `ui/src`, where a case-relative path can't reach
+them:
 `spec/ui/breakdown/<unit>/screenshots/<name>@<width>[-<theme>].png` for stills,
 `spec/ui/breakdown/<unit>/screenshots/motion.json` for motion.
 
@@ -158,7 +160,9 @@ manual width presets — the runner is authoritative.
 
 Every test of the case sees `<html data-theme="dark">` from the first paint (set
 before any page script runs, and re-asserted if the app's markup overwrites it).
-The workbench stage shows the app's default theme; the runner is authoritative.
+The theme also picks the **stage colour** behind a `_reference` capture: the
+app's page background resolved under that theme (see `_reference`). The
+workbench stage shows the app's default theme; the runner is authoritative.
 
 ### `_reference` — faithful to the mock, measured
 
@@ -171,7 +175,21 @@ The workbench stage shows the app's default theme; the runner is authoritative.
     "reason": "the mock's avatar is a photo; the build's is a monogram"
   }
 }
+{ "_reference": { "image": "spec/ui/breakdown/card/screenshots/card@375.png", "background": "#ffffff" } }
 ```
+
+**The stage behind the unit** (REQ-063) is the colour the unit sits on in the
+app — what shows through its transparent pixels in the still: the case's
+`_reference.background` if given, else `fixture.json`'s `background`, else the
+**app's page background for the case's `_theme`** — the `body` (else `html`)
+`background` the app shell declares (`src/shell/styles.css`,
+`bootstrap/styles.css`, the shell head's `<style>`), resolved in the browser
+under the theme — else the design system's `--color-base-100`, else white. Never
+the workbench's own paper. The row names it:
+`stage background rgb(243, 234, 219) — the app's page background (src/shell/styles.css body) under theme brand`.
+Set `background` only when the still was shot on something other than the page
+(a card inside a coloured panel); an explicit colour that does not resolve fails
+the row.
 
 `sprig isolate test` renders the case at its `_viewport`/`_theme` and **device
 scale 1** (pinned, whatever a project config says), loads the fonts the **app's
@@ -283,8 +301,8 @@ Installed with Playwright `page.route` before each of the case's tests, so a
 story can prove a rollback on a failed command and a no-wait on a delayed one.
 Keys are `"METHOD /path"` (`{id}`, `:id` match one segment, `*` anything;
 matched against the request's pathname) or a **command name** — an `operationId`
-from `spec/contract/openapi.json` at the git root (its first server URL's path
-is the prefix). With no contract, a command-name key is an error naming it.
+from `spec/contract/openapi.json` at the `--root` app, else at the git root —
+the row says which (its first server URL's path is the prefix). With no contract, a command-name key is an error naming it.
 Values: `"fail"` (the request errors), `"delay:<ms>"` (held, then sent on), or
 `{ "status": n, "body": any }` (answered; an object body is JSON). Each test row
 records `network <key> → <action>: fired N×`, so a fake that never matched
@@ -304,6 +322,7 @@ interaction-tier map: `static`, `pure-client`, `optimistic-write`, `realtime`.
 
 ```jsonc
 { "_motion": { "spec": "spec/ui/breakdown/toast/screenshots/motion.json" } }
+{ "_motion": { "spec": "spec/ui/breakdown/card/screenshots/motion.json", "trigger": "hover" } }
 ```
 
 `motion.json` is the unit's extracted `document.getAnimations()` output — an
@@ -328,8 +347,13 @@ start (so entrance animations are still listed), reads the same records after
 hydration, pairs them (selector + name, then name, then selector, then order)
 and adds a row `motion: <unit>/<case>` — failing with one line per difference
 (`pulse on span.dot: duration 1200ms ≠ spec 800ms`, a missing animation, an
-unexpected one). Animations that need an interaction to start are out of scope
-for `_motion`; assert those in a spec.
+unexpected one). An animation that only starts on interaction (a hover lift, a
+focus ring) declares `"trigger"`: `"hover" | "focus" | "click" | "load"`
+(default `"load"` — nothing performed). The runner performs it on the unit's
+root (`focus`: the root, else its first focusable descendant) before reading
+the animations, and the row says `after trigger hover` — capture the mock's
+`motion.json` in the same state. Any other trigger is a config error at
+discovery.
 
 **Case values are the real captured data.** The build session diffs the rendered
 case against your screenshot — so the case must reproduce exactly what the

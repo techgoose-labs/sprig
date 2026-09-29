@@ -1,0 +1,9 @@
+{
+  "_name": "Closed — Day closed badge (1280, brand-dark)",
+  "_tier": "confirmed-write",
+  "_viewport": 1280,
+  "_theme": "brand-dark",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control-closed@1280-brand-dark.png",
+  "dayId": "today",
+  "_signals": { "closed": true, "pending": false }
+}

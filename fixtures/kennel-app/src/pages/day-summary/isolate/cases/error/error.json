@@ -1,0 +1,14 @@
+{
+  "_name": "Couldn't load (1280)",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": {
+    "width": 1280,
+    "height": 1400
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/screenshots/day-summary-error@1280.png",
+  "today": null,
+  "overduePickups": [],
+  "state": "error",
+  "dayLabel": ""
+}

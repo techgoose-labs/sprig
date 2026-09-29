@@ -1,0 +1,14 @@
+{
+ "unit": "status-filter-tabs",
+ "source": "http://localhost:8742/#/board",
+ "clickTab": {
+  "trigger": "click [role=tab][data-filter=walking]",
+  "animations": [],
+  "tabComputed": {
+   "transitionProperty": "all",
+   "transitionDuration": "0s",
+   "animationName": "none"
+  },
+  "note": "No motion: .tab computes transition-duration 0s; the filter switch replaces #app innerHTML (the tablist node is recreated), so no transition could run even if declared."
+ }
+}

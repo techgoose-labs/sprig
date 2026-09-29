@@ -1,0 +1,7 @@
+{
+  "_name": "Open day — renders nothing",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_signals": { "closed": false }
+}

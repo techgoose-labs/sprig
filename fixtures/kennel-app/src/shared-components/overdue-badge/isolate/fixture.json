@@ -1,0 +1,15 @@
+{
+  "category": "shared-components",
+  "folder": "overdue-badge",
+  "background": "var(--color-base-100)",
+  "controls": {
+    "overdue": {
+      "type": "boolean",
+      "value": true
+    },
+    "overdueBy": {
+      "type": "text",
+      "value": "2h 15m"
+    }
+  }
+}

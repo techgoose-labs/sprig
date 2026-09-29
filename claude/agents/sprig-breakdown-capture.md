@@ -55,17 +55,17 @@ to confirm them.
 **Output location — you always know it; never search for it.** Your UNITS arrive
 with absolute target dirs — construct each file's **explicit, absolute path**
 under them and pass it to Playwright's `page.screenshot({ path })` / your Node
-writer so you know exactly where it landed (`git rev-parse --show-toplevel` only
-if a target dir was somehow not passed). **Do NOT run `find /`, `find ~`, or any
+writer so you know exactly where it landed (a target dir that was not passed
+is a `blocked: missing path` return, never a guess). **Do NOT run `find /`, `find ~`, or any
 whole-disk scan to locate a PNG you just wrote** — that pegs every CPU core for
 minutes. If a file isn't at the path you wrote it to, it wasn't written; fix the
 write, don't hunt the disk. Any legitimate lookup stays inside
-`<git-root>/spec/ui/breakdown`.
+`<app-root>/spec/ui/breakdown`.
 
 ## Procedure
 
-**Read `~/.claude/skills/sprig:breakdown/references/capture-recipes.md` (that
-exact absolute path) before writing any capture code** — it has verified,
+**Read `sprig:breakdown/references/capture-recipes.md` (at the absolute path
+your brief gives) before writing any capture code** — it has verified,
 copy-adaptable Node/Playwright recipes for everything below. Playwright:
 `require()` the isolate runner's bundled `playwright-core` directly (the runner
 dir is `$ISOLATE_RUNNER_HOME`, else `$XDG_CACHE_HOME/sprig/isolate-runner`, else
@@ -97,6 +97,13 @@ see what landed).
    `y`/`x` — `boundingBox()` — gets `position: relative; top/left` nudging it to
    the next whole pixel first). The still's pixel width is the width of the
    slot the unit sat in; the runner lays the unit out in exactly that width.
+   The still is the product alone: hide the annotate overlay and any host
+   chrome before a still (the two-seam host's fixed "✎ annotate" pill, a
+   harness menu — `display: none`), unstick sticky elements or crop below them
+   (`position: static` on a sticky header, or grow the viewport so it covers
+   nothing), and capture a grid unit at its natural row height
+   (`align-self: start` on it first — a stretched grid row is the row's height,
+   not the unit's).
 3. **Motion (per animated unit)** — extract, don't describe:
    `document.getAnimations()` + `effect.getKeyframes()` + `getComputedTiming()`
    for trigger/properties/keyframes/duration/delay/easing. `getAnimations()` is
@@ -106,8 +113,9 @@ see what landed).
    deterministically** (`pause(); currentTime = t`) at 0/20/40/60/80/100%,
    composite a `filmstrip.png`, and write the raw capture (per animation:
    keyframes + computed timing, as returned) to `screenshots/motion.json` — the
-   spec-writer's `_motion` case points at it. Cases cite these files
-   git-root-relative (`spec/ui/breakdown/<unit dir>/screenshots/…`), so write
+   spec-writer's `_motion` case points at it; a unit with no animations writes
+   `{"animations": []}` and no filmstrip. Cases cite these files
+   app-root-relative (`spec/ui/breakdown/<unit dir>/screenshots/…`), so write
    them only under the unit's own `screenshots/` and never rename them. One live (unscrubbed) instrumented run →
    dropped-frame %, max frame time, CLS into the unit's `screenshots/jank.md`.
 4. **Jank lints** — run the static CSS + JS checklists from the recipes over the
@@ -127,8 +135,14 @@ see what landed).
 
 ## Resources
 
-- `references/capture-recipes.md` — read from this skill's `references/`
-  (installed at `~/.claude/skills/sprig:breakdown/references/`).
+- **References:** a `<skill>/references/<file>` path means the `references/`
+  dir next to the SKILL.md that spawned you (installed or repo copy), never a
+  hardcoded home path — sibling skill dirs (`sprig:build/`, `sprig:breakdown/`,
+  `interfaces/`) sit beside that skill's dir, and your brief carries the
+  absolute path. `sprig:breakdown/references/`: `capture-recipes.md`,
+  `isolate-format.md`. `sprig:build/references/`: `INDEX.md`,
+  `component-model.md`, `isolate.md`, `routing.md`, `serving.md`,
+  `templates.md`, `wiring.md`.
 
 ## Output contract
 
@@ -154,10 +168,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

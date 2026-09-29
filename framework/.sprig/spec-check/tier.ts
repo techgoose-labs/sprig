@@ -1,6 +1,7 @@
 // tier-cases (REQ-032): an optimistic-write island proves its optimism in isolation — a
 // `pending` case and a `rolled-back` case whose `_network` fails its command — and every
-// case's `_tier` agrees with the inventory.
+// case's `_tier` agrees with the inventory. A confirmed-write island (REQ-064) awaits the
+// reply before showing the change: it proves `pending` only — nothing to roll back.
 import {
   type CheckResult,
   type Finding,
@@ -51,20 +52,32 @@ function keyHits(key: string, endpoint: string): boolean {
   return key.trim() === last;
 }
 
+/** The cases a write tier must carry. A confirmed-write shows nothing before the reply, so
+ *  there is nothing to roll back — its proof is the awaiting state alone (REQ-064). */
+const REQUIRED_CASES: Partial<Record<string, string[]>> = {
+  "optimistic-write": ["pending", "rolled-back"],
+  "confirmed-write": ["pending"],
+};
+
 export type CaseMap = Map<
   string,
   Map<string, { where: string; json: unknown }>
 >;
 
 /** @param cases unit dir → case name → parsed JSON (+ its path).
- *  @param commands unit name → its bound command endpoints (from binding.md). */
+ *  @param commands unit name → its bound command endpoints (from binding.md).
+ *  @param aliases REQ-068: bound endpoint → the other names isolate's `_network`
+ *    accepts for it (the contract operation's operationId and x-sprig-command). */
 export function checkTierCases(
   inv: Inventory,
   cases: CaseMap,
   commands: Map<string, string[]>,
   read: string[],
   notes: string[] = [],
+  aliases: Map<string, string[]> = new Map(),
 ): CheckResult {
+  const hits = (k: string, e: string) =>
+    keyHits(k, e) || (aliases.get(e) ?? []).includes(k.trim());
   const findings: Finding[] = [];
   let items = 0;
   for (const u of inv.units) {
@@ -116,18 +129,21 @@ export function checkTierCases(
         }
       }
     }
-    if (u.tier !== "optimistic-write") continue;
-    for (const need of ["pending", "rolled-back"]) {
+    const needs = REQUIRED_CASES[u.tier] ?? [];
+    for (const need of needs) {
       if (!unitCases.has(need)) {
         findings.push({
           where: `${casesDir}/${need}`,
-          message: `optimistic-write ${u.name} has no "${need}" case`,
-          hint: need === "pending"
-            ? "add cases/pending/pending.json — the optimistic state shown before the server answers (a _network delay)"
-            : "add cases/rolled-back/rolled-back.json with a _network entry that fails the command — the rollback must be visible in isolation",
+          message: `${u.tier} ${u.name} has no "${need}" case`,
+          hint: need === "rolled-back"
+            ? "add cases/rolled-back/rolled-back.json with a _network entry that fails the command — the rollback must be visible in isolation"
+            : u.tier === "confirmed-write"
+            ? "add cases/pending/pending.json — the awaiting state (control disabled, spinner) shown until the server confirms (a _network delay)"
+            : "add cases/pending/pending.json — the optimistic state shown before the server answers (a _network delay)",
         });
       }
     }
+    if (!needs.includes("rolled-back")) continue;
     const rb = unitCases.get("rolled-back");
     if (!rb) continue;
     const failing = failingKeys(
@@ -144,7 +160,7 @@ export function checkTierCases(
         }": "fail" }`,
       });
     } else if (
-      bound.length && !failing.some((k) => bound.some((e) => keyHits(k, e)))
+      bound.length && !failing.some((k) => bound.some((e) => hits(k, e)))
     ) {
       findings.push({
         where: rb.where,

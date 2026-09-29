@@ -1,0 +1,13 @@
+{
+  "_name": "Long name wraps, walking (375)",
+  "_tier": "pure-client",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading-long-name-walking@375.png",
+  "_signals": {
+    "name": "Sir Reginald Barksworth-Fluffington III",
+    "status": "walking",
+    "overdue": false,
+    "overdueBy": ""
+  }
+}

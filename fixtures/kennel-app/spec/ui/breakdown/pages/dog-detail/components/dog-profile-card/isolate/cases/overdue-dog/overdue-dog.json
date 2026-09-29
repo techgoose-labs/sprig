@@ -1,0 +1,12 @@
+{
+  "_name": "d14 (an overdue dog; card shows no overdue marker) at 1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-profile-card/screenshots/dog-profile-card-overdue-dog@1280.png",
+  "breed": "French Bulldog",
+  "kennel": "K14",
+  "arrival": "10:15",
+  "ownerName": "Oliver Brandt",
+  "ownerPhone": ""
+}

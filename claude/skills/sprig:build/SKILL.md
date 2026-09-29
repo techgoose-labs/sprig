@@ -69,7 +69,7 @@ Pass each one its input contract and summarize what it returns.
    wiring), delegate to **`sprig-build-scaffolder`** with the project root, the
    routes to register (from the breakdown `index.md` build order, or the user's
    ask), the base path, whether a `spec/ui/design-system/css-variables.json`
-   exists to copy in, and whether `spec/contract/openapi.json` exists at the git
+   exists to copy in, and whether `spec/contract/openapi.json` exists at the app
    root (→ it generates/refreshes the **typed client** in
    `spec/contract/client/`). It returns a **BUILD BRIEF** (app root, alias
    names, tokens path, isolate command, port base, contract + browser posture) —
@@ -113,7 +113,15 @@ Pass each one its input contract and summarize what it returns.
    ABSOLUTE paths you looked up in `index.md` / the breakdown tree ONCE**: the
    unit's breakdown folder, its `<name>.md`, `isolate/`, `screenshots/`, and the
    target src dir (`<app>/src/<dir>`, `<dir>` the unit's `inventory.json`
-   `dir`). A unit is green when its rows of
+   `dir`). **`spec/contract/openapi.json` must exist before any island with a
+   server write is built** (tier `optimistic-write` or `confirmed-write`):
+   nothing in this toolchain derives it from the two seams —
+   `contract snapshot <prototype>` only copies `objects/` + `commands.json` to
+   `spec/contract/draft/`, the seed `rune:spec` ratifies, and `openapi.json` is
+   exported from the built keep backend — so without it the build stops those
+   units, reports `no contract` for each write island, and never invents a
+   state service (or any local store) to take the writes; static and
+   pure-client units still build. A unit is green when its rows of
    `sprig isolate test <unit> --json --root <app>` pass — every `_reference`
    pixel-diff row within tolerance included; an exit 1 "nothing was checked"
    means the filter or `--root` matched no case, not green — AND
@@ -197,7 +205,12 @@ Pass each one its input contract and summarize what it returns.
    route each finding to the owning unit's builder — a suppression comment is
    the builder's call only with a reason (the cheatsheet lists them). Then have
    the scaffolder run the prod-build smoke (`deno task build` →
-   `deno task start`, hit a real URL). Deeper QA of the running app — hunting
+   `deno serve -A --unstable-kv --port <PORT> serve.ts`, then GET every route
+   in `src/mod.ts` at least once, one with a real id from the fixture data;
+   each passes on HTTP 200, the page's own template rendered — not the
+   load-error or not-found state — and, for an island page, the island's root
+   element (`<sprig-island data-sel="<island>">`) present; an app where every
+   page renders an error state FAILS the smoke). Deeper QA of the running app — hunting
    bugs, perf, regressions — is the **`sprig:audit`** stage downstream, not this
    skill.
 
@@ -224,9 +237,11 @@ state — don't re-run their checks inline or re-walk their file trees; a
 mid-build fix re-routes through the owning specialist. For fleets ≤ ~15 units,
 track the queue in your plan text — don't burn an API turn per task-ledger
 update (measured: 20 bookkeeping turns on a 10-agent build). And never search
-the filesystem yourself — every skill reference lives at
-`~/.claude/skills/<skill>/references/<file>`; read exact paths (an orchestrator
-was measured running `find /` for a reference file whose path it knew).
+the filesystem yourself — every skill reference lives in the absolute path of
+the `references/` dir next to this SKILL.md (installed or repo copy; its
+sibling skills sit beside this skill's dir) — pass that path in every brief
+and read exact paths (an orchestrator was measured running `find /` for a
+reference file whose path it knew).
 
 **Briefing rule (root cause of fleet waste):** a specialist that has to SEARCH
 was under-briefed. Before delegating, YOU resolve — absolute, copied verbatim

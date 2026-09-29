@@ -1,0 +1,22 @@
+/* Shell base CSS — the ONLY place non-token document styling lives. Tailwind Preflight
+   supplies resets; these :global(...) rules set document-level defaults that read the
+   design tokens compiled from src/css-variables.json (default theme: brand, light;
+   brand-dark via html[data-theme="brand-dark"]). color-scheme comes from each theme's
+   token map, never from here. The mock paints the page on bg-base-200.
+   Component-scoped styling lives in each component's own styles.css. */
+:global(body) {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+  background: var(--color-base-200, #f3eadb);
+  color: var(--color-base-content, #3b2a1e);
+  font-size: var(--step-0, 1rem);
+  line-height: var(--leading-normal, 1.5);
+}
+:global(h1),
+:global(h2),
+:global(h3) {
+  font-family: var(--font-display, ui-sans-serif);
+  line-height: var(--leading-tight, 1.1);
+  letter-spacing: var(--tracking-display, -0.015em);
+}

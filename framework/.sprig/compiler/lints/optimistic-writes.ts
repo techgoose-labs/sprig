@@ -17,6 +17,9 @@
  *    backend (case-insensitive: `this.api.x(`, `todoApi.x(`, `backend.x(`),
  *    unless its name reads as a query: get | list | load | fetch | find |
  *    search | query | read | count (prefix).
+ *  • REQ-065: a call to a function the same file names (`closeDay(id)`,
+ *    `this.closeDay(id)`) whose OWN body awaits a server write — one level of
+ *    helper, not a chain.
  *
  * Two rules, per function body (arrow with a block body, `function`, method;
  * EVERY function in logic.ts, not only template-bound handlers — a helper a
@@ -40,7 +43,12 @@
  * syntactic stance as the wiring lint; no TypeScript dependency.
  */
 import { declaredSignals } from "../wiring-lint.ts";
-import { readContractOps } from "./contract.ts";
+import {
+  type ContractRoot,
+  describeRoots,
+  readContractOps,
+  resolveContractRoot,
+} from "./contract.ts";
 import type { Finding, LintResult } from "./lint-types.ts";
 import {
   isDir,
@@ -203,6 +211,7 @@ function classifyCall(
   m: number,
   ops: ContractOps,
   unknownOps: Set<string>,
+  helpers: Set<string> = new Set(),
 ): CallKind {
   const name = toks[m].value;
   const receivers: string[] = [];
@@ -210,6 +219,13 @@ function classifyCall(
     if (toks[k - 1]?.kind !== "id") break;
     receivers.unshift(toks[k - 1].value);
   }
+  // REQ-065: one level of local helper — `await closeDay(id)` /
+  // `await this.closeDay(id)` whose own body awaits a server write.
+  if (
+    helpers.has(name) &&
+    (receivers.length === 0 ||
+      (receivers.length === 1 && receivers[0] === "this"))
+  ) return "write";
   if (name === "fetch") {
     const method = literalMethod(toks, m + 1);
     return method && WRITE_METHODS.has(method) ? "write" : "read";
@@ -237,6 +253,7 @@ function serverAwaits(
   idx: number[],
   ops: ContractOps,
   unknownOps: Set<string>,
+  helpers: Set<string> = new Set(),
 ): { at: number; kind: "write" | "read" }[] {
   const out: { at: number; kind: "write" | "read" }[] = [];
   for (let n = 0; n < idx.length; n++) {
@@ -254,7 +271,7 @@ function serverAwaits(
         } else if (depth === 0 && (u.value === ";" || u.value === ",")) break;
       }
       if (u.kind !== "id" || !isP(toks[idx[m] + 1], "(")) continue;
-      const k = classifyCall(toks, idx[m], ops, unknownOps);
+      const k = classifyCall(toks, idx[m], ops, unknownOps, helpers);
       if (k !== "none") kind = k;
     }
     if (kind !== "none") out.push({ at: idx[n], kind });
@@ -342,7 +359,8 @@ export function lintOptimisticSource(
       severity: "error",
     });
   };
-  for (const fn of fns) {
+  /** The token indices of `fn`'s own body, nested functions masked. */
+  const bodyOf = (fn: Fn) => {
     const nested = fns.filter((g) =>
       g !== fn && g.open > fn.open && g.close < fn.close
     );
@@ -355,7 +373,30 @@ export function lintOptimisticSource(
       }
       idx.push(i);
     }
-    const awaits = serverAwaits(toks, idx, ops, unknownOps);
+    return idx;
+  };
+  // REQ-065: named local functions whose own body awaits a server write; an
+  // awaited call to one of them is an awaited server write (one level).
+  // A helper whose write carries its own `// sprig-wait: <reason>` is a
+  // declared wait: its callers inherit it (the reason is already listed).
+  const helpers = new Set<string>();
+  for (const fn of fns) {
+    if (fn.name.startsWith("(")) continue;
+    if (
+      serverAwaits(toks, bodyOf(fn), ops, new Set()).some((a) =>
+        a.kind === "write" && supp.get(toks[a.at].line) === undefined
+      )
+    ) helpers.add(fn.name);
+  }
+  for (const fn of fns) {
+    const idx = bodyOf(fn);
+    const awaits = serverAwaits(
+      toks,
+      idx,
+      ops,
+      unknownOps,
+      new Set([...helpers].filter((h) => h !== fn.name)),
+    );
     out.exempt.queries += awaits.filter((a) => a.kind === "read").length;
     const wait = awaits.find((a) => a.kind === "write")?.at;
     if (wait === undefined) continue;
@@ -403,7 +444,7 @@ async function contractOps(gitRoot: string | undefined): Promise<ContractOps> {
 /** Lint every island `logic.ts` under `uiSrc`. Findings name files relative
  *  to `uiSrc`. `gitRoot` locates `spec/contract/openapi.json` for `client.<op>`. */
 export async function lintOptimisticWrites(
-  opts: { uiSrc: string; gitRoot?: string },
+  opts: { uiSrc: string; gitRoot?: string; appRoot?: string },
 ): Promise<LintResult> {
   const result: LintResult = {
     findings: [],
@@ -421,7 +462,19 @@ export async function lintOptimisticWrites(
   if (files.length === 0) {
     return { ...result, skipped: `no island logic.ts under ${opts.uiSrc}` };
   }
-  const ops = await contractOps(opts.gitRoot);
+  // REQ-068: the app root's spec/contract/openapi.json first, then the git root's
+  const found: ContractRoot | null = await resolveContractRoot(
+    opts,
+    async (dir) => {
+      try {
+        return (await Deno.stat(join(dir, "openapi.json"))).isFile;
+      } catch {
+        return false;
+      }
+    },
+  );
+  const ops = await contractOps(found?.dir);
+  if (found && ops) result.contract = found;
   const exempt = { noWrite: 0, queries: 0 };
   const unknown = new Set<string>();
   for (const rel of files) {
@@ -438,7 +491,7 @@ export async function lintOptimisticWrites(
     ops
       ? `client.<op>() classified by spec/contract/openapi.json (${ops.size} operations)`
       : `no spec/contract/openapi.json under ${
-        opts.gitRoot ?? "(no gitRoot given)"
+        describeRoots(opts)
       } — treating every client.<op>() as a write`,
   );
   if (unknown.size) {

@@ -1,0 +1,1466 @@
+{
+ "unit": "board",
+ "source": "http://localhost:8742/#/board",
+ "loadingState": {
+  "trigger": "?state=loading (and the first ~450ms of every load: setDemo renders renderLoading() before load() resolves)",
+  "animations": [
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-20.rounded-box",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-20.rounded-box",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-20.rounded-box",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-20.rounded-box",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-6.w-2/3",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-4.w-1/2",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-20",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   },
+   {
+    "kind": "CSSAnimation",
+    "name": "skeleton",
+    "target": "div.skeleton.h-5.w-14",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "150%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "ease-in-out",
+      "composite": "auto",
+      "backgroundPositionX": "-50%",
+      "backgroundPositionY": "50%",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 1800,
+     "easing": "linear",
+     "endDelay": 0,
+     "fill": "none",
+     "iterationStart": 0,
+     "iterations": null,
+     "activeDuration": null,
+     "currentIteration": 1,
+     "endTime": null,
+     "localTime": 2549.9,
+     "progress": 0.41661111111111104
+    },
+    "playState": "running"
+   }
+  ],
+  "spinnerNote": "daisyUI .loading-spinner is drawn via mask-image of an SVG; its rotation is NOT a CSS/WAAPI animation visible to getAnimations() (SMIL inside the mask SVG) — see spinner.computed",
+  "spinner": {
+   "class": "loading loading-spinner loading-sm",
+   "maskImage": "url(\"data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='r",
+   "animationName": "none",
+   "webkitMask": "url(\"data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/s"
+  }
+ },
+ "cardHover": {
+  "trigger": "pointer enters a.card (dog card) → hover:shadow-sm via transition-shadow",
+  "animations": [
+   {
+    "kind": "CSSTransition",
+    "name": "box-shadow",
+    "target": "a.card.bg-base-100.border.border-base-300.hover:shadow-sm.transition-shadow.min-w-0[href=#/dog/d01]",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "linear",
+      "composite": "auto",
+      "boxShadow": "none",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "linear",
+      "composite": "auto",
+      "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 150,
+     "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "endDelay": 0,
+     "fill": "backwards",
+     "iterationStart": 0,
+     "iterations": 1,
+     "activeDuration": 150,
+     "currentIteration": 0,
+     "endTime": 150,
+     "localTime": 0.6659999999998334,
+     "progress": 0.00004142773621279979
+    },
+    "playState": "running"
+   }
+  ]
+ },
+ "loadingToLiveSwap": {
+  "trigger": "load() resolves → #app innerHTML replaced",
+  "animationsImmediatelyAfterSwap": []
+ }
+}

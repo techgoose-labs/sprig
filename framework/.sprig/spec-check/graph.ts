@@ -1,5 +1,8 @@
 // composition (REQ-032): the inventory's usage matrix against the compiler's composition
-// graph (compiler/composition.ts `compositionGraph`), plus page-local shadowing.
+// graph (compiler/composition.ts `compositionGraph`), plus page-local shadowing. The app
+// shell (src/shell, or the bootstrap shell — the graph's "shell" component, scanned by
+// compiler/composition-scan.ts) wraps every page, so what it composes counts on every
+// page (REQ-064).
 import {
   type CheckResult,
   type CompositionGraph,
@@ -18,27 +21,29 @@ function pageEntry(graph: CompositionGraph, page: string) {
     ?.[1];
 }
 
-/** Every component a page renders, directly or through the components it composes — a
- *  shared one as its selector, a page-local one as `<page>/<selector>`. A tag resolves
- *  page-local first, then shared (the compiler's ScopedRegistry rule), so a page-local
- *  shadow hides the shared component on that page. */
-export function reachableSelectors(
+/** The graph key of the app shell: the renderer discovers it by the name "shell". */
+export const SHELL = "shell";
+
+/** Every component reachable from `roots`, rendered with `page`'s registry (`null` → the
+ *  shared scope only, as the shell renders) — a shared one as its selector, a page-local
+ *  one as `<page>/<selector>`. A tag resolves page-local first, then shared (the
+ *  compiler's ScopedRegistry rule), so a page-local shadow hides the shared one there. */
+function reachFrom(
   graph: CompositionGraph,
-  page: string,
+  page: string | null,
+  roots: string[],
 ): Set<string> {
-  const entry = pageEntry(graph, page);
   const seen = new Set<string>();
-  if (!entry) return seen;
   const local = new Map<string, string[]>();
   const shared = new Map<string, string[]>();
   for (const [k, c] of Object.entries(graph.components)) {
     const sel = base(c.dir, k);
     if (c.scope === "page-local") {
-      if (c.page === page) local.set(sel, c.composes);
+      if (page !== null && c.page === page) local.set(sel, c.composes);
     } else shared.set(sel, c.composes);
   }
   const out = new Set<string>();
-  const stack = [...entry.composes];
+  const stack = [...roots];
   while (stack.length) {
     const ref = stack.pop()!;
     if (seen.has(ref)) continue;
@@ -62,6 +67,22 @@ export function reachableSelectors(
     }
   }
   return out;
+}
+
+/** Every component a page's own template renders, directly or through the components it
+ *  composes (the shell's units are not included — see shellSelectors). */
+export function reachableSelectors(
+  graph: CompositionGraph,
+  page: string,
+): Set<string> {
+  const entry = pageEntry(graph, page);
+  return entry ? reachFrom(graph, page, entry.composes) : new Set();
+}
+
+/** Every component the app shell renders — on every page it wraps. Empty without a shell. */
+function shellSelectors(graph: CompositionGraph): Set<string> {
+  const shell = graph.components[SHELL];
+  return shell ? reachFrom(graph, null, shell.composes) : new Set();
 }
 
 export function checkComposition(
@@ -92,8 +113,11 @@ export function checkComposition(
     return result("composition", read, inv.units.length, findings, notes);
   }
   const reach = new Map<string, Set<string>>();
+  const inShell = shellSelectors(graph);
   const pagesOf = (p: string) => {
-    if (!reach.has(p)) reach.set(p, reachableSelectors(graph, p));
+    if (!reach.has(p)) {
+      reach.set(p, new Set([...reachableSelectors(graph, p), ...inShell]));
+    }
     return reach.get(p)!;
   };
   const graphPages = Object.entries(graph.pages).map(([k, p]) =>
@@ -112,9 +136,9 @@ export function checkComposition(
         findings.push({
           where: `${where} ${u.dir}`,
           message:
-            `${u.name} is used on page ${p} per the breakdown, but page ${p} never composes <${u.name}>`,
+            `${u.name} is used on page ${p} per the breakdown, but it is not composed by ${p} or the shell`,
           hint:
-            `compose <${u.name}> in pages/${p} (directly or through one of its components) — the app must be faithful to the mock`,
+            `compose <${u.name}> in pages/${p} (directly or through one of its components), or once in src/shell when it is on every page — the app must be faithful to the mock`,
         });
       }
     }

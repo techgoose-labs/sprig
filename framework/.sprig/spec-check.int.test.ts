@@ -101,15 +101,30 @@ const CASES: [string, string, string[]][] = [
   ]],
   ["fail-composition", "composition", [
     "shadowing",
-    "page archive never composes <task-row>",
-    "page archive never composes <app-badge>",
+    "task-row is used on page archive per the breakdown, but it is not composed by archive or the shell",
+    "app-badge is used on page archive per the breakdown, but it is not composed by archive or the shell",
     "usage matrix stale: page settings",
+  ]],
+  // REQ-064: a shared unit neither the page nor the app shell composes.
+  ["fail-composition-nowhere", "composition", [
+    "top-bar is used on page dashboard per the breakdown, but it is not composed by dashboard or the shell",
+  ]],
+  // REQ-064: a confirmed-write island must prove its pending state (nothing to roll back).
+  ["fail-confirmed-write", "tier-cases", [
+    'confirmed-write save-note has no "pending" case',
   ]],
 ];
 
+const REQ_OF: Record<string, string> = {
+  "fail-composition-page-local": "REQ-057",
+  "fail-composition-nowhere": "REQ-064",
+  "fail-confirmed-write": "REQ-064",
+};
+
 for (const [overlay, name, expected] of CASES) {
-  // REQ-057 owns the page-local composition row; the rest are REQ-032's.
-  const req = overlay === "fail-composition-page-local" ? "REQ-057" : "REQ-032";
+  // REQ-057 owns the page-local composition row, REQ-064 the shell/confirmed-write rows;
+  // the rest are REQ-032's.
+  const req = REQ_OF[overlay] ?? "REQ-032";
   Deno.test(`${req}: ${overlay} fails exactly the ${name} check, naming each offender with a fix`, async () => {
     const root = await tree(overlay);
     try {
@@ -282,7 +297,7 @@ Deno.test("REQ-032: with appDir, composition runs on the compiler's real composi
     r = await specCheck(opts);
     assertEquals(failed(r), ["composition"]);
     assertEquals(check(r, "composition").findings.map((f) => f.message), [
-      "task-row is used on page archive per the breakdown, but page archive never composes <task-row>",
+      "task-row is used on page archive per the breakdown, but it is not composed by archive or the shell",
     ]);
   } finally {
     await Deno.remove(root, { recursive: true });
@@ -379,6 +394,44 @@ Deno.test("REQ-057: the CLI exits 1 when --app points at a missing directory, pr
     assertStringIncludes(out, "spec-check composition: FAIL (1 finding)");
     assertStringIncludes(out, "ui-missing");
     assert(!out.includes("usage matrix not compared"), out);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+for (const overlay of ["pass-composition-shell", "pass-confirmed-write"]) {
+  Deno.test(`REQ-064: ${overlay} passes every check`, async () => {
+    const root = await tree(overlay);
+    try {
+      const r = await run(root);
+      assertEquals(failed(r), [], renderSpecCheck(r));
+      assert(r.checks.every((c) => !c.skipped), renderSpecCheck(r));
+    } finally {
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+}
+
+Deno.test("REQ-064: with appDir, the compiler's real graph carries src/shell — a unit only the shell composes passes on every page", async () => {
+  const root = await tree("pass-composition-shell");
+  try {
+    const opts = {
+      gitRoot: root,
+      breakdownDir: join(root, "spec/ui/breakdown"),
+      uiSrc: join(root, "ui/src"),
+      appDir: join(root, "ui"),
+    };
+    let r = await specCheck(opts);
+    assertEquals(failed(r), [], renderSpecCheck(r));
+    await Deno.writeTextFile(
+      join(root, "ui/src/shell/template.html"),
+      "<router-outlet></router-outlet>\n",
+    );
+    r = await specCheck(opts);
+    assertEquals(check(r, "composition").findings.map((f) => f.message), [
+      "top-bar is used on page dashboard per the breakdown, but it is not composed by dashboard or the shell",
+      "top-bar is used on page archive per the breakdown, but it is not composed by archive or the shell",
+    ]);
   } finally {
     await Deno.remove(root, { recursive: true });
   }

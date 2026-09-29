@@ -160,23 +160,69 @@ Deno.test("REQ-023: (c) .length compared to a literal > 1 inside an event handle
 });
 
 Deno.test("REQ-023: (d) calling or defining validate/compute/calculate/derive/total/price/discount/tax/eligib/score/rank/allocate/schedule", () => {
-  flags(`function calculateTax(x: number) { return x; }`, "logic-placement/d");
+  // REQ-065: a (d)-named DEFINITION is flagged when its body does work — the
+  // passthrough forms of these same definitions are clean (next test)
+  flags(
+    `function calculateTax(x: number) { return round(x); }`,
+    "logic-placement/d",
+  );
   flags(`const r = validateEmail(this.email());`, "logic-placement/d");
   flags(`const d = svc.discountFor(o);`, "logic-placement/d");
   flags(
-    `class C {\n  priceFor(item: Item): number { return item.cents; }\n}`,
+    `class C {\n  priceFor(item: Item): number { return LIST[item.sku]; }\n}`,
     "logic-placement/d",
   );
-  flags(`const scoreCard = (c: Card) => c.points;`, "logic-placement/d");
-  flags(`const total = computed(() => items());`, "logic-placement/d");
   flags(
-    `const o = { isEligible: 1, eligibility: function () { return 1; } };`,
+    `const scoreCard = (c: Card) => c.points.reduce(sum);`,
+    "logic-placement/d",
+  );
+  flags(
+    `const total = computed(() => items().map(cents));`,
+    "logic-placement/d",
+  );
+  flags(
+    `const o = { isEligible: 1, eligibility: function () { if (a) return 1; } };`,
     "logic-placement/d",
   );
   flags(`rankResults();`, "logic-placement/d");
   clean(`const price = signal(0); const p = price(); const t = this.total();`);
   clean(`const c = computed(() => this.items());`);
   clean(`import { scheduleThing } from "./x.ts";`);
+});
+
+Deno.test("REQ-065: (d) a domain-named accessor that only reads or formats a field passes", () => {
+  clean(`function calculateTax(x: number) { return x; }`);
+  clean(
+    `class C {\n  priceFor(item: Item): number { return item.cents; }\n}`,
+  );
+  clean(`const scoreCard = (c: Card) => c.points;`);
+  clean(`const total = computed(() => items());`);
+  clean(`const o = { eligibility: function () { return 1; } };`);
+  clean(
+    `class D {\n  total(): number {\n    return this.day()?.kennelsTotal ?? this.kennelsTotal();\n  }\n  get totalDogs() { return this.day()?.dogs; }\n  totalLabel(): string { return USD.format(this.day()?.revenue ?? 0); }\n  view() { return this.total() + " kennels"; }\n}`,
+  );
+  // … and the same names doing work are still (d): arithmetic, a comparison,
+  // a branch, a lookup, a non-formatter call
+  assertEquals(
+    rules(`class D {\n  total() { return this.a() + this.b(); }\n}`),
+    ["logic-placement/d@2", "logic-placement/a@2"],
+  );
+  flags(
+    `class D {\n  priceOk() { return this.p() === this.q(); }\n}`,
+    "logic-placement/d",
+  );
+  flags(
+    `class D {\n  total() { if (this.x()) return 1; return 2; }\n}`,
+    "logic-placement/d",
+  );
+  flags(
+    `class D {\n  price() { return PRICES[this.sku()]; }\n}`,
+    "logic-placement/d",
+  );
+  flags(
+    `class D {\n  total() { return sum(this.lines()); }\n}`,
+    "logic-placement/d",
+  );
 });
 
 Deno.test("REQ-023: messages name the rule letter and point the work at the backend", () => {
@@ -229,7 +275,10 @@ Deno.test("REQ-050: (a)(d) ev/evt/performance roots, `now` and geometry-named de
   clean(`const d = evt.detail.a - evt.detail.b;`);
   clean(`const t = performance.now() - start.at; if (now - last < 100) f();`);
   clean(`const totalHeight = computed(() => rows().length * ROW);`);
-  flags(`const totalCost = computed(() => rows());`, "logic-placement/d");
+  flags(
+    `const totalCost = computed(() => sumOf(rows()));`,
+    "logic-placement/d",
+  );
 });
 
 Deno.test("REQ-050: (b) a member vs a literal other than 0/±1 or an ALL_CAPS constant, in a branch, is a threshold", () => {

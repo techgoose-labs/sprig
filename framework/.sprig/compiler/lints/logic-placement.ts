@@ -41,6 +41,21 @@
  * also fires on a `switch` / `if` chain on a record's `status|state|stage|
  * phase` deciding data in ≥2 branches; every `template.html` under the ui
  * source is scanned too (see `checkTemplateLogic`).
+ *
+ * REQ-065 (a breakdown→build run on fixtures/kennel-app):
+ *   (d) a DEFINITION is flagged only when its body does work — arithmetic, a
+ *       comparison, a branch/loop, a computed lookup, or a call with arguments
+ *       other than a formatter (`doesWork`); `total() { return
+ *       this.day()?.total ?? this.seed() }` is an accessor, whatever its name;
+ *   (c) a regex whose subject is the current URL (`location`, `pathname`,
+ *       `href`, `hash`, a route) or whose pattern is a route (`DOG_ROUTE`) is
+ *       presentation routing, not validation;
+ *   (e) a module STATUS TABLE (`Record<XStatus, …>` / `Record<…, XStatus>`, or
+ *       an object / Map whose keys or values are all a lifecycle union's
+ *       values): a status-valued read compared (`status() === OFFERED_FROM[c]`)
+ *       or a lookup keyed by a lifecycle field whose values are not all
+ *       strings (`ACTIONS[order().status]`) is a client state machine; a
+ *       status → label/class table passes.
  */
 import { join } from "@std/path";
 import { declaredSignals } from "../wiring-lint.ts";
@@ -745,12 +760,19 @@ export function checkLogicSource(
     });
   let labelB = false;
   const defined = new Set<string>();
+  // REQ-065: a (d)-named definition whose body only reads or formats a field
+  // (`total() { return this.day()?.total ?? this.seed() }`) is an accessor.
+  const passthrough = (k: number) => {
+    const body = defBody(toks, k);
+    return !!body && !doesWork(toks, body[0], body[1]);
+  };
   for (let k = 0; k < toks.length; k++) {
     if (
       toks[k].kind === "id" && DOMAIN_FN.test(toks[k].value) &&
-      definitionAt(toks, k)
+      definitionAt(toks, k) && !passthrough(k)
     ) defined.add(toks[k].value);
   }
+  const tables = statusTables(toks);
 
   for (let k = 0; k < toks.length; k++) {
     const t = toks[k];
@@ -881,6 +903,7 @@ export function checkLogicSource(
     const member = isP(prev, ".") || isP(prev, "?.");
 
     if (member && REGEX_CALLS.has(t.value) && isP(toks[k + 1], "(")) {
+      if (urlRegex(toks, k)) continue;
       add(
         t,
         "c",
@@ -891,6 +914,7 @@ export function checkLogicSource(
       continue;
     }
     if (!member && t.value === "RegExp") {
+      if (urlRegExpCtor(toks, k)) continue;
       add(t, "c", "`RegExp` pattern validation", VALIDATE, HINT_VALIDATE);
       continue;
     }
@@ -900,6 +924,20 @@ export function checkLogicSource(
         add(t, "d", `calls the date rule \`${t.value}(…)\``, QUERY, HINT_QUERY);
       }
       continue;
+    }
+    const table = !member ? tables.get(t.value) : undefined;
+    if (table && table.decl !== k) {
+      const use = tableUse(toks, k, table);
+      if (use) {
+        add(
+          t,
+          "e",
+          `the status table \`${t.value}\` ${use}`,
+          ACCESS,
+          HINT_ACCESS,
+        );
+        continue;
+      }
     }
     if (ACCESS_NAME.test(t.value) && accessUse(toks, k)) {
       add(
@@ -975,7 +1013,9 @@ export function checkLogicSource(
     if (t.value === "computed" || !DOMAIN_FN.test(t.value)) continue;
     if (GEOMETRY_NAME.test(t.value)) continue;
     if (definitionAt(toks, k)) {
-      add(t, "d", `defines \`${t.value}\``, QUERY, HINT_QUERY);
+      if (!passthrough(k)) {
+        add(t, "d", `defines \`${t.value}\``, QUERY, HINT_QUERY);
+      }
       continue;
     }
     let open = k + 1;
@@ -993,6 +1033,319 @@ export function checkLogicSource(
   const out: LintResult = { findings: [], suppressed: [], checked: [] };
   applySuppressions(out, file, raw, suppressions(src, "sprig-logic"));
   return out;
+}
+
+/** REQ-065 (d): the body token range [open, close] of the definition whose
+ *  name is token `k` — a method / getter / `function` body, an arrow's block or
+ *  expression, or a `computed(…)` argument list. */
+function defBody(toks: Tok[], k: number): [number, number] | null {
+  const block = (j: number): [number, number] | null => {
+    const close = matchBracket(toks, j);
+    return close < 0 ? null : [j, close];
+  };
+  const arrowBody = (arrow: number): [number, number] | null => {
+    if (isP(toks[arrow + 1], "{")) return block(arrow + 1);
+    let depth = 0;
+    for (let j = arrow + 1; j < toks.length; j++) {
+      const v = toks[j].kind === "punct" ? toks[j].value : "";
+      if (v === "(" || v === "[" || v === "{") depth++;
+      else if (v === ")" || v === "]" || v === "}") {
+        if (depth-- === 0) return [arrow, j - 1];
+      } else if ((v === "," || v === ";") && depth === 0) return [arrow, j - 1];
+    }
+    return [arrow, toks.length - 1];
+  };
+  const afterParams = (open: number): [number, number] | null => {
+    const close = matchBracket(toks, open);
+    if (close < 0) return null;
+    let j = close + 1;
+    if (isP(toks[j], "=>")) return arrowBody(j);
+    while (
+      j < toks.length && !isP(toks[j], "{") && !isP(toks[j], ";") &&
+      !isP(toks[j], "=>")
+    ) j++;
+    if (isP(toks[j], "=>")) return arrowBody(j);
+    return isP(toks[j], "{") ? block(j) : null;
+  };
+  if (isP(toks[k + 1], "(")) return afterParams(k + 1);
+  if (!(isP(toks[k + 1], "=") || isP(toks[k + 1], ":"))) return null;
+  let j = k + 2;
+  if (toks[j]?.value === "async") j++;
+  const v = toks[j];
+  if (!v) return null;
+  if (v.value === "computed" && isP(toks[j + 1], "(")) return block(j + 1);
+  if (v.value === "function") {
+    let o = j + 1;
+    while (o < toks.length && !isP(toks[o], "(")) o++;
+    return afterParams(o);
+  }
+  if (isP(v, "(")) return afterParams(j);
+  if (v.kind === "id" && isP(toks[j + 1], "=>")) return arrowBody(j + 1);
+  return null;
+}
+
+/** Calls that only format a value for display. */
+const FORMATTERS = new Set([
+  ...FORMAT_CALLS,
+  "toFixed",
+  "toLocaleString",
+  "toLocaleDateString",
+  "toLocaleTimeString",
+  "toString",
+  "String",
+  "Number",
+  "Boolean",
+]);
+
+/** REQ-065 (d): does the body in tokens (a, b) DO something — arithmetic, a
+ *  comparison, a branch or loop, a computed lookup, or a call with arguments
+ *  other than a formatter? `??`, `?.`, `||`, `&&` fallbacks and zero-argument
+ *  reads are a passthrough. */
+function doesWork(toks: Tok[], a: number, b: number): boolean {
+  for (let j = a + 1; j < b; j++) {
+    const t = toks[j];
+    if (t.kind === "punct") {
+      if (ARITH.has(t.value) || COMPARE.has(t.value) || t.value === "?") {
+        return true;
+      }
+      if (t.value === "[") {
+        const p = toks[j - 1];
+        if (p && (p.kind === "id" || isP(p, ")") || isP(p, "]"))) {
+          if (!KEYWORDS.has(p.value) || p.value === "this") return true;
+        }
+      }
+      if (t.value === "(" && !isP(toks[j + 1], ")")) {
+        const callee = toks[j - 1];
+        if (
+          callee?.kind === "id" && !KEYWORDS.has(callee.value) &&
+          !FORMATTERS.has(callee.value)
+        ) return true;
+      }
+      continue;
+    }
+    if (
+      t.kind === "id" &&
+      ["if", "switch", "for", "while", "do", "case"].includes(t.value)
+    ) return true;
+  }
+  return false;
+}
+
+/** REQ-065 (c): the current URL / a route — `location`, `pathname`, `href`,
+ *  `hash`, a route pattern — read by a regex is presentation routing. */
+const URL_NAME =
+  /^(location|pathname|href|hash|route|routes|currentRoute)$|(Pathname|Href|Route|ROUTE)$/;
+const ROUTE_PATTERN = /route/i;
+
+/** Token ranges' identifier names. */
+function namesIn(toks: Tok[], a: number, b: number): string[] {
+  const out: string[] = [];
+  for (let j = a; j <= b; j++) {
+    if (toks[j]?.kind === "id") out.push(toks[j].value);
+  }
+  return out;
+}
+
+/** The first token of the receiver chain ending just before the `.` at `dot`
+ *  (`location.pathname`, `new RegExp(…)`, `/re/`). */
+function receiverStart(toks: Tok[], dot: number): number {
+  let j = dot - 1;
+  for (;;) {
+    const t = toks[j];
+    if (!t) return j + 1;
+    if (isP(t, ")") || isP(t, "]")) {
+      const o = matchBracket(toks, j);
+      if (o < 0) return j + 1;
+      j = o - 1;
+      if (toks[j]?.kind === "id") continue;
+      return o;
+    }
+    if (t.kind === "id" || t.kind === "regex" || t.kind === "str") {
+      if (isP(toks[j - 1], ".") || isP(toks[j - 1], "?.")) {
+        j -= 2;
+        continue;
+      }
+      return toks[j - 1]?.value === "new" ? j - 1 : j;
+    }
+    return j + 1;
+  }
+}
+
+/** Is the regex call at `k` (`.test(` / `.match(` …) applied to the current
+ *  URL or with a route pattern? `.test(x)` / `.exec(x)`: the subject is the
+ *  argument; `.match` / `.matchAll` / `.search`: the receiver. */
+function urlRegex(toks: Tok[], k: number): boolean {
+  const open = k + 1;
+  const close = matchBracket(toks, open);
+  if (close < 0) return false;
+  const recv = receiverStart(toks, k - 1);
+  const recvNames = namesIn(toks, recv, k - 2);
+  const argNames = namesIn(toks, open + 1, close - 1);
+  const subject = toks[k].value === "test" || toks[k].value === "exec"
+    ? argNames
+    : recvNames;
+  if (subject.some((n) => URL_NAME.test(n))) return true;
+  const pattern = toks[k].value === "test" || toks[k].value === "exec"
+    ? recvNames
+    : argNames;
+  return pattern.length === 1 && ROUTE_PATTERN.test(pattern[0]);
+}
+
+/** Is the `RegExp` at `k` a route pattern — assigned to a route-named binding,
+ *  or immediately `.test(` / `.exec(`-ed against the current URL? */
+function urlRegExpCtor(toks: Tok[], k: number): boolean {
+  let s = k;
+  if (toks[s - 1]?.value === "new") s--;
+  if (isP(toks[s - 1], "=") && toks[s - 2]?.kind === "id") {
+    if (ROUTE_PATTERN.test(toks[s - 2].value)) return true;
+  }
+  if (!isP(toks[k + 1], "(")) return false;
+  const close = matchBracket(toks, k + 1);
+  const m = close + 2;
+  return close > 0 && isP(toks[close + 1], ".") &&
+    (toks[m]?.value === "test" || toks[m]?.value === "exec") &&
+    isP(toks[m + 1], "(") && urlRegex(toks, m);
+}
+
+/** REQ-065 (e): a module table (`const T: Record<K, V> = { … }` or
+ *  `new Map([...])`) whose keys or values are a record's lifecycle values. */
+type StatusTable = {
+  decl: number;
+  keyStatus: boolean;
+  valueStatus: boolean;
+  /** every value is a string literal: a label / class table */
+  labels: boolean;
+};
+
+const LIFECYCLE_TYPE = /(Status|State|Stage|Phase)$/;
+
+/** Every lifecycle union in the file: `type XStatus = "a" | "b"`, and the
+ *  literal unions of `status|state|stage|phase` fields. Values, unquoted. */
+function lifecycleValues(
+  toks: Tok[],
+): { types: Set<string>; values: Set<string> } {
+  const types = new Set<string>(), values = new Set<string>();
+  const union = (j: number) => {
+    const vs: string[] = [];
+    while (toks[j]?.kind === "str" || isP(toks[j], "|")) {
+      if (toks[j].kind === "str") vs.push(toks[j].value.slice(1, -1));
+      j++;
+    }
+    return vs;
+  };
+  for (let j = 0; j < toks.length; j++) {
+    const t = toks[j];
+    if (
+      t.value === "type" && toks[j + 1]?.kind === "id" &&
+      LIFECYCLE_TYPE.test(toks[j + 1].value) && isP(toks[j + 2], "=")
+    ) {
+      types.add(toks[j + 1].value);
+      union(j + 3).forEach((v) => values.add(v));
+    }
+    if (
+      t.kind === "id" && LIFECYCLE_FIELD.test(t.value) &&
+      (isP(toks[j + 1], ":") ||
+        (isP(toks[j + 1], "?") && isP(toks[j + 2], ":")))
+    ) {
+      union(j + (isP(toks[j + 1], ":") ? 2 : 3)).forEach((v) => values.add(v));
+    }
+  }
+  return { types, values };
+}
+
+function statusTables(toks: Tok[]): Map<string, StatusTable> {
+  const out = new Map<string, StatusTable>();
+  const { types, values } = lifecycleValues(toks);
+  const isLifecycleType = (n: string | undefined) =>
+    !!n && (types.has(n) || LIFECYCLE_TYPE.test(n));
+  for (let j = 1; j < toks.length; j++) {
+    const kw = toks[j - 1].value;
+    if (!(kw === "const" || kw === "let") || toks[j].kind !== "id") continue;
+    let keyStatus = false, valueStatus = false;
+    let i = j + 1;
+    if (isP(toks[i], ":")) {
+      if (toks[i + 1]?.value === "Record" && isP(toks[i + 2], "<")) {
+        keyStatus = isLifecycleType(toks[i + 3]?.value);
+        const comma = toks.findIndex((x, n) => n > i + 2 && isP(x, ","));
+        valueStatus = comma > 0 && isLifecycleType(toks[comma + 1]?.value) &&
+          isP(toks[comma + 2], ">");
+      }
+      while (i < toks.length && !isP(toks[i], "=") && !isP(toks[i], ";")) i++;
+    }
+    if (!isP(toks[i], "=")) continue;
+    // the entries: [key token, first value token] pairs
+    const entries: [Tok, Tok][] = [];
+    if (isP(toks[i + 1], "{")) {
+      const close = matchBracket(toks, i + 1);
+      let depth = 0;
+      for (let n = i + 2; n < close; n++) {
+        const v = toks[n].kind === "punct" ? toks[n].value : "";
+        if (v === "(" || v === "[" || v === "{") depth++;
+        else if (v === ")" || v === "]" || v === "}") depth--;
+        else if (v === ":" && depth === 0) {
+          entries.push([toks[n - 1], toks[n + 1]]);
+        }
+      }
+    } else if (
+      toks[i + 1]?.value === "new" && toks[i + 2]?.value === "Map" &&
+      isP(toks[i + 3], "(") && isP(toks[i + 4], "[")
+    ) {
+      const close = matchBracket(toks, i + 4);
+      for (let n = i + 5; n < close; n++) {
+        if (!isP(toks[n], "[")) continue;
+        const end = matchBracket(toks, n);
+        if (isP(toks[n + 2], ",")) entries.push([toks[n + 1], toks[n + 3]]);
+        n = end;
+      }
+    } else continue;
+    if (entries.length < 2) continue;
+    const unq = (t: Tok) => t.kind === "str" ? t.value.slice(1, -1) : t.value;
+    const keyHits = entries.filter(([k]) => values.has(unq(k))).length;
+    const valHits = entries.filter(([, v]) =>
+      v.kind === "str" && values.has(unq(v))
+    ).length;
+    keyStatus ||= keyHits >= 2 && keyHits === entries.length;
+    valueStatus ||= valHits >= 2 && valHits === entries.length;
+    if (!keyStatus && !valueStatus) continue;
+    out.set(toks[j].value, {
+      decl: j,
+      keyStatus,
+      valueStatus,
+      labels: entries.every(([, v]) => v.kind === "str" || v.kind === "tmpl"),
+    });
+  }
+  return out;
+}
+
+/** How the read of status table `T` at `k` decides behaviour, or null: its
+ *  lifecycle value compared (`status() === OFFERED_FROM[cmd]`), or a lookup
+ *  keyed by a record's lifecycle field whose values are not labels
+ *  (`ACTIONS[order().status]`). */
+function tableUse(toks: Tok[], k: number, t: StatusTable): string | null {
+  let open = k + 1;
+  if (isP(toks[open], ".") && toks[open + 1]?.value === "get") open += 2;
+  const bracket = isP(toks[open], "[") || isP(toks[open], "(");
+  if (!bracket || (isP(toks[open], "(") && open === k + 1)) return null;
+  const close = matchBracket(toks, open);
+  if (close < 0) return null;
+  const before = toks[k - 1], after = toks[close + 1];
+  const compared = (before?.kind === "punct" && COMPARE.has(before.value)) ||
+    (after?.kind === "punct" && COMPARE.has(after.value));
+  if (t.valueStatus && compared) {
+    return "decides which actions a status allows — a client state machine";
+  }
+  if (t.keyStatus && !t.labels) {
+    const key = operandFwd(toks, open + 1);
+    const leaf = key.names[key.names.length - 1];
+    if (
+      isData(key) && key.end === close - 1 && LIFECYCLE_FIELD.test(leaf ?? "")
+    ) {
+      return `is looked up by \`${
+        toks.slice(open + 1, close).map((x) => x.value).join("")
+      }\` to decide data — a client state machine`;
+    }
+  }
+  return null;
 }
 
 /** Does the expression holding operator `k` end in a template pipe

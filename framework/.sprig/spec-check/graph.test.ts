@@ -237,3 +237,86 @@ Deno.test("REQ-057: checkComposition compares page-local units too — one the p
   assert(r.findings[0].hint.includes("pages/dashboard"));
   assert(!r.ok);
 });
+
+// REQ-064: the app shell (src/shell, the graph's "shell" component) wraps every page, so a
+// unit it composes — directly or through a component — counts as used on every page.
+const SHELL_GRAPH: CompositionGraph = {
+  ...GRAPH,
+  components: {
+    ...GRAPH.components,
+    shell: {
+      dir: "src/shell",
+      scope: "shared",
+      composes: ["top-bar"],
+      composedBy: [],
+    },
+    "top-bar": {
+      dir: "src/shared-components/top-bar",
+      scope: "shared",
+      composes: ["main-nav"],
+      composedBy: ["shell"],
+    },
+    "main-nav": {
+      dir: "src/shared-components/main-nav",
+      scope: "shared",
+      composes: [],
+      composedBy: ["top-bar"],
+    },
+  },
+};
+const SHELL_INV: Inventory = {
+  ...INV,
+  units: [
+    ...INV.units,
+    unit({
+      name: "top-bar",
+      dir: "shared-components/top-bar",
+      usedOn: ["dashboard", "archive"],
+    }),
+    unit({
+      name: "main-nav",
+      dir: "shared-components/main-nav",
+      usedOn: ["dashboard", "archive"],
+    }),
+  ],
+};
+
+Deno.test("REQ-064: a unit the shell composes (directly or through top-bar) counts as used on every page", () => {
+  const r = checkComposition(SHELL_INV, SHELL_GRAPH);
+  assertEquals(r.findings, []);
+  assert(r.ok);
+});
+
+Deno.test("REQ-064: a shell-composed unit whose usedOn omits a page is a stale usage matrix — the shell wraps that page too", () => {
+  const inv: Inventory = {
+    ...SHELL_INV,
+    units: SHELL_INV.units.map((u) =>
+      u.name === "main-nav" ? { ...u, usedOn: ["dashboard"] } : u
+    ),
+  };
+  assertEquals(
+    checkComposition(inv, SHELL_GRAPH).findings.map((f) => f.message),
+    [
+      "usage matrix stale: page archive composes <main-nav> but main-nav's usedOn does not list it",
+    ],
+  );
+});
+
+Deno.test("REQ-064: a shared unit composed by neither the page nor the shell says so", () => {
+  const g: CompositionGraph = {
+    ...SHELL_GRAPH,
+    components: {
+      ...SHELL_GRAPH.components,
+      shell: { ...SHELL_GRAPH.components.shell, composes: [] },
+      "top-bar": { ...SHELL_GRAPH.components["top-bar"], composedBy: [] },
+    },
+  };
+  const r = checkComposition(SHELL_INV, g);
+  assertEquals(r.findings.map((f) => f.message), [
+    "top-bar is used on page dashboard per the breakdown, but it is not composed by dashboard or the shell",
+    "top-bar is used on page archive per the breakdown, but it is not composed by archive or the shell",
+    "main-nav is used on page dashboard per the breakdown, but it is not composed by dashboard or the shell",
+    "main-nav is used on page archive per the breakdown, but it is not composed by archive or the shell",
+  ]);
+  assert(r.findings[0].hint.includes("src/shell"));
+});

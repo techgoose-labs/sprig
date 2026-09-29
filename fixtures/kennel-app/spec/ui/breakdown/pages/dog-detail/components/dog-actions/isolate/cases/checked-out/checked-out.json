@@ -1,0 +1,14 @@
+{
+  "_name": "Checked out (d04) — all four disabled @1280",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d04",
+  "closed": false,
+  "_signals": {
+    "status": "checked-out",
+    "allowedActions": [],
+    "allowedAfter": {}
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions-checked-out@1280.png"
+}

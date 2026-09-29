@@ -1,0 +1,14 @@
+{
+  "_name": "Checked out (d04) @640",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 640,
+  "_signals": {
+    "status": "checked-out",
+    "dogId": "d04",
+    "closed": false,
+    "allowedActions": [],
+    "allowedAfter": {}
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions-checked-out@640.png"
+}

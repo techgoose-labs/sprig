@@ -1,0 +1,9 @@
+{
+  "_name": "Explicit white stage",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_reference": {
+    "image": "spec/stills/title-row@white.png",
+    "background": "#ffffff"
+  }
+}

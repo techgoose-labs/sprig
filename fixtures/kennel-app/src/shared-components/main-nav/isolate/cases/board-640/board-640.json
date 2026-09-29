@@ -1,0 +1,8 @@
+{
+  "_name": "Board active, 640 (sm: labels just shown)",
+  "_tier": "pure-client",
+  "_viewport": 640,
+  "_theme": "brand",
+  "_signals": { "view": "board" },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/main-nav/screenshots/main-nav-board@640.png"
+}

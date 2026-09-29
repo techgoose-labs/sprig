@@ -325,7 +325,8 @@ Deno.test("REQ-049: logic-placement rule c bites on a length check in an event h
 
 Deno.test("REQ-049: logic-placement rule d bites on defining a domain function", async () => {
   await logicBites(
-    "    const computeTotal = () => 0;\n",
+    // REQ-065: a definition bites when its body does work, not by name alone
+    "    const computeTotal = () => sumOf(rows());\n",
     "d",
     /defines `computeTotal`/,
   );
@@ -510,6 +511,56 @@ Deno.test("REQ-060: control — once the family has a token, the raw color hint 
     );
   }, /^raw color rgb\(0 0 0 \/ 0\.05\) in box-shadow$/);
   assertEquals(f.hint, "add it to css-variables.json and use var(--…)");
+});
+
+Deno.test("REQ-065: tokens never reads inside @font-face — its descriptors declare a font, they do not use one", async () => {
+  await withCopy(TOKENS, async (c) => {
+    await c.edit(
+      CSS,
+      append(
+        "@font-face {\n" +
+          '  font-family: "Caveat";\n' +
+          "  font-style: normal;\n" +
+          "  font-weight: 400 700;\n" +
+          "  font-display: swap;\n" +
+          '  src: url(https://fonts.gstatic.com/s/caveat/v23/x.woff2) format("woff2");\n' +
+          "  unicode-range: U+0000-00FF, U+0131;\n" +
+          "  size-adjust: 105%;\n" +
+          "  ascent-override: 90%;\n" +
+          "}\n",
+      ),
+    );
+    assertGreen(await tokens(c), "@font-face block");
+  });
+  // control: the same family used in a rule is still off-system
+  await tokensBites(
+    (c) => c.edit(CSS, append('.badge--x { font-family: "Caveat"; }\n')),
+    /off-system font: font-family "Caveat"/,
+  );
+});
+
+Deno.test("REQ-065: daisyUI's --size-field / --size-selector are control sizes, not space steps — a gap equal to one is no finding", async () => {
+  await withCopy(TOKENS, async (c) => {
+    await c.edit(VARS, addToken("--size-field", "0.25rem"));
+    await c.edit(VARS, addToken("--size-selector", "0.25rem"));
+    await c.edit(CSS, append(".badge--x { display: flex; gap: 0.25rem; }\n"));
+    const r = await tokens(c);
+    assertGreen(r, "gap equal to a daisyUI param");
+    assert(
+      r.notes!.some((n) =>
+        /space 1 \(--space-2\)/.test(n) &&
+        /daisyUI params, not length tokens: --size-field, --size-selector/
+          .test(n)
+      ),
+      r.notes!.join("\n"),
+    );
+  });
+  // control: a real space step with that value names only the step
+  await tokensBites(async (c) => {
+    await c.edit(VARS, addToken("--size-field", "0.25rem"));
+    await c.edit(VARS, addToken("--space-1", "0.25rem"));
+    await c.edit(CSS, append(".badge--x { gap: 0.25rem; }\n"));
+  }, /^length 0\.25rem in gap is the value of --space-1$/);
 });
 
 Deno.test("REQ-049: tokens rule c bites on an off-system font-family", async () => {
@@ -750,6 +801,41 @@ Deno.test("REQ-049: optimistic-writes rule 2 bites on the loading-flag spinner a
       ),
     /^the UI changed only after the server answered .*\(in load,/,
   );
+});
+
+Deno.test("REQ-065: optimistic-writes rule 1 bites through a local helper that awaits the write", async () => {
+  const helper = before(
+    "export default defineComponent",
+    "async function archive(id: string) {\n" +
+      '  const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });\n' +
+      "  return res.ok;\n" +
+      "}\n\n",
+  );
+  await optimisticBites(
+    (c) => c.edit(LIST, (s) => awaitsFirst('archive("t1")')(helper(s))),
+    RULE1,
+  );
+});
+
+Deno.test("REQ-065: optimistic-writes control — a local helper that only reads stays green", async () => {
+  await withCopy(OPT, async (c) => {
+    await c.edit(
+      LIST,
+      (s) =>
+        awaitsFirst('peek("t1")')(
+          before(
+            "export default defineComponent",
+            [
+              "async function peek(id: string) {",
+              "  return (await fetch(`/api/todos/${id}`)).json();",
+              "}",
+              "",
+            ].join("\n"),
+          )(s),
+        ),
+    );
+    assertGreen(await optimisticLint(c), "awaited read-only helper");
+  });
 });
 
 Deno.test("REQ-049: optimistic-writes control — an awaited read (GET fetch, GET client op) stays green", async () => {

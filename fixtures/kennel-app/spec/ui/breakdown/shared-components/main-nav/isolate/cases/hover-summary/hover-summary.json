@@ -1,0 +1,7 @@
+{
+  "_name": "Board active, pointer over Day summary (hover), 1280",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_signals": { "view": "board" }
+}

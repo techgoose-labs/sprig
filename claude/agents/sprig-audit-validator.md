@@ -138,10 +138,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

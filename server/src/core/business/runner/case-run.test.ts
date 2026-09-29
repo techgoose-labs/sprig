@@ -210,3 +210,33 @@ Deno.test("REQ-042: planRun — a case selected through its spec files brings it
   );
   assertEquals(p.cases[0].reference?.image, "/proj/r.png");
 });
+
+Deno.test("REQ-063: planRun — a case's _reference.background beats the fixture's background; neither → the harness resolves the theme's page colour", () => {
+  const e = {
+    ...entry([
+      {
+        name: "own",
+        reference: {
+          image: "/proj/a.png",
+          tolerance: 0.01,
+          background: "#000",
+        },
+      },
+      { name: "fix", reference: { image: "/proj/b.png", tolerance: 0.01 } },
+    ]),
+    background: "#eee",
+  } as ComponentEntry;
+  const by = (p: ReturnType<typeof planRun>, k: string) =>
+    p.cases.find((c) => c.key === k)!;
+  const p = planRun([e], {}, ROOT);
+  assertEquals(by(p, "swatch/own").stageBackground, {
+    value: "#000",
+    from: "the case's _reference.background",
+  });
+  assertEquals(by(p, "swatch/fix").stageBackground, {
+    value: "#eee",
+    from: "the fixture's background",
+  });
+  const none = planRun(E, {}, ROOT);
+  assertEquals(by(none, "swatch/ref-only").stageBackground, undefined);
+});

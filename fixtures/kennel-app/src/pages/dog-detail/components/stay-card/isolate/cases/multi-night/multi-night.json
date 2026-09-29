@@ -1,0 +1,13 @@
+{
+  "_name": "d03 — 3 nights, $195.00 due",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/stay-card/screenshots/stay-card-d03-multi-night@1280.png",
+  "hasStay": true,
+  "checkIn": "Sep 27, 9:30 AM",
+  "plannedCheckOut": "Sep 30, 11:00 AM",
+  "nightlyRate": "$65.00",
+  "nights": 3,
+  "totalDue": "$195.00"
+}

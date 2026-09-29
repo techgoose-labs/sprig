@@ -1,0 +1,15 @@
+{
+  "_name": "Open day @1024",
+  "_tier": "pure-client",
+  "_viewport": 1024,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/day-stats/screenshots/day-stats@1024.png",
+  "_signals": {
+    "kennelsUsed": 19,
+    "kennelsTotal": 40,
+    "occupancyPct": 48,
+    "revenueToday": 1225,
+    "overdueCount": 2,
+    "closed": false
+  }
+}

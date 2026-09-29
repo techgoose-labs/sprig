@@ -64,10 +64,13 @@ and passed only a name.)
   `SPRIG_WB_ROOT=/tmp/wb-<your PORT>` on EVERY `sprig isolate test` /
   `sprig isolate <app>` you run — without it parallel agents regenerate the ONE
   shared workbench and delete each other's previews mid-run (a measured race).
-  If you start the workbench, record its PID
-  (`sprig isolate <app> --no-open & echo $! > /tmp/dev-<your PORT>.pid`) and stop it with
-  `kill $(cat /tmp/dev-<your PORT>.pid)` — that one `kill` stops the whole
-  chain, dev server included; nothing to hunt afterwards. Re-running
+  If you start the workbench, start it in the background with its log in a
+  file (`SPRIG_WB_ROOT=/tmp/wb-<your PORT> PORT=<your PORT> sprig isolate <app> --no-open > /tmp/wb-<your PORT>.log 2>&1 &`)
+  — `$!` is not a PID under every shell (a guarded shell prints `g1`), so to
+  stop it `kill` the `pid` in `/tmp/wb-<your PORT>/isolate.json` (the
+  workbench writes it; re-running the same `sprig isolate` prints the same
+  pid as `kill <pid>`) — that one `kill` stops the whole chain, dev server
+  included; nothing to hunt afterwards. Re-running
   `sprig isolate` on a workbench whose server is still up REUSES it (prints its
   URL, exits 0) — never start a second one for the same `SPRIG_WB_ROOT`. A
   workbench you leave behind exits by itself after 30 min idle
@@ -112,7 +115,11 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    await and is reported by `sprig check` (the `optimistic-writes` lint fails
    any unmarked one). A `data-note` is a design annotation, never a license to
    wait. The unit's `pending` and `rolled-back` cases prove it. Pattern:
-   `references/component-model.md` (Optimistic UI).
+   `references/component-model.md` (Optimistic UI). A write goes to a command
+   in the contract: an island with a server write and no
+   `spec/contract/openapi.json` → return `blocked: no contract` — never route
+   its writes to a local state service (or any client store) to stand in for
+   the backend.
 5. **Scoped styles** — component `styles.css` is view-encapsulated; consume
    tokens with `var(--token)` or the generated utilities — a raw color/length
    equal to a token is a `tokens` lint error. `data-note-css` from an annotated
@@ -128,7 +135,7 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    `sprig: <dir>/styles.css styles .x — daisyUI … styles the same class name(s) globally`
    — treat it as red: rename, or use the daisyUI component on purpose with its
    own modifiers. Reserved list:
-   `~/.claude/skills/sprig:build/references/component-model.md` → "Scoped
+   `sprig:build/references/component-model.md` → "Scoped
    styles".
 6. **Isolate to green** — drop in the proposed `isolate/` folder (or author one:
    `fixture.json` + `cases/<state>/<state>.json`, format → cross-skill
@@ -237,7 +244,18 @@ await waitHydrated(page); // after page.goto, before the first interaction
 Island preview props: preview targets get NO static prop bindings — declare each
 needed prop as a `"signal": true` control in `fixture.json` and seed it via
 `_signals.<prop>` in the case JSON (`waitHydrated` gates on the seeding having
-landed).
+landed). In the composed page it is different: A class island receives its
+`[prop]` bindings only through `constructor(ctx)` — a field initializer
+`closed = signal(false)` never sees `[closed]="today.closed"` (at SSR or at
+hydration), and `_signals` in isolate hides the gap. Seed each bound field in
+the constructor from `ctx.input` (`ComponentCtx` from `@techgoose-labs/sprig`):
+
+```ts
+constructor(ctx?: ComponentCtx) {
+  if (!ctx) return;
+  this.closed.set(ctx.input("closed", this.closed())() ?? this.closed());
+}
+```
 
 **Verify by RECEIPT:** the isolate runner's own output is the verification —
 each case's pass/fail verdict from `sprig isolate` (or `sprig isolate test --json`
@@ -285,9 +303,17 @@ framework source — the shapes above are verified.
   the **channel map** (cross-island state as `sets:`/`reads:`/`edits:`), facts,
   and the app's gotchas, pre-digested. Read it INSTEAD of sibling templates and
   instead of the references below.
+- **References:** a `<skill>/references/<file>` path means the `references/`
+  dir next to the SKILL.md that spawned you (installed or repo copy), never a
+  hardcoded home path — sibling skill dirs (`sprig:build/`, `sprig:breakdown/`,
+  `interfaces/`) sit beside that skill's dir, and your brief carries the
+  absolute path. `sprig:breakdown/references/`: `capture-recipes.md`,
+  `isolate-format.md`. `sprig:build/references/`: `INDEX.md`,
+  `component-model.md`, `isolate.md`, `routing.md`, `serving.md`,
+  `templates.md`, `wiring.md`.
 - The references
-  (`~/.claude/skills/sprig:build/references/{component-model,templates,wiring,isolate}.md`,
-  cross-skill `~/.claude/skills/sprig:breakdown/references/isolate-format.md`)
+  (`sprig:build/references/{component-model,templates,wiring,isolate}.md`,
+  cross-skill `sprig:breakdown/references/isolate-format.md`)
   are **failure-time material, not a preamble**: open ONE only when the recipe
   above + the cheatsheet don't cover the exact shape you're implementing (an
   unfamiliar construct, a malformed-fixture error, a red you can't diagnose).
@@ -336,10 +362,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

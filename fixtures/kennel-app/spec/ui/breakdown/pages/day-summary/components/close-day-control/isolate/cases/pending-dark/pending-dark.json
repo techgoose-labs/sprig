@@ -1,0 +1,9 @@
+{
+  "_name": "Pending — Closing the day… (1280, brand-dark)",
+  "_tier": "confirmed-write",
+  "_viewport": 1280,
+  "_theme": "brand-dark",
+  "_reference": { "image": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control-pending@1280-brand-dark.png", "tolerance": 0.06, "reason": "the daisyUI loading-spinner is a live SMIL animation (rotate 2s + dash 1.5s) that neither the capture nor the runner can pause; its ~20x20 px frame differs run to run (up to ~0.058 of this 172x40 still)" },
+  "dayId": "today",
+  "_signals": { "closed": false, "pending": true }
+}

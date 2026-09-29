@@ -1,0 +1,260 @@
+{
+ "note": "`animations` is what document.getAnimations() returns with the unit at rest after load: EMPTY. Every record in `interactionTriggered` needs an interaction to start (out of scope for an isolate `_motion` case — assert those in a spec). Captured live from http://localhost:8744 (Chromium via playwright-core, dsf 1), 2026-09-29.",
+ "animations": [],
+ "interactionTriggered": [
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "background-color",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "rgb(194, 65, 12)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "oklab(0.514694 0.126733 0.10045)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "border-bottom-color",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "border-left-color",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "border-right-color",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "border-top-color",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-primary.w-full.sm:w-auto",
+   "name": "box-shadow",
+   "kind": "CSSTransition",
+   "trigger": "hover .btn.btn-primary[data-cmd=dog.checkIn]",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 3px 2px -2px, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 3px 2px -2px, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "div.alert.alert-error.shadow-sm.max-w-xs",
+   "name": "toast",
+   "kind": "CSSAnimation",
+   "trigger": "write rejected → toast() appends div.alert to #toasts (.toast>* animation)",
+   "duration": 250,
+   "delay": 0,
+   "easing": "ease-out",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "0",
+     "scale": "0.9",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "1",
+     "scale": "1",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 250,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "linear",
+    "fill": "none",
+    "direction": "normal"
+   }
+  }
+ ]
+}

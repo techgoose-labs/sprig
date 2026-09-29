@@ -79,6 +79,7 @@
       "framework/.sprig/compiler/island.ts",
       "framework/.sprig/compiler/lifecycle.ts",
       "framework/.sprig/compiler/lints/contract-calls.ts",
+      "framework/.sprig/compiler/lints/contract.ts",
       "framework/.sprig/compiler/lints/duplicate-templates.ts",
       "framework/.sprig/compiler/lints/lint-types.ts",
       "framework/.sprig/compiler/lints/logic-placement.ts",

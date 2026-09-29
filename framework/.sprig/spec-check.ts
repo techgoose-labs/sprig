@@ -9,10 +9,12 @@ import { join, relative, resolve } from "@std/path";
 import {
   checkBinding,
   dtoExports,
+  findOperation,
   parseBindingTable,
   parseEndpoint,
 } from "./spec-check/binding.ts";
 import { checkBuilt } from "./spec-check/built.ts";
+import { resolveContractRoot } from "./compiler/lints/contract.ts";
 import { checkComposition } from "./spec-check/graph.ts";
 import {
   checkDoubleAssignment,
@@ -183,9 +185,18 @@ export async function specCheck(
   );
 
   // ── binding-drift ──────────────────────────────────────────────────────────────
-  const openapiPath = join(root, "spec/contract/openapi.json");
-  const bindingPath = join(root, "spec/contract/binding.md");
-  const dtosPath = join(root, "spec/contract/client/dtos.ts");
+  // REQ-068: `--app <dir>` given → that dir's spec/contract first, then the git
+  // root's (the order the runner and `sprig check` use); the check says which.
+  const contract = await resolveContractRoot({
+    appRoot: opts.appDir ? resolve(opts.appDir) : undefined,
+    gitRoot: root,
+  }) ?? { dir: root, via: "git root" as const };
+  const contractNote = `contract: the ${contract.via}'s spec/contract (${
+    rel(join(contract.dir, "spec/contract"))
+  })`;
+  const openapiPath = join(contract.dir, "spec/contract/openapi.json");
+  const bindingPath = join(contract.dir, "spec/contract/binding.md");
+  const dtosPath = join(contract.dir, "spec/contract/client/dtos.ts");
   const openapiText = await readText(openapiPath);
   const bindingText = await readText(bindingPath);
   const commands = new Map<string, string[]>();
@@ -241,10 +252,31 @@ export async function specCheck(
       }
     }
   }
+  const drift = checks.find((c) => c.name === "binding-drift");
+  if (drift && !drift.skipped) {
+    drift.notes = [contractNote, ...drift.notes ?? []];
+  }
+  // REQ-068: a bound command's other names — its operationId and x-sprig-command —
+  // are keys isolate's `_network` accepts, so a rolled-back case may use them.
+  const aliases = new Map<string, string[]>();
   if (bindingText !== null) {
+    let doc: unknown = null;
+    try {
+      doc = openapiText === null ? null : JSON.parse(openapiText);
+    } catch { /* reported by binding-drift */ }
     for (const row of parseBindingTable(bindingText).rows) {
-      if (row.kind !== "command" || !parseEndpoint(row.endpoint)) continue;
+      const ep = parseEndpoint(row.endpoint);
+      if (row.kind !== "command" || !ep) continue;
       commands.set(row.unit, [...(commands.get(row.unit) ?? []), row.endpoint]);
+      const tpl = doc ? findOperation(doc, ep.method, ep.path) : null;
+      const op = tpl
+        ? (doc as { paths: Record<string, Record<string, unknown>> })
+          .paths[tpl][ep.method.toLowerCase()] as Record<string, unknown>
+        : undefined;
+      const names = [op?.operationId, op?.["x-sprig-command"]].filter((
+        n,
+      ): n is string => typeof n === "string" && n !== "");
+      if (names.length) aliases.set(row.endpoint, names);
     }
   }
 
@@ -282,7 +314,9 @@ export async function specCheck(
         "rolled-back cases not matched to a bound command: no spec/contract/binding.md",
       );
     }
-    checks.push(checkTierCases(inventory, cases, commands, read, notes));
+    checks.push(
+      checkTierCases(inventory, cases, commands, read, notes, aliases),
+    );
   }
 
   // ── built ──────────────────────────────────────────────────────────────────────

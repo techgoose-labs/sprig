@@ -22,6 +22,7 @@
  *      instead of pointing at a token that does not exist (REQ-060).
  *  (c) a `font-family` literal: one off the system is an error listing the font
  *      tokens; one equal to a token's value is an error naming that token.
+ *      `@font-face` blocks declare fonts and are never read (REQ-065).
  *      `var(…)` and `inherit`/`initial`/`unset`/`revert` pass. The `font`
  *      shorthand is not read (reported as such in the notes).
  * Named colors are not read in properties whose values are identifiers, not
@@ -116,6 +117,9 @@ const IDENT_PROPS = new Set([
  * | space  | gap/row-gap/column-gap, padding*, margin*, inset*, top, | --space, --spacing, --size        |
  * |        | left, right, bottom, width, height, min-/max-width/height |                                 |
  * | shadow | box-shadow                                              | --shadow                          |
+ *
+ * daisyUI's params (`--size-field`, `--size-selector`, `--border`, `--depth`,
+ * `--noise`) are in no family (REQ-065).
  */
 const LENGTH_FAMILIES = ["step", "radius", "space", "shadow"] as const;
 type Family = typeof LENGTH_FAMILIES[number];
@@ -139,7 +143,22 @@ function familyOfProp(prop: string): Family | null {
   return null;
 }
 
+/**
+ * REQ-065: daisyUI's plugin params. `--size-field` / `--size-selector` are the
+ * base unit daisyUI multiplies into control heights and paddings, not a spacing
+ * step — their `--size` prefix would otherwise put them in the space family and
+ * tell a builder to write `gap: var(--size-field)`.
+ */
+const DAISY_PARAMS = new Set([
+  "--size-field",
+  "--size-selector",
+  "--border",
+  "--depth",
+  "--noise",
+]);
+
 function familyOfToken(name: string): Family | null {
+  if (DAISY_PARAMS.has(name)) return null;
   for (const f of LENGTH_FAMILIES) {
     if (TOKEN_PREFIXES[f].some((p) => name === p || name.startsWith(p + "-"))) {
       return f;
@@ -158,8 +177,15 @@ export function describeFamilies(tokens: Tokens): string {
       : `${f} 0`;
   });
   const none = parts.every((p) => / 0$/.test(p));
+  const params = Object.keys(tokens).filter((k) =>
+    DAISY_PARAMS.has(k) && k.startsWith("--size")
+  ).sort();
   return `token families: ${parts.join(", ")}${
     none ? " — no length is matched against a token" : ""
+  }${
+    params.length
+      ? ` (daisyUI params, not length tokens: ${params.join(", ")})`
+      : ""
   }`;
 }
 
@@ -307,6 +333,20 @@ export function lintCssText(
         hint: "write /* sprig-token: <why this value is off-token> */",
       });
     }
+  }
+  // REQ-065: an @font-face block declares a font (family name, src,
+  // unicode-range, font-display, size-adjust …) — nothing in it is a use.
+  for (const m of decls.matchAll(/@font-face\s*\{/gi)) {
+    const open = m.index! + m[0].length - 1;
+    let depth = 0, end = decls.length;
+    for (let i = open; i < decls.length; i++) {
+      if (decls[i] === "{") depth++;
+      else if (decls[i] === "}" && --depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+    decls = blank(decls, m.index!, end);
   }
   let paints = decls;
   for (const m of decls.matchAll(/(["'])(?:\\.|(?!\1)[^\\\n])*\1/g)) {

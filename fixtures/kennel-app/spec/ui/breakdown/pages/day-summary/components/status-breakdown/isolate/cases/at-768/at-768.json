@@ -1,0 +1,12 @@
+{
+  "_name": "Tablet 768 (brand)",
+  "_tier": "static",
+  "_viewport": 768,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/status-breakdown/screenshots/status-breakdown@768.png",
+  "booked": 7,
+  "checkedIn": 14,
+  "walking": 5,
+  "checkedOut": 6,
+  "kennelsTotal": 40
+}

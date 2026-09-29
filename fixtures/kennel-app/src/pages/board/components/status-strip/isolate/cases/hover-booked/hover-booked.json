@@ -1,0 +1,1 @@
+{ "_name": "Hover — booked card (still: fixtures/kennel-app/spec/ui/breakdown/pages/board/components/status-strip/screenshots/status-strip-hover-booked@1280.png, asserted by spec)", "_tier": "static", "_theme": "brand", "_viewport": 1280, "booked": 7, "checkedIn": 14, "walking": 5, "checkedOut": 6, "empty": false, "active": "all" }

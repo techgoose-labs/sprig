@@ -1,0 +1,1 @@
+{ "_name": "Empty — no dogs today, 1280", "_tier": "static", "_theme": "brand", "_viewport": 1280, "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/status-strip/screenshots/status-strip-empty@1280.png", "booked": 0, "checkedIn": 0, "walking": 0, "checkedOut": 0, "empty": true, "active": "all" }

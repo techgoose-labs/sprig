@@ -1,0 +1,34 @@
+.load-error-box {
+  /* Fill the parent up to the 2xl cap, like the mock's block-level alert in main. Without an
+     explicit width, mx-auto in a grid/flex parent shrinks the alert to its content. */
+  width: 100%;
+  max-width: var(--container-2xl);
+  margin-inline: auto;
+  font-family: var(--font-body);
+}
+
+.load-error-icon {
+  display: block;
+  width: calc(var(--spacing) * 6);
+  height: calc(var(--spacing) * 6);
+  flex-shrink: 0;
+}
+
+.load-error-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+
+.load-error-message {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+/* Retry keeps daisyUI's neutral button text (--btn-fg = base-content). The isolate workbench
+   shell sets an unlayered `a { color: inherit }` that would otherwise beat the layered .btn
+   color and paint the link error-red. */
+.load-error-retry {
+  color: var(--btn-fg);
+}

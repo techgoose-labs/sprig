@@ -132,7 +132,7 @@ export function validateInventory(
       if (unit.classification === "island" && unit.tier === "static") {
         bad(
           "an island has tier static",
-          "name the island's tier (pure-client, optimistic-write, realtime) or classify it static",
+          "name the island's tier (pure-client, optimistic-write, confirmed-write, realtime) or classify it static",
         );
       }
       if (findings.length > before) return;

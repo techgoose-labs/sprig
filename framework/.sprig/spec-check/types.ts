@@ -6,6 +6,8 @@ export const TIERS = [
   "static",
   "pure-client",
   "optimistic-write",
+  // REQ-064: a write that awaits the server's reply before showing the change.
+  "confirmed-write",
   "realtime",
 ] as const;
 export type Tier = typeof TIERS[number];

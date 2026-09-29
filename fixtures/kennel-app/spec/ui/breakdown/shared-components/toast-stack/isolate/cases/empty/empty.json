@@ -1,0 +1,7 @@
+{
+  "_name": "Empty (nothing summoned)",
+  "_tier": "pure-client",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": { "toasts": [] }
+}

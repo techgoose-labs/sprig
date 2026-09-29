@@ -26,7 +26,11 @@ import {
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
 import { existingAuthSlot, existingUiSlot } from "./.sprig/serve-slots.ts";
-import { compositionRootOf, ROOT_ENV } from "./.sprig/composition-root.ts";
+import {
+  compositionRootOf,
+  isCompositionRoot,
+  ROOT_ENV,
+} from "./.sprig/composition-root.ts";
 import {
   analyzeWiring,
   renderWiringMap,
@@ -44,6 +48,7 @@ import {
   type LintResult,
 } from "./.sprig/compiler/lints/lint-types.ts";
 import { lintContractCalls } from "./.sprig/compiler/lints/contract-calls.ts";
+import { appRootOf } from "./.sprig/compiler/lints/contract.ts";
 import { SKIP_DIRS } from "./.sprig/compiler/lints/ui-files.ts";
 import { lintLogicPlacement } from "./.sprig/compiler/lints/logic-placement.ts";
 import { lintTokens } from "./.sprig/compiler/lints/tokens.ts";
@@ -695,7 +700,7 @@ async function build(
     }
     throw e;
   }
-  await writeBuildInfo(resolve(appDir), outDir);
+  await writeBuildInfo(projectRootOf(resolve(appDir)), outDir);
   console.log(
     `sprig build: ${r.islands.length} island chunk(s) ` +
       `[${
@@ -705,57 +710,101 @@ async function build(
   );
 }
 
-/** Bake the git provenance block into the served static dir as `build-info.json`. The deploy tooling
- *  (infra) stamps `{ repo, commit, branch, buildTime }` into **`.infra/git.json`** at the repo root
- *  BEFORE the build runs — a server-only sidecar file (it moved OUT of deno.json: a stamp inside the
- *  most-contended file in the repo conflicted every lagging branch at the merge). This copies it
- *  beside the built assets so the ui unit can emit it as `<meta>` in every SSR document head at
- *  runtime (the serving isolate has no git and no repo). Walks up from `appDir` for the nearest
- *  `.infra/git.json`, falling back to a legacy `git` block in `deno.json(c)`; absent (local dev, or
- *  infra didn't stamp) → writes nothing, and the head stays clean. */
-async function writeBuildInfo(appDir: string, outDir: string): Promise<void> {
-  let git: unknown;
-  let dir = resolve(appDir);
-  for (;;) {
-    // current stamp location: .infra/git.json (the whole file IS the block)
+/** The project an app belongs to — the root its provenance and composition root hang off
+ *  (REQ-067). The enclosing composition root (see findProjectRoot) when the app is one of its
+ *  packages — `<root>/ui`, `<root>/app`, or a member of `<root>/deno.json`'s workspace — else
+ *  the app dir itself: an app that merely LIVES inside a larger repo (fixtures/kennel-app in
+ *  this one) is its own project, and nothing above it is its business. */
+export function projectRootOf(appAbs: string): string {
+  const app = resolve(appAbs);
+  const gitRoot = gitRepoRoot(app);
+  const root = compositionRootOf(app, gitRoot) ?? gitRoot ??
+    (basename(app) === "ui" || basename(app) === "app" ? dirname(app) : app);
+  if (root === app) return app;
+  const rel = relative(root, app).replace(/\\/g, "/");
+  if (rel === "ui" || rel === "app") return root;
+  for (const name of ["deno.json", "deno.jsonc"]) {
     try {
-      const stamp = JSON.parse(
-        await Deno.readTextFile(join(dir, ".infra", "git.json")),
-      );
-      if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) {
-        git = stamp;
-      }
-    } catch { /* absent / unparseable → try the legacy location */ }
-    // legacy location: a `git` key inside deno.json(c)
-    if (!git) {
-      for (const name of ["deno.json", "deno.jsonc"]) {
-        try {
-          const cfg = JSON.parse(await Deno.readTextFile(join(dir, name))) as {
-            git?: unknown;
-          };
-          if (
-            cfg.git && typeof cfg.git === "object" && !Array.isArray(cfg.git)
-          ) {
-            git = cfg.git;
-            break;
-          }
-        } catch {
-          /* absent / JSONC-with-comments / unparseable → keep walking up */
-        }
-      }
-    }
-    if (git) break;
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+      const ws = (JSON.parse(Deno.readTextFileSync(join(root, name))) as {
+        workspace?: unknown;
+      }).workspace;
+      if (
+        Array.isArray(ws) &&
+        ws.some((m) =>
+          typeof m === "string" &&
+          m.replace(/^\.\//, "").replace(/\/+$/, "") === rel
+        )
+      ) return root;
+    } catch { /* absent / JSONC / unparseable → not a workspace */ }
   }
-  if (!git) return;
+  return app;
+}
+
+/** The git HEAD of `dir`'s repo — `{ repo?, commit, branch }`, or null outside a repo /
+ *  without git (a deploy tarball). `repo` is `origin`'s url when there is one. */
+async function gitHeadOf(
+  dir: string,
+): Promise<{ repo?: string; commit: string; branch: string } | null> {
+  const run = async (...args: string[]): Promise<string | null> => {
+    try {
+      const o = await new Deno.Command("git", {
+        args: ["-C", dir, ...args],
+        stdout: "piped",
+        stderr: "null",
+      }).output();
+      const s = new TextDecoder().decode(o.stdout).trim();
+      return o.code === 0 && s ? s : null;
+    } catch {
+      return null; // no git binary
+    }
+  };
+  const commit = await run("rev-parse", "HEAD");
+  if (!commit) return null;
+  const branch = await run("rev-parse", "--abbrev-ref", "HEAD") ?? "unknown";
+  const repo = await run("config", "--get", "remote.origin.url");
+  return { ...(repo ? { repo } : {}), commit, branch };
+}
+
+/** The provenance block for the app rooted at `root` (REQ-067) — from that root ONLY, first hit
+ *  wins: (1) `<root>/.infra/git.json`, which the deploy tooling (infra) stamps BEFORE the build;
+ *  (2) the git HEAD of `<root>`'s repo — the branch/commit actually being built, stamped now;
+ *  (3) `"unknown"`. It never walks above `root`: a parent project's stamp (the sprig repo's own
+ *  `.infra/git.json` under fixtures/kennel-app) describes a different build. */
+export async function resolveBuildInfo(
+  root: string,
+  readGit: (
+    dir: string,
+  ) => Promise<{ repo?: string; commit: string; branch: string } | null> =
+    gitHeadOf,
+  now: () => Date = () => new Date(),
+): Promise<Record<string, unknown>> {
+  try {
+    const stamp = JSON.parse(
+      await Deno.readTextFile(join(root, ".infra", "git.json")),
+    );
+    if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) {
+      return stamp as Record<string, unknown>;
+    }
+  } catch { /* absent / unparseable → git */ }
+  const buildTime = now().toISOString();
+  const head = await readGit(root);
+  if (head) return { ...head, buildTime };
+  return { commit: "unknown", branch: "unknown", buildTime };
+}
+
+/** Bake the provenance block into the served static dir as `build-info.json`, so the ui unit can
+ *  emit it as `<meta>` in every SSR document head at runtime (the serving isolate has no git and
+ *  no repo). `root` is the app's PROJECT root (projectRootOf); the block is resolveBuildInfo's. */
+async function writeBuildInfo(root: string, outDir: string): Promise<void> {
+  const info = await resolveBuildInfo(root);
   await Deno.mkdir(outDir, { recursive: true }).catch(() => {});
   await Deno.writeTextFile(
     join(outDir, "build-info.json"),
-    JSON.stringify(git) + "\n",
+    JSON.stringify(info) + "\n",
   );
-  console.log(`sprig: baked build-info.json (git provenance) → ${outDir}`);
+  console.log(
+    `sprig: baked build-info.json (${info.commit} on ${info.branch}, from ${root}) → ${outDir}`,
+  );
 }
 
 /** Stamp the app's `@techgoose-labs/sprig` (+ `/keep`) import to the RUNNING CLI's EXACT version, so an
@@ -1071,14 +1120,20 @@ async function check(appDir = ".", rootArg?: string): Promise<void> {
   const gitRoot = rootArg
     ? resolve(rootArg)
     : gitRepoRoot(resolve(appDir)) ?? resolve(appDir);
+  // REQ-068: the contract is looked up at the app root (the dir holding deno.json)
+  // first, then the git root (or --root) — each contract lint names the one it read.
+  const appRoot = await appRootOf(resolve(appDir), gitRoot);
   const lints: [string, () => Promise<LintResult>][] = [
-    ["contract-calls", () => lintContractCalls({ uiSrc: srcDir, gitRoot })],
+    [
+      "contract-calls",
+      () => lintContractCalls({ uiSrc: srcDir, gitRoot, appRoot }),
+    ],
     ["logic-placement", () => lintLogicPlacement({ uiSrc: srcDir })],
     ["tokens", () => lintTokens({ uiSrc: srcDir })],
     ["duplicate-templates", () => lintDuplicateTemplates({ uiSrc: srcDir })],
     [
       "optimistic-writes",
-      () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot }),
+      () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot, appRoot }),
     ],
   ];
   for (const [name, run] of lints) {
@@ -2796,11 +2851,38 @@ switch (cmd) {
       break;
     }
     const ui = await resolveBuildAppDir(appArg);
+    // REQ-067: an app that only LIVES inside a larger repo — not its ./ui or ./app, not a
+    // workspace member (fixtures/kennel-app in this one) — is its own project, so its
+    // composition root is the serve.ts at ITS root, never the enclosing repo's. Absent, refuse
+    // before touching anything, naming both paths tried and the UI-only build.
+    const repoRoot = gitRepoRoot(ui);
+    const ownRoot = repoRoot !== ui && !isCompositionRoot(ui) &&
+      projectRootOf(ui) === ui;
+    const appServe = join(ui, "serve.ts");
+    if (ownRoot && !(await pathExists(appServe))) {
+      const outer = compositionRootOf(ui, repoRoot) ?? repoRoot;
+      const uiArg = appArg ?? (relative(Deno.cwd(), ui) || ".");
+      console.error(
+        `sprig build: no serve.ts at ${ui}; a UI-only build is \`--ui-only\`.\n` +
+          `  Tried the composition root relative to the APP root (the dir holding its deno.json):\n` +
+          `    ${appServe} — absent\n` +
+          (outer
+            ? `    ${
+              join(outer, "serve.ts")
+            } — not this app's: ${ui} is not a package of ${outer}\n` +
+              `      (not its ./ui or ./app, not a member of its workspace)\n`
+            : "") +
+          `  Nothing was touched. Give the app its own composition root at ${appServe},\n` +
+          `  or build just the client bundle:\n` +
+          `      sprig build --ui-only ${uiArg}`,
+      );
+      Deno.exit(1);
+    }
     // Artifact gates (both fail LOUD, never a silent misread): the manifest
     // version handshake, and contract freshness — a committed typed client
     // must match the committed openapi.json it claims to come from.
     {
-      const gitRoot = dirname(ui);
+      const gitRoot = ownRoot ? ui : dirname(ui);
       for (
         const err of [
           await checkArtifactVersion(gitRoot),
@@ -2819,6 +2901,18 @@ switch (cmd) {
         await Deno.stat(join(gitRoot, "spec"));
         await registerManifestEntries(gitRoot, SPRIG_MANIFEST_ENTRIES);
       } catch { /* no artifact — nothing to register */ }
+    }
+    if (ownRoot) {
+      // The app's own serve.ts IS its composition root: build the client bundle beside it and
+      // leave the root as written — there is no server/ package here to compose.
+      await build(ui, join(ui, "static"), false);
+      console.log(
+        `sprig build: composition root is the app's own ${appServe} — left as written;\n` +
+          `  run it from ${
+            relative(Deno.cwd(), ui) || "here"
+          }:  deno serve -A serve.ts`,
+      );
+      break;
     }
     await build(ui, join(ui, "static"), true);
     break;

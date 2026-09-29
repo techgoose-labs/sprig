@@ -1,0 +1,285 @@
+{
+ "source": "spec/ui/kennel-prototype/_test-prototype.html #/summary @1280 brand",
+ "onLoad": [],
+ "hoverCloseDay": [
+  {
+   "kind": "CSSTransition",
+   "name": "background-color",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "rgb(194, 65, 12)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "oklab(0.514694 0.126733 0.10045)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  },
+  {
+   "kind": "CSSTransition",
+   "name": "border-bottom-color",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  },
+  {
+   "kind": "CSSTransition",
+   "name": "border-left-color",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  },
+  {
+   "kind": "CSSTransition",
+   "name": "border-right-color",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  },
+  {
+   "kind": "CSSTransition",
+   "name": "border-top-color",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  },
+  {
+   "kind": "CSSTransition",
+   "name": "box-shadow",
+   "target": "button#close-day.btn.btn-primary",
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 3px 2px -2px, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 3px 2px -2px, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "delay": 0,
+    "direction": "normal",
+    "duration": 200,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "endDelay": 0,
+    "fill": "backwards",
+    "iterationStart": 0,
+    "iterations": 1,
+    "activeDuration": 200,
+    "currentIteration": 0,
+    "endTime": 200,
+    "localTime": 33.33599999157855,
+    "progress": 0.4415790286578816
+   },
+   "playState": "running"
+  }
+ ],
+ "pendingClose": [],
+ "spinnerComputed": {
+  "maskImage": "url(\"data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='2s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E\")",
+  "animationName": "none",
+  "width": "20px",
+  "classes": "loading loading-spinner loading-sm"
+ },
+ "afterCloseReply": [],
+ "computedMotionPropsOpen": [
+  {
+   "el": "button#close-day.btn.btn-primary",
+   "transitionProperty": "color, background-color, border-color, box-shadow, transform",
+   "transitionDuration": "0.2s",
+   "transitionTimingFunction": "cubic-bezier(0, 0, 0.2, 1)",
+   "animationName": "none",
+   "animationDuration": "0s",
+   "willChange": "auto"
+  },
+  {
+   "el": "section.card.bg-base-100.border.border-base-300",
+   "transitionProperty": "outline",
+   "transitionDuration": "0.2s",
+   "transitionTimingFunction": "ease-in-out",
+   "animationName": "none",
+   "animationDuration": "0s",
+   "willChange": "auto"
+  },
+  {
+   "el": "section.card.bg-base-100.border.border-base-300",
+   "transitionProperty": "outline",
+   "transitionDuration": "0.2s",
+   "transitionTimingFunction": "ease-in-out",
+   "animationName": "none",
+   "animationDuration": "0s",
+   "willChange": "auto"
+  }
+ ],
+ "computedMotionPropsClosed": [
+  {
+   "el": "section.card.bg-base-100.border.border-base-300",
+   "transitionProperty": "outline",
+   "transitionDuration": "0.2s",
+   "transitionTimingFunction": "ease-in-out",
+   "animationName": "none",
+   "animationDuration": "0s",
+   "willChange": "auto"
+  },
+  {
+   "el": "section.card.bg-base-100.border.border-base-300",
+   "transitionProperty": "outline",
+   "transitionDuration": "0.2s",
+   "transitionTimingFunction": "ease-in-out",
+   "animationName": "none",
+   "animationDuration": "0s",
+   "willChange": "auto"
+  }
+ ]
+}

@@ -24,6 +24,8 @@ export type LintResult = {
   checked: string[];
   /** anything else the reader should know: partial skips and why */
   notes?: string[];
+  /** REQ-068: which root's spec/contract the lint read — ends the checked line */
+  contract?: { dir: string; via: string };
 };
 
 /** The lines `sprig check` prints for one lint — never silent: what it
@@ -36,7 +38,11 @@ export function formatLintResult(name: string, r: LintResult): string[] {
   const out = [
     `${name}: checked ${r.checked.length} file(s) — ${errors} error(s), ${
       r.findings.length - errors
-    } warning(s), ${r.suppressed.length} suppressed`,
+    } warning(s), ${r.suppressed.length} suppressed${
+      r.contract
+        ? ` — contract: ${r.contract.dir}/spec/contract (${r.contract.via})`
+        : ""
+    }`,
   ];
   for (const f of r.findings) {
     out.push(

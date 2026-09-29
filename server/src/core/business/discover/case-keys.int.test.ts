@@ -125,9 +125,10 @@ Deno.test("REQ-042 AMENDMENT: a git-root-relative _reference / _motion.spec reso
     const r = await discover(dir);
     const ok = r.entries[0].cases.find((c) => c.name === "ok")!;
     assertEquals(ok.reference?.image, join(shots, "btn@375.png"));
-    assertEquals(ok.reference?.via, "git root");
+    // REQ-063: the app IS the git root here — the app root answers first
+    assertEquals(ok.reference?.via, "app root");
     assertEquals(ok.motion?.spec, join(shots, "motion.json"));
-    assertEquals(ok.motion?.via, "git root");
+    assertEquals(ok.motion?.via, "app root");
     assertEquals(r.problems.length, 1);
     const d = r.problems[0].detail;
     assertStringIncludes(
@@ -140,5 +141,127 @@ Deno.test("REQ-042 AMENDMENT: a git-root-relative _reference / _motion.spec reso
     assertStringIncludes(d, join(shots, "none.png"));
   } finally {
     await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("REQ-063: an app below the git root — stills and the contract resolve against the --root app first, then the git root, and say which", async () => {
+  const repo = await Deno.makeTempDir({ prefix: "req063-discover-" });
+  try {
+    await Deno.mkdir(join(repo, ".git"));
+    const app = join(repo, "fixtures", "web");
+    const comp = join(app, "src", "components", "btn");
+    const cases = {
+      mine: {
+        _reference: "spec/ui/breakdown/btn/screenshots/btn@375.png",
+        _motion: {
+          spec: "spec/ui/breakdown/btn/screenshots/motion.json",
+          trigger: "hover",
+        },
+        _network: { createTodo: "fail" },
+      },
+      repo: { _reference: "spec/shared/repo.png" },
+    };
+    await Deno.mkdir(comp, { recursive: true });
+    await Deno.writeTextFile(join(comp, "template.html"), "<b>x</b>");
+    for (const [name, json] of Object.entries(cases)) {
+      const c = join(comp, "isolate", "cases", name);
+      await Deno.mkdir(c, { recursive: true });
+      await Deno.writeTextFile(join(c, `${name}.json`), JSON.stringify(json));
+    }
+    // the app's own breakdown + contract (what the breakdown wrote, app-relative)
+    const shots = join(app, "spec", "ui", "breakdown", "btn", "screenshots");
+    await Deno.mkdir(shots, { recursive: true });
+    await Deno.writeFile(join(shots, "btn@375.png"), new Uint8Array([1]));
+    await Deno.writeTextFile(join(shots, "motion.json"), "[]");
+    await Deno.mkdir(join(app, "spec", "contract"), { recursive: true });
+    await Deno.writeTextFile(
+      join(app, "spec", "contract", "openapi.json"),
+      JSON.stringify({
+        servers: [{ url: "http://localhost:8000/api" }],
+        paths: { "/todo/create": { post: { operationId: "createTodo" } } },
+      }),
+    );
+    // a repo-level still only the git root has
+    await Deno.mkdir(join(repo, "spec", "shared"), { recursive: true });
+    await Deno.writeFile(
+      join(repo, "spec/shared/repo.png"),
+      new Uint8Array([1]),
+    );
+
+    const r = await discover(app);
+    assertEquals(r.problems, []);
+    const by = (n: string) => r.entries[0].cases.find((c) => c.name === n)!;
+    assertEquals(by("mine").reference?.image, join(shots, "btn@375.png"));
+    assertEquals(by("mine").reference?.via, "app root");
+    assertEquals(by("mine").motion, {
+      spec: join(shots, "motion.json"),
+      via: "app root",
+      trigger: "hover",
+    });
+    const rule = by("mine").network![0];
+    assertEquals([rule.method, rule.path, rule.via], [
+      "POST",
+      "/api/todo/create",
+      "app root",
+    ]);
+    assertEquals(
+      by("repo").reference?.image,
+      join(repo, "spec/shared/repo.png"),
+    );
+    assertEquals(by("repo").reference?.via, "git root");
+  } finally {
+    await Deno.remove(repo, { recursive: true });
+  }
+});
+
+Deno.test("REQ-068: a case's _network may name a command by its x-sprig-command (dog.checkIn) — discover maps it through the app root's contract", async () => {
+  const repo = await Deno.makeTempDir({ prefix: "req068-discover-" });
+  try {
+    await Deno.mkdir(join(repo, ".git"));
+    const app = join(repo, "fixtures", "kennel");
+    const comp = join(app, "src", "components", "dog-actions");
+    await Deno.mkdir(comp, { recursive: true });
+    await Deno.writeTextFile(join(comp, "template.html"), "<b>x</b>");
+    const cases = {
+      dotted: { _network: { "dog.checkIn": "fail" } },
+      unknown: { _network: { "dog.fetch": "fail" } },
+    };
+    for (const [name, json] of Object.entries(cases)) {
+      const c = join(comp, "isolate", "cases", name);
+      await Deno.mkdir(c, { recursive: true });
+      await Deno.writeTextFile(join(c, `${name}.json`), JSON.stringify(json));
+    }
+    await Deno.mkdir(join(app, "spec", "contract"), { recursive: true });
+    await Deno.writeTextFile(
+      join(app, "spec", "contract", "openapi.json"),
+      JSON.stringify({
+        servers: [{ url: "http://localhost:8000/api" }],
+        paths: {
+          "/dog/check-in": {
+            post: {
+              operationId: "dogCheckIn",
+              "x-sprig-command": "dog.checkIn",
+            },
+          },
+        },
+      }),
+    );
+    const r = await discover(app);
+    const dotted = r.entries[0].cases.find((c) => c.name === "dotted")!;
+    const rule = dotted.network![0];
+    assertEquals([rule.key, rule.method, rule.path, rule.via], [
+      "dog.checkIn",
+      "POST",
+      "/api/dog/check-in",
+      "app root",
+    ]);
+    assertEquals(r.problems.length, 1, JSON.stringify(r.problems));
+    assertStringIncludes(r.problems[0].detail, `"dog.fetch"`);
+    assertStringIncludes(
+      r.problems[0].detail,
+      "neither an operationId nor an x-sprig-command",
+    );
+  } finally {
+    await Deno.remove(repo, { recursive: true });
   }
 });

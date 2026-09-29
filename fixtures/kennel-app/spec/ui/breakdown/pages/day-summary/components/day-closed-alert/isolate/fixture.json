@@ -1,0 +1,7 @@
+{
+  "category": "day-summary",
+  "folder": "day-closed-alert",
+  "controls": {
+    "closed": { "type": "boolean", "value": true, "signal": true }
+  }
+}

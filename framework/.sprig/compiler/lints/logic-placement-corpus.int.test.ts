@@ -50,6 +50,11 @@ const SMUGGLED: Record<string, string[]> = {
   "template-status-actions": ["e"],
   "template-threshold-if": ["b"],
   "template-disabled-binding": ["b"],
+  // REQ-065: a client state table keyed/valued by a lifecycle field; a regex
+  // on a URL the user typed (the route exemption does not reach form input)
+  "status-offered-table": ["e"],
+  "status-actions-lookup": ["e"],
+  "website-url-regex": ["c"],
 };
 
 /** Smuggled cases the lint cannot tell from UI code, and why. */
@@ -94,6 +99,12 @@ const LEGIT = [
   "template-time-label",
   "template-presentation-bindings",
   "template-status-badge",
+  // REQ-065: a (d)-named accessor that only reads/formats a server field; a
+  // regex on the current URL; a status→label table; a length shown as a count
+  "passthrough-total-getter",
+  "route-regex-nav",
+  "status-label-table",
+  "template-length-count",
 ];
 
 for (const [c, letters] of Object.entries(SMUGGLED)) {

@@ -142,3 +142,101 @@ Deno.test("REQ-032: checkTierCases — a write island with no isolate/cases fold
   const r = checkTierCases(inv, cases({}), new Map(), []);
   assertEquals(r.findings.length, 2);
 });
+
+// REQ-064: a confirmed-write island awaits the server's reply before it shows the change —
+// it proves its "pending" state; there is no optimistic state, so nothing to roll back.
+Deno.test("REQ-064: checkTierCases — a confirmed-write island with only a pending case passes", () => {
+  const inv: Inventory = {
+    units: [unit({
+      name: "save-note",
+      dir: "shared-components/save-note",
+      tier: "confirmed-write",
+    })],
+    unassigned: [],
+  };
+  const r = checkTierCases(
+    inv,
+    cases({
+      "shared-components/save-note": {
+        pending: {
+          _tier: "confirmed-write",
+          _network: { "POST /api/commands/saveNote": "delay:2000" },
+        },
+      },
+    }),
+    new Map([["save-note", ["POST /api/commands/saveNote"]]]),
+    [],
+  );
+  assertEquals(r.findings, []);
+  assert(r.ok);
+});
+
+Deno.test("REQ-064: checkTierCases — a confirmed-write island without a pending case fails, naming only pending", () => {
+  const inv: Inventory = {
+    units: [unit({
+      name: "save-note",
+      dir: "shared-components/save-note",
+      tier: "confirmed-write",
+    })],
+    unassigned: [],
+  };
+  const r = checkTierCases(
+    inv,
+    cases({
+      "shared-components/save-note": {
+        default: { _tier: "confirmed-write" },
+      },
+    }),
+    new Map(),
+    [],
+  );
+  assertEquals(r.findings.map((f) => f.message), [
+    'confirmed-write save-note has no "pending" case',
+  ]);
+  assert(r.findings[0].hint.includes("pending"));
+});
+
+Deno.test("REQ-068: checkTierCases — a rolled-back case may fail its bound command by operationId or x-sprig-command, as isolate's _network accepts", () => {
+  const inv: Inventory = {
+    units: [
+      unit({ name: "dog-actions", dir: "pages/d/components/dog-actions" }),
+    ],
+    unassigned: [],
+  };
+  const bound = new Map([["dog-actions", ["POST /api/dog/check-in"]]]);
+  const aliases = new Map([["POST /api/dog/check-in", [
+    "dogCheckIn",
+    "dog.checkIn",
+  ]]]);
+  for (const key of ["dogCheckIn", "dog.checkIn"]) {
+    const r = checkTierCases(
+      inv,
+      cases({
+        "pages/d/components/dog-actions": {
+          pending: { _network: { [key]: "delay:2000" } },
+          "rolled-back": { _network: { [key]: "fail" } },
+        },
+      }),
+      bound,
+      [],
+      [],
+      aliases,
+    );
+    assertEquals(r.findings, [], key);
+  }
+  // a name the contract does not alias to the bound endpoint still fails
+  const miss = checkTierCases(
+    inv,
+    cases({
+      "pages/d/components/dog-actions": {
+        pending: { _network: { dogCheckOut: "delay:2000" } },
+        "rolled-back": { _network: { dogCheckOut: "fail" } },
+      },
+    }),
+    bound,
+    [],
+    [],
+    aliases,
+  );
+  assertEquals(miss.findings.length, 1);
+});

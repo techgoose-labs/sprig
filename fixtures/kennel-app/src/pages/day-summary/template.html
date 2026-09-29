@@ -1,0 +1,44 @@
+<main class="day-summary-main max-w-7xl mx-auto p-3 md:p-6">
+  @if (state === 'loading') {
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="skeleton h-20 rounded-box"></div>
+    <div class="skeleton h-20 rounded-box"></div>
+    <div class="skeleton h-20 rounded-box"></div>
+    <div class="skeleton h-20 rounded-box"></div>
+  </div>
+  <div class="day-summary-loading flex items-center gap-2 mb-4" role="status"><span class="loading loading-spinner loading-sm"></span>Loading today's dogs…</div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+    <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3"><div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div><div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div></div></div>
+  </div>
+  } @else {
+  @if (state === 'error' || !today) {
+  <div class="day-summary-error mt-10">
+    <load-error title="Couldn't load today's board" message="The kennel server didn't answer. Your last check-ins are safe — nothing was lost." retryLabel="Retry"></load-error>
+  </div>
+  } @else {
+  <div class="day-summary-head flex flex-wrap items-end justify-between gap-3 mb-5">
+    <div>
+      <h1 class="day-summary-title text-4xl">Day summary</h1>
+      <p class="day-summary-date">{{ dayLabel }}</p>
+    </div>
+    <close-day-control sets:day edits:toasts [dayId]="today.id" [closed]="today.closed" [day]="today"></close-day-control>
+  </div>
+  <day-closed-alert reads:day [closed]="today.closed"></day-closed-alert>
+  <div class="day-summary-stats mb-5">
+    <day-stats reads:day [kennelsUsed]="today.kennelsUsed" [kennelsTotal]="today.kennelsTotal" [occupancyPct]="today.occupancyPct" [revenueToday]="today.revenueToday" [overdueCount]="today.overdueCount" [closed]="today.closed"></day-stats>
+  </div>
+  <div class="day-summary-cols grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <status-breakdown [booked]="today.byStatus.booked" [checkedIn]="today.byStatus['checked-in']" [walking]="today.byStatus.walking" [checkedOut]="today.byStatus['checked-out']" [kennelsTotal]="today.kennelsTotal"></status-breakdown>
+    <overdue-pickups [pickups]="overduePickups"></overdue-pickups>
+  </div>
+  }
+  }
+</main>
+<toast-stack sets:toasts></toast-stack>

@@ -1,0 +1,12 @@
+{
+  "_name": "Mobile 375 (brand-dark)",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand-dark",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/status-breakdown/screenshots/status-breakdown@375-brand-dark.png",
+  "booked": 7,
+  "checkedIn": 14,
+  "walking": 5,
+  "checkedOut": 6,
+  "kennelsTotal": 40
+}

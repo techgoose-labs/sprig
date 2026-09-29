@@ -1,0 +1,7 @@
+/* REQ-063: the app paints its page on base-200 (as the kennel app's shell does) —
+   the colour a unit's still was captured on, so the runner's stage uses it. */
+:global(body) {
+  margin: 0;
+  background: var(--color-base-200, #f3eadb);
+  color: var(--color-base-content, #3b2a1e);
+}

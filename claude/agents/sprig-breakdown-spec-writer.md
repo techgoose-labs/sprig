@@ -30,7 +30,7 @@ unit's context.
 
 - **THE UNIT** — folder name, kebab-case selector (basename), classification
   (`static` | `island` | `page-composition`), interaction tier
-  (`static`|`pure-client`|`optimistic-write`|`realtime`), shared vs page-local
+  (`static`|`pure-client`|`optimistic-write`|`confirmed-write`|`realtime`), shared vs page-local
   (+ evidence), data source, liveness, any data-shape hazard — from the analyst.
 - **THE EVIDENCE** — from capture, all UNIT-LOCAL: this unit's `screenshots/`,
   its `source.html` markup excerpt, extracted `js/`/`css/`, motion specs, jank
@@ -69,7 +69,7 @@ sections **and** item 10):
    `card`, `label`, `link`, `toggle`, `tab`, or parts like
    `stat-value`/`card-body`): `sprig build` bundles daisyUI 5 and its rules are
    document-global, so a scoped `.stat { width: 8px }` renders as a stat block
-   (reserved list: `~/.claude/skills/sprig:build/references/component-model.md`
+   (reserved list: `sprig:build/references/component-model.md`
    → "Scoped styles"). Say "daisyUI `status`"
    explicitly when the source element IS a daisyUI component to keep.
 3. **Props table** — `name · type · default · control widget · signal?`; each
@@ -82,10 +82,11 @@ sections **and** item 10):
    `cases/<state>/<state>.json`, and every case carries `_tier` (the unit's
    tier). Each breakpoint/theme still becomes a case too: `_viewport` from its
    `screenshots/<name>@<width>.png` name, `_theme` from
-   `screenshots/<name>@<width>-<theme>.png`, and a GIT-ROOT-relative
+   `screenshots/<name>@<width>-<theme>.png`, and an APP-ROOT-relative
    `_reference`:
    "spec/ui/breakdown/<unit dir>/screenshots/<name>@<width>[-<theme>].png"
-   (paths resolve case-dir first, then git root; the built unit's `isolate/`
+   (the app root is the dir holding the app's `deno.json`, which `--root <app>`
+   names; the runner falls back to the git root; the built unit's `isolate/`
    cannot reach the breakdown by a case-relative path) — the build's pixel diff,
    not a picture to eyeball. `_viewport` is the PAGE viewport the still was
    shot at (media queries see it), never the unit's own width — the runner lays
@@ -101,7 +102,10 @@ sections **and** item 10):
    `"delay:<ms>"` on its command) and a `rolled-back` case (`_network`: {
    "<commandName>": { "status": 500 } } — the HTTP-error path: pre-intent state
    restored, error surfaced); `"fail"` (an aborted connection) is the offline
-   case, added only when the unit shows an offline state. With no
+   case, added only when the unit shows an offline state. A
+   **confirmed-write** unit gets a `pending` case only — no `rolled-back`,
+   nothing was shown to roll back (the control disabled, reply outstanding —
+   `_network` with `"delay:<ms>"` on its command). With no
    `spec/contract/openapi.json`, key `_network` by `"METHOD /path"` — the
    `METHOD /path` `data-model.md` records for that write (the runner rejects a
    command-name key without a contract); once the contract exists, key it by
@@ -118,7 +122,7 @@ sections **and** item 10):
    trigger/properties/keyframes/duration/easing + jank findings and the rebuild
    fix; pointer to `screenshots/filmstrip.png`. A unit with extracted motion
    gets a case with `_motion`: { "spec":
-   "spec/ui/breakdown/<unit dir>/screenshots/motion.json" } (git-root-relative;
+   "spec/ui/breakdown/<unit dir>/screenshots/motion.json" } (app-root-relative;
    the runner compares duration/easing/keyframe count).
 7. **Responsive** — behavior per breakpoint, against the source's real `@media`
    values.
@@ -174,7 +178,7 @@ island state); each `cases/<state>/<state>.json` pins REAL captured values
 
 A breakpoint case adds `"_viewport": 700` and
 `"_reference": "spec/ui/breakdown/shared-components/greeter/screenshots/greeter@700.png"`
-(git-root-relative).
+(app-root-relative).
 
 **Knowledge boundary:** this definition + the unit folder's evidence +
 `isolate-format.md` are ALL your reference material — never read another skill's
@@ -182,10 +186,18 @@ SKILL.md (orchestrator playbooks).
 
 ## Resources
 
-- The isolate-format reference lives at exactly
-  `~/.claude/skills/sprig:breakdown/references/isolate-format.md` — Read THAT
-  absolute path (a relative `references/...` resolves against your cwd `/work`
-  and fails; a measured writer then glob-hunted the whole tree). Consult it only
+- **References:** a `<skill>/references/<file>` path means the `references/`
+  dir next to the SKILL.md that spawned you (installed or repo copy), never a
+  hardcoded home path — sibling skill dirs (`sprig:build/`, `sprig:breakdown/`,
+  `interfaces/`) sit beside that skill's dir, and your brief carries the
+  absolute path. `sprig:breakdown/references/`: `capture-recipes.md`,
+  `isolate-format.md`. `sprig:build/references/`: `INDEX.md`,
+  `component-model.md`, `isolate.md`, `routing.md`, `serving.md`,
+  `templates.md`, `wiring.md`.
+- The isolate-format reference is `sprig:breakdown/references/isolate-format.md`
+  — Read it at the ABSOLUTE path your brief gives (a relative `references/...`
+  resolves against your cwd `/work` and fails; a measured writer then
+  glob-hunted the whole tree). Consult it only
   for the specials the recipe doesn't cover (`_mocks`, `_innerHtml`, the exact
   `_reference`/`_network`/`_motion` shapes, route derivation edge cases); an
   invalid fixture fails fast. Never peek at sibling units' `isolate/` folders to
@@ -209,10 +221,12 @@ historically crawled the disk for is already at hand:
 
 - **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
   component model, routing, serving/SSR, templates — are documented in the skill references
-  installed alongside you. Read them directly instead of hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
 - **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
   `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
 - **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`

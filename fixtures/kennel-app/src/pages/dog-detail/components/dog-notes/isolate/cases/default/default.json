@@ -1,0 +1,42 @@
+{
+  "_name": "Default — d01, 3 notes",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d01",
+  "dogName": "Biscuit",
+  "_signals": {
+    "notes": [
+      {
+        "text": "Allergic to chicken — kibble from home only.",
+        "author": "Front desk",
+        "at": "2026-09-27T14:05"
+      },
+      {
+        "text": "Pulls hard on the lead near the gate; use the harness.",
+        "author": "Walker: Dana",
+        "at": "2026-09-28T09:40"
+      },
+      {
+        "text": "Owner called: fine to extend a night if needed, will confirm by noon. Please also give the blue squeaky toy at bedtime — he won't settle without it and tends to bark at the kennel door for a good half hour otherwise.",
+        "author": "Front desk",
+        "at": "2026-09-29T08:12"
+      }
+    ],
+    "author": "Front desk",
+    "draft": ""
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/dog-notes@1280.png",
+  "_motion": {
+    "spec": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/motion.json"
+  },
+  "_network": {
+    "dogAddNote": {
+      "status": 200,
+      "body": {
+        "text": "Extra blanket at night — he runs cold.",
+        "author": "Front desk"
+      }
+    }
+  }
+}

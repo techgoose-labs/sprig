@@ -1,0 +1,61 @@
+/* The card sets its own type and ink: in isolate (and any non-shell host) there is no
+   :global(body) to inherit them from. */
+.dog-actions-card {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+  line-height: var(--leading-normal);
+}
+
+/* Card titles use the display face (design-tokens: h1–h4, weight 700). */
+.dog-actions-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+
+.dog-actions-title-icon {
+  width: calc(var(--spacing) * 5);
+  height: calc(var(--spacing) * 5);
+}
+
+.dog-actions-locked-note {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+/* column < sm · row (wrapping) sm–lg · column again ≥ lg (the right-hand rail) */
+.dog-actions-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing) * 2);
+}
+
+.dog-actions-btn {
+  width: 100%;
+  /* The rebuild drops box-shadow from daisyUI's transition list (jank lint 1). */
+  transition-property: color, background-color, border-color, transform;
+}
+
+.dog-actions-icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+@media (width >= 40rem) {
+  .dog-actions-list {
+    flex-direction: row;
+  }
+  .dog-actions-btn {
+    width: auto;
+  }
+}
+
+@media (width >= 64rem) {
+  .dog-actions-list {
+    flex-direction: column;
+  }
+}

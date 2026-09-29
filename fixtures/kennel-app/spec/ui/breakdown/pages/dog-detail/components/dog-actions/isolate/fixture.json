@@ -1,0 +1,29 @@
+{
+  "category": "dog-detail",
+  "folder": "dog-actions",
+  "controls": {
+    "dogId": {
+      "type": "text",
+      "value": "d01"
+    },
+    "dogName": {
+      "type": "text",
+      "value": "Biscuit"
+    },
+    "status": {
+      "type": "select",
+      "options": [
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "booked",
+      "signal": true
+    },
+    "closed": {
+      "type": "boolean",
+      "value": false
+    }
+  }
+}

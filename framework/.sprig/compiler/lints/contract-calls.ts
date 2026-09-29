@@ -19,7 +19,13 @@
  * With no contract client there is nothing to enforce: the result says so.
  */
 import { join } from "@std/path";
-import { type ContractOp, OPENAPI_REL, readContractOps } from "./contract.ts";
+import {
+  type ContractOp,
+  describeRoots,
+  OPENAPI_REL,
+  readContractOps,
+  resolveContractRoot,
+} from "./contract.ts";
 import type { Finding, LintResult } from "./lint-types.ts";
 import {
   applySuppressions,
@@ -244,23 +250,29 @@ async function contractWrappers(
 }
 
 /** Run contract-calls over every `.ts` under `uiSrc` — or report it skipped
- *  when `<gitRoot>/spec/contract/client/` does not exist. */
+ *  when no `spec/contract/client/` exists at the app root, else the git root
+ *  (REQ-068: the app root answers first; the result names the root it used). */
 export async function lintContractCalls(
-  opts: { uiSrc: string; gitRoot: string },
+  opts: { uiSrc: string; gitRoot: string; appRoot?: string },
 ): Promise<LintResult> {
   const result: LintResult = { findings: [], suppressed: [], checked: [] };
-  if (!(await isDir(join(opts.gitRoot, "spec", "contract", "client")))) {
-    result.skipped = `no spec/contract/client at ${opts.gitRoot}`;
+  const found = await resolveContractRoot(
+    opts,
+    (dir) => isDir(join(dir, "client")),
+  );
+  if (!found) {
+    result.skipped = `no spec/contract/client at ${describeRoots(opts)}`;
     return result;
   }
   if (!(await isDir(opts.uiSrc))) {
     result.skipped = `no ui source at ${opts.uiSrc}`;
     return result;
   }
-  const ops = await contractWrappers(opts.gitRoot);
+  result.contract = found;
+  const ops = await contractWrappers(found.dir);
   if (!ops) {
     result.notes = [
-      `write-method: no ${OPENAPI_REL} at ${opts.gitRoot} — calls to PUT/PATCH/DELETE wrappers are not checked`,
+      `write-method: no ${OPENAPI_REL} at ${found.dir} — calls to PUT/PATCH/DELETE wrappers are not checked`,
     ];
   }
   for (const rel of await tsFiles(opts.uiSrc, () => true)) {

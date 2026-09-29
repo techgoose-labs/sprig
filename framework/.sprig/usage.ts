@@ -32,6 +32,11 @@ export const USAGE = `sprig — the framework CLI
                                   unit of its own, top-level code before compose): it keeps serving its
                                   own root and still gets its assets built. A hand-written serve.ts is
                                   never overwritten — the plain build refuses and names this flag
+                                  An app that only lives inside a larger repo (not its ui/ or app/, not a
+                                  workspace member) is its own project: its composition root is <app>/serve.ts,
+                                  never the repo root one — absent, the build refuses naming both paths
+                                  static/build-info.json (the <meta git-*> in every head) comes from the app's
+                                  project root only: its .infra/git.json, else its git HEAD, else "unknown"
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
   sprig check [appDir] [--root <git-root>]
