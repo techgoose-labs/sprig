@@ -794,7 +794,7 @@ async function gitRoot(dir: string): Promise<string | null> {
 
 /** The contract's operations from `<git root>/spec/contract/openapi.json`, or null
  *  when there is no such file (then `_network` accepts only "METHOD /path" keys). */
-export async function loadOperations(
+async function loadOperations(
   projectRoot: string,
   problems: Problem[] = [],
 ): Promise<Operations | null> {
