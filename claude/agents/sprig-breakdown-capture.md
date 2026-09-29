@@ -32,8 +32,8 @@ sources (nothing to render).
 
 - **SOURCE** — the renderable mock path.
 - **SERVE** — how to serve it, passed by the orchestrator as facts: the command
-  (`deno task start` in the prototype folder, or `file://` for a legacy
-  self-contained mock) and YOUR assigned PORT. Don't rediscover this per agent —
+  (`deno task start` in the prototype folder, or `file://` for a
+  self-contained single-file mock) and YOUR assigned PORT. Don't rediscover this per agent —
   a wrong guess shows empty seam-fed states and you'd screenshot a lie.
 - **UNITS** — the components/pages to capture (from the analyst's inventory):
   each with its selector/DOM region and target output dirs
@@ -68,7 +68,7 @@ exact absolute path) before writing any capture code** — it has verified,
 copy-adaptable Node/Playwright recipes for everything below. Playwright:
 `require()` the isolate runner's bundled `playwright-core` directly (the runner
 dir is `$ISOLATE_RUNNER_HOME`, else `$XDG_CACHE_HOME/sprig/isolate-runner`, else
-a legacy `~/.isolate-runner` — the recipe resolves it) — don't pre-verify it with
+a home-dir `~/.isolate-runner` — the recipe resolves it) — don't pre-verify it with
 `ls`. Create your target dirs with one unconditional `mkdir -p` (idempotent) —
 never pre-check what exists. Make every capture script `console.log` each path
 as it saves it: that printout IS your receipt (never `ls`/`find` afterward to
@@ -77,7 +77,7 @@ see what landed).
 1. **Serve & settle** — a two-seam prototype folder (`*-prototype/` with
    `_start.ts`) must be SERVED: run `deno task start` in it (→
    `http://localhost:8723`, `PORT` overrides) and navigate there — its UI reads
-   data over the injected seams, so `file://` shows empty states. A legacy
+   data over the injected seams, so `file://` shows empty states. A
    single-file mock: `file://` works (incl. hash routes) unless it `fetch()`es
    (then HTTP). Let entrance animations settle before shooting; stop any host
    you started when done.
@@ -85,7 +85,11 @@ see what landed).
    full-page shot per page. Capture at a desktop viewport **and** at the
    source's real `@media` breakpoints. If themes exist, capture the non-default
    theme at least once per page. Summon transient components (modals/menus)
-   before shooting.
+   before shooting. **Name every still by its viewport** —
+   `screenshots/<name>@<width>.png` (default theme) and
+   `screenshots/<name>@<width>-<theme>.png` (a non-default theme), `<name>` the
+   unit's name, `<width>` the viewport width shot at — so each still becomes
+   one isolate case's `_viewport`/`_theme`/`_reference` with no renaming.
 3. **Motion (per animated unit)** — extract, don't describe:
    `document.getAnimations()` + `effect.getKeyframes()` + `getComputedTiming()`
    for trigger/properties/keyframes/duration/delay/easing. `getAnimations()` is
@@ -93,7 +97,9 @@ see what landed).
    (`requestAnimationFrame`, canvas 2D, manual `style.transform` in scroll
    handlers) and capture with Playwright clock emulation. **Scrub
    deterministically** (`pause(); currentTime = t`) at 0/20/40/60/80/100%,
-   composite a `filmstrip.png`. One live (unscrubbed) instrumented run →
+   composite a `filmstrip.png`, and write the raw capture (per animation:
+   keyframes + computed timing, as returned) to `screenshots/motion.json` — the
+   spec-writer's `_motion` case points at it. One live (unscrubbed) instrumented run →
    dropped-frame %, max frame time, CLS into `jank.md`.
 4. **Jank lints** — run the static CSS + JS checklists from the recipes over the
    extracted CSS _and_ JS: layout-property keyframes, `transition: all`,
@@ -117,7 +123,8 @@ see what landed).
 
 ## Output contract
 
-Return, per unit: the files written (stills, `filmstrip.png`, `jank.md`,
+Return, per unit: the files written (stills with the viewport width + theme
+each was shot at, `filmstrip.png`, `motion.json`, `jank.md`,
 `source.html`, extracted `js/`/`css/`), the **extracted motion specs**
 (trigger/properties/keyframes/duration/easing) and **jank findings + their
 rebuild fixes** in a form the spec-writer can drop into a Motion section, the
@@ -128,39 +135,33 @@ tree to assemble or double-check it is the measured receipt violation (18 such
 calls in one 8-agent run). Return ONLY this.
 
 <!-- BEGIN sprig-agent-guardrail: scripts/agent-guardrail.md -->
-
 ## Never crawl the filesystem for framework source
 
-Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at
-`/` (`find / …`, or a whole-disk `grep -r … /`) fans out across the entire
-volume and pegs several cores for minutes — and it is **never** the right way to
-locate sprig internals or build artifacts. **Do not run `find /` or any
-whole-disk search.** Everything agents have historically crawled the disk for is
-already at hand:
+Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at `/`
+(`find / …`, or a whole-disk `grep -r … /`) fans out across the entire volume and pegs
+several cores for minutes — and it is **never** the right way to locate sprig internals or
+build artifacts. **Do not run `find /` or any whole-disk search.** Everything agents have
+historically crawled the disk for is already at hand:
 
-- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`),
-  the component model, routing, serving/SSR, templates — are documented in the
-  skill references installed alongside you. Read them directly instead of
-  hunting the runtime source:
+- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
+  component model, routing, serving/SSR, templates — are documented in the skill references
+  installed alongside you. Read them directly instead of hunting the runtime source:
   - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
   - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
   - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
-- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read
-  the PROJECT's `deno.json` `imports` map — the alias is defined there and
-  nowhere else. Never search for it.
-- **To find the sprig runtime's real `.ts` in the cache:** run
-  `deno info jsr:@techgoose-labs/sprig` (or `deno info <specifier>`) — it prints
-  the exact cached path in milliseconds. If you must grep vendored source, scope
-  it to that path or to `~/Library/Caches/deno`, never `/`.
-- **Playwright screenshots / console logs** land in the PROJECT's own
-  `.playwright-mcp/` (at the app root) and `~/Library/Caches/ms-playwright-mcp/`
-  — look there, never crawl the disk for the `.png` or `.log`.
-- **Build output** (compiled islands, previews) lives under the app's own
-  `dist/` / `.sprig/` — check the project tree, not the whole volume.
+- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
+  `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
+- **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`
+  (or `deno info <specifier>`) — it prints the exact cached path in milliseconds. If you must
+  grep vendored source, scope it to that path or to `~/Library/Caches/deno`, never `/`.
+- **Playwright screenshots / console logs** land in the PROJECT's own `.playwright-mcp/`
+  (at the app root) and `~/Library/Caches/ms-playwright-mcp/` — look there, never crawl the
+  disk for the `.png` or `.log`.
+- **Build output** (compiled islands, previews) lives under the app's own `dist/` /
+  `.sprig/` — check the project tree, not the whole volume.
 
-If something genuinely isn't in the project or the caches above, say so and ask
-— do not escalate to a root-wide `find`.
-
+If something genuinely isn't in the project or the caches above, say so and ask — do not
+escalate to a root-wide `find`.
 <!-- END sprig-agent-guardrail -->
 
 ## Never

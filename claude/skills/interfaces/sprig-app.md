@@ -38,8 +38,9 @@ A buildable sprig project (see `sprig:build`):
   (`live: boolean`) — not a console of 100% fake numbers.
 - **sprig-native interaction:** static folders ship zero JS; an **island**
   (folder with a `logic.ts`) owns client state. **Server writes are optimistic
-  by default** (snapshot → mutate → call → roll back) — **no whole-page island,
-  nothing `location.reload()`-ing server state**. Correct HTTP status (a missing
+  by default** (`optimistic(...)`; a wait carries `// sprig-wait: <reason>`) —
+  **no domain logic in `logic.ts`**, **no whole-page island, nothing
+  `location.reload()`-ing server state**. Correct HTTP status (a missing
   resource is a real 404 via `setResponseStatus`, not a 200 page).
 
 ## Invariants
@@ -51,5 +52,10 @@ A buildable sprig project (see `sprig:build`):
 
 ## Validation
 
-The prod build boots and serves; the suite runs green against a freshly-started
-server. The audit records findings + fixes in `fixes.md`.
+`sprig check ui` exits 0 (typecheck, wiring, `contract-calls`,
+`logic-placement`, `tokens`, `duplicate-templates`, `optimistic-writes`);
+`sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` exits 0 (every
+breakdown unit built, composition matching the usage matrix);
+`isolate test --json` is green including every `_reference` diff; the prod build
+boots and serves; the suite runs green against a freshly-started server. The
+audit records findings + fixes in `fixes.md`.

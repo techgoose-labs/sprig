@@ -34,12 +34,31 @@ export const USAGE = `sprig — the framework CLI
                                   never overwritten — the plain build refuses and names this flag
   sprig clean [appDir]           remove what build created: <ui>/static/ + any --rune-generated
                                   serve.ts (a hand-written serve.ts is left alone). Alias: build --clean
-  sprig check [appDir]           typecheck the app under the CLI runtime (the pin-free
-                                  replacement for deno check — the CLI owns the one runtime)
-                                  + the template wiring lint (sets:/reads:/edits: channels)
-  sprig map   [appDir]           print the app's dataflow from its templates: one line per
+  sprig check [appDir] [--root <git-root>]
+                                  the one pre-flight, every check then one verdict: typecheck
+                                  under the CLI runtime; the template wiring lint; the
+                                  composition check (every tag resolves, no undeclared
+                                  shadowing); the source lints — contract-calls (every call
+                                  goes through spec/contract/client), logic-placement (no
+                                  domain logic in islands/resolve), tokens (no off-token
+                                  colors/lengths), duplicate-templates (no near-identical
+                                  templates), optimistic-writes (no server write awaited
+                                  before the UI changes). Each prints what it checked, what it
+                                  skipped and why, every finding with its fix, every
+                                  suppression with its reason. --root: where spec/contract
+                                  lives (default: the app's git root)
+  sprig map   [appDir] [--compose [--json]]
+                                  print the app's dataflow from its templates: one line per
                                   wiring channel — who sets, edits, and reads it (incl. pages
-                                  joined through a forwarding <router-outlet>)
+                                  joined through a forwarding <router-outlet>). --compose:
+                                  the composition graph instead — who composes whom, from the
+                                  renderer's own registry (--json for the machine form)
+  sprig spec-check [breakdownDir] [--root <git-root>] [--ui-src <dir>] [--app <dir>] [--json]
+                                  the breakdown's machine checks: Unassigned empty, binding
+                                  endpoints/DTOs in openapi.json, optimistic-write units with
+                                  pending + rolled-back cases, every unit built (--ui-src),
+                                  usage matrix vs the composition graph (--app), no double
+                                  assignment. Default dir: <git-root>/spec/ui/breakdown
   sprig isolate [appDir]         component/page workbench — develop in isolation (default: .)
   sprig serve [entry]            run the app's host entry under its deno.json (default: serve.ts)
   sprig stop  [appDir]           stop this repo's shared 'sprig dev' process + free its ports

@@ -121,46 +121,56 @@ the UI _immediately_, runs the server call in the background, and rolls back
 only if it fails. The component must be an **island** (it has a `logic.ts`) so
 it can react on the client.
 
-The shape is **snapshot → mutate → call → reconcile**:
+Use the primitive — `optimistic(sig, next, call, { reconcile?, onError? })` from
+`@techgoose-labs/sprig`. It snapshots the signal, writes `next` synchronously
+(the view repaints before the call starts), runs `call`, and on rejection
+restores the snapshot. It returns `{ done, pending, error }`:
 
 ```ts
-import { inject, signal } from "@techgoose-labs/sprig";
-import Api from "../../services/api/mod.ts";
+import { defineComponent, optimistic, signal } from "@techgoose-labs/sprig";
 
-export default class Todo {
-  items = inject(State).items; // a signal-backed list the template renders
-  error = signal("");
-  api = inject(Api);
-
-  async toggle(item) {
-    const prev = item.done; // 1. snapshot what we're about to change
-    item.done = !item.done; // 2. optimistic: update + render NOW
-    this.items.update((x) => [...x]); //    nudge the signal so the view re-renders
-    try {
-      await this.api.setDone(item.id, item.done); // 3. server, NOT awaited before the UI moved
-    } catch {
-      item.done = prev; // 4. failed → roll back the exact change
-      this.items.update((x) => [...x]);
-      this.error.set("Couldn't save — reverted.");
-    }
-  }
-}
+export default defineComponent({
+  setup: () => {
+    const items = signal<Todo[]>([]);
+    const failed = signal("");
+    const toggle = (id: string) =>
+      optimistic(
+        items,
+        (xs) => xs.map((t) => t.id === id ? { ...t, done: !t.done } : t),
+        () => client.toggleTodo({ id }), // a command posted as intent
+        {
+          reconcile: (saved, prev) =>
+            prev.map((t) => t.id === saved.id ? saved : t), // server projection wins
+          onError: () => failed.set("Couldn't save — reverted."),
+        },
+      );
+    return { items, failed, toggle };
+  },
+});
 ```
 
 Rules of thumb:
 
-- **Capture a precise rollback snapshot** before mutating (the old value, or the
-  removed item + its index for a list delete) — roll back to _that_, don't
-  refetch.
+- **One call per write.** The snapshot is taken for you — roll back to it,
+  don't refetch. Write new values (`{ ...t, done }`, `[...xs]`); never mutate an
+  item in place, the rollback restores the old reference.
 - **Don't `await` the server call before the UI changes.** Awaiting first = a
-  spinner, which is the thing we're avoiding.
-- **Surface failures** — a rollback that's silent looks like the click did
-  nothing. Show a toast/inline error.
-- **Fall back to a pending/disabled state only when the result is unknowable
-  client-side** (server-generated id, payment auth, a fetched result set). Then
-  show a spinner and `await`.
-- **Overrides:** an inline `data-note` on the element can demand "wait for the
-  server" or "realtime island" — honor it over this default.
+  spinner, which is the thing we're avoiding. `sprig check`'s
+  **optimistic-writes** lint fails a `logic.ts` that does — including a
+  loading flag set first with the real write landing after the await. Reads
+  (search, load-more) may await.
+- **Surface failures** — pass `onError` (toast/inline error) or render
+  `w.error()`. Without either the rollback is only logged; the user sees the
+  click undo itself with no reason.
+- **Concurrent writes are last-write-wins** by start order: a stale failure
+  never clobbers a newer write, and a rollback never lands on a value that
+  failed.
+- **When to wait:** only when the result is unknowable client-side
+  (server-generated id, payment auth, a fetched result set). Show a
+  pending/disabled state, `await`, and mark the await
+  `// sprig-wait: <reason>` — the lint lists it with the reason instead of
+  failing it. A spec or build-note that demands "wait for the server" is
+  honored the same way.
 
 ## The serialization boundary (island state crosses as JSON)
 

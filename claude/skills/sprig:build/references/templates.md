@@ -104,11 +104,15 @@ reverse-engineered the compiler to learn these; don't):
 
 - **`|` is the PIPE operator** (Angular-style: `{{ 0.575 | percent }}`), so
   bitwise OR can never work — `expr | 0` is parsed as a pipe, not a floor.
-  Floor/round without `Math`: integer arithmetic (`(n - (n % 60)) / 60`) or
-  compute in `logic.ts`.
+  Floor/round for display without `Math`: integer arithmetic
+  (`(n - (n % 60)) / 60`).
 - **Host globals (`Math`, `Date`, `JSON`…) are not in scope** — expressions see
-  the component's fields/`@let` locals only. Derive anything non-trivial in
-  `logic.ts` (islands) or via `@let` arithmetic (static templates).
+  the component's fields/`@let` locals only. Derive nothing domain-shaped in the
+  client — totals, prices, eligibility, filtered/sorted rows: ask the backend (a
+  query returns the value). `logic.ts` holds UI state only (open/closed, the
+  selected tab, a draft input); `@let` is for display formatting. The
+  `sprig check` `logic-placement` lint fails domain arithmetic, data-vs-data
+  branching and validation beyond required/type in `logic.ts`/`resolve.ts`.
 - **`@let` is ONE physical line** — a multi-line `@let` doesn't parse. Split
   long derivations into several `@let`s.
 

@@ -26,9 +26,10 @@ description: >-
 
 Produce a `spec/ui/breakdown/` directory a later build session can work through
 **mechanically**: scaffold a component, drop in its proposed `isolate/`, run
-`sprig isolate`, diff against the screenshots, write tests from the Events
-section, repeat. The spec must let someone rebuild each page/component **without
-opening the source** — judge every decision by that standard.
+`sprig isolate test` (each case's `_reference` diffs it against its still),
+write tests from the Events section, repeat. The spec must let someone rebuild
+each page/component **without opening the source** — judge every decision by
+that standard.
 
 **You are the orchestrator. You don't survey, render, or write specs yourself —
 you delegate each pass to a named specialist**, hand it its input contract, and
@@ -39,11 +40,11 @@ deliverable.
 
 ## The specialists you delegate to
 
-| Agent                             | Pass                                                                                                                                                                                                                                         | Returns                                                                  |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **`sprig-breakdown-analyst`**     | survey, page+component census, static/island classification + tiers, `design-tokens.md`, the contract **binding** (`spec/contract/binding.md`; legacy `data-model.md` when no contract) (opening); `index.md` + completeness audit (closing) | the written docs + a structured **inventory** of pages/components        |
-| **`sprig-breakdown-capture`**     | render the mock: cropped stills, breakpoint/theme shots, motion extraction, filmstrips, `jank.md`, jank lints, extracted `js/`/`css/`                                                                                                        | evidence files + extracted motion specs, jank findings, real data values |
-| **`sprig-breakdown-spec-writer`** | per component/page: the `.md` anatomy + the real runnable `isolate/` fixtures                                                                                                                                                                | the unit's spec files + case list                                        |
+| Agent                             | Pass                                                                                                                                                                                                                                                                                          | Returns                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **`sprig-breakdown-analyst`**     | survey, page+component census, static/island classification + tiers, `design-tokens.md`, the contract **binding** (`spec/contract/binding.md`; the pre-contract `data-model.md` when no contract), `inventory.json` (opening); `index.md` + completeness audit + `sprig spec-check` (closing) | the written docs + a structured **inventory** of pages/components        |
+| **`sprig-breakdown-capture`**     | render the mock: cropped stills, breakpoint/theme shots, motion extraction, filmstrips, `jank.md`, jank lints, extracted `js/`/`css/`                                                                                                                                                         | evidence files + extracted motion specs, jank findings, real data values |
+| **`sprig-breakdown-spec-writer`** | per component/page: the `.md` anatomy + the real runnable `isolate/` fixtures                                                                                                                                                                                                                 | the unit's spec files + case list                                        |
 
 Each specialist owns its own procedure — **do not restate the classification
 rubric, capture recipes, or component anatomy here.** They live in the agents
@@ -52,11 +53,11 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
 ## Input & output
 
 - **Input** — the prototype this skill consumes: by default the two-seam
-  `spec/ui/<app>-prototype/` folder (glob `spec/ui/*-prototype/`; legacy
-  `spec/ui/*-prototype.html`). If the user points at a different mock (any
-  HTML/screenshot/PDF), use that. When a ratified contract exists at the git
-  root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input — the data
-  seam binds against it (bridge 2).
+  `spec/ui/<app>-prototype/` folder (glob `spec/ui/*-prototype/`; a pre-contract
+  single file `spec/ui/*-prototype.html`). If the user points at a different
+  mock (any HTML/screenshot/PDF), use that. When a ratified contract exists at
+  the git root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input —
+  the data seam binds against it (bridge 2).
 - **Output** — always `<git-root>/spec/ui/breakdown/`, and nowhere else. Resolve
   the git root **once** with `git rev-parse --show-toplevel` and build the path
   from it (`"$(git rev-parse --show-toplevel)"/spec/ui/breakdown`); create
@@ -80,21 +81,24 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    `opening`) with the source + output dir → it surveys, does the page/component
    census, classifies every region (static vs island vs page-composition, with
    tiers), and writes `design-tokens.md`
-   - the contract **binding** (`spec/contract/binding.md`; legacy
-     `data-model.md` when no contract exists). Take its **inventory** (every
+   - the contract **binding** (`spec/contract/binding.md`; the pre-contract
+     `data-model.md` when no contract exists) and
+     `spec/ui/breakdown/inventory.json`. Take its **inventory** (every
      page/component with classification, tier, shared/local, renderable?, and
-     its resolved absolute `breakdown_dir`) and surface any **drift errors** it
-     reports. The inventory's paths are what you pass downstream — capture and
-     spec-writers receive their unit dirs resolved, never a name to go find.
+     its resolved absolute `breakdown_dir` — the same units it wrote to
+     `inventory.json`) and surface any **drift errors** it reports. The
+     inventory's paths are what you pass downstream — capture and spec-writers
+     receive their unit dirs resolved, never a name to go find.
 2. **Capture** (renderable sources only). Resolve the SERVE facts ONCE — the
    serve command (`deno task start` for a two-seam prototype; `file://` for a
-   legacy mock) and a PORT per agent — and pass them in each brief. Then for the
-   renderable units in the inventory, delegate to **`sprig-breakdown-capture`**
-   (fan out per unit/group) → stills/breakpoints/ themes, extracted motion
-   specs, filmstrips, `jank.md`, jank findings, **each unit's `source.html`
-   markup excerpt** plus extracted `js/`/`css/`, and the real captured data
-   values. The excerpts are load-bearing: they are the only markup spec-writers
-   read. (Skip for image/PDF sources — there's nothing to render.)
+   single-file mock) and a PORT per agent — and pass them in each brief. Then
+   for the renderable units in the inventory, delegate to
+   **`sprig-breakdown-capture`** (fan out per unit/group) → stills/breakpoints/
+   themes, extracted motion specs, filmstrips, `jank.md`, jank findings, **each
+   unit's `source.html` markup excerpt** plus extracted `js/`/`css/`, and the
+   real captured data values. The excerpts are load-bearing: they are the only
+   markup spec-writers read. (Skip for image/PDF sources — there's nothing to
+   render.)
 3. **Write specs.** For each component and page, delegate to
    **`sprig-breakdown-spec-writer`** with that unit's classification (from step
    1), its **Used-on line from the analyst's usage matrix** (the anatomy needs
@@ -109,8 +113,12 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    4–6-concurrent waves are what keep the agent count sane, not batching.
 4. **Close.** Delegate to **`sprig-breakdown-analyst`** (phase `closing`) with
    the list of specs produced → `index.md` (inventory, usage matrix, build
-   order, tier summary, Unassigned) + the completeness audit. The **Unassigned
-   list ships even when empty.**
+   order, tier summary, Unassigned) + the completeness audit, then it runs
+   `sprig spec-check spec/ui/breakdown`. **The breakdown is done only when that
+   exits 0** — a non-empty Unassigned, a binding row missing from
+   `openapi.json`, or an optimistic-write unit without `pending` + `rolled-back`
+   cases is a failure to fix, not a note to report. Re-delegate the owning pass
+   (analyst or the unit's spec-writer) until it passes.
 
 Independent units within steps 2 and 3 run concurrently — **capped at 4–6
 concurrent, in chunked waves**
@@ -155,8 +163,11 @@ breakdown in a fresh session.
   `spec/contract/binding.md`; a mismatch is a **drift error** surfaced in
   `index.md`, never papered over with an invented schema.
 - **Extract over describe** wherever the source is readable; schema (never data
-  rows) in the binding / legacy `data-model.md` and prose — case JSON is the one
-  place real captured values belong.
+  rows) in the binding / the pre-contract `data-model.md` and prose — case JSON
+  is the one place real captured values belong.
 - Proposed `isolate/` folders are **real files** `sprig isolate` discovers, not
   docs.
-- The `index.md` audit list ships even when empty ("Unassigned: none").
+- **No business logic in the client:** filter/sort/search/paging bind to query
+  endpoints and every rule beyond required/type is a backend command — never an
+  island reason.
+- `sprig spec-check spec/ui/breakdown` exits 0 before you report done.

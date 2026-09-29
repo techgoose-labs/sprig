@@ -831,3 +831,899 @@ Tests:
   none empty; an unknown lane exits 2.
 - e2e — n/a: the gate itself (`wt-gate --plan`, run by hand: discovery,
   parallel and kinds all OK) is the end-to-end consumer; nothing serves a page.
+
+## REQ-033 — the breakdown writes a machine-read inventory, keeps logic out of the client rubric, and is not done until `sprig spec-check` passes
+
+> "the app stays dry, meaning that components are reused whenever reasonable",
+> "the logic of the app stays in the backend meaning NO business logic at all
+> goes in the frontned", "is there any way that this can be hardened?" → "lets
+> spawn opus 5.5 agents to do all this"
+
+The breakdown analyst's inventory lived only in its return to the orchestrator,
+the usage matrix only in Markdown, and the closing audit merely reported an
+Unassigned list. Now the opening pass writes `spec/ui/breakdown/inventory.json`
+(units with name/dir/classification/scope/page/usedOn/tier/evidence/dataNeeds,
+plus `unassigned`) — the same inventory it returns — and the binding is the
+table `| unit | need | kind | endpoint | dto |` plus a `## Drift` section. The
+island rubric no longer lists client filter/sort or inline validation: filter,
+sort, search and paging are bound query endpoints, client validation is
+required/type only, every other rule is a command the backend validates. The
+tier derives from the prototype's `commands.json` `feedback` field; with a
+design system the analyst binds each mock region to a named primitive from
+`spec/ui/design-system/components.md` and records it in the unit's evidence.
+The closing pass runs `sprig spec-check spec/ui/breakdown` and the breakdown is
+not done until it exits 0 (a non-empty Unassigned fails). The `ui-breakdown`
+interface's Validation names the real commands.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-033 ×6): the
+  analyst names `inventory.json` and every format-A key; analyst + interface
+  carry the binding header and `## Drift`; the rubric drops "client
+  filter/sort" / "inline validation" and states queries / required-type /
+  commands; the `feedback`-derived tier and the design-system primitive
+  binding; analyst, breakdown SKILL and interface run `sprig spec-check` and
+  no longer say the Unassigned list "ships even when empty"; no touched prompt
+  carries a retired-path word.
+- integration — n/a: docs; the commands they name are tested by their owners.
+- e2e — n/a: docs; no page serves them.
+
+## REQ-034 — breakdown cases carry tier, viewport, theme, reference, motion and failure keys
+
+> "the app will be faithful to the mock", "the app is optimistic and does not
+> have latency waiting on the server to run its logic"
+
+The spec-writer's stills were diff targets a builder looked at. Now every case
+carries `_tier`; each breakpoint/theme still becomes a case with
+`_viewport`/`_theme` and `_reference` pointing at the captured still; a unit
+with extracted motion gets `_motion` pointing at capture's `motion.json`; every
+optimistic-write unit gets a `pending` case and a `rolled-back` case whose
+`_network` fails its command. Capture names every still
+`screenshots/<name>@<width>.png` / `screenshots/<name>@<width>-<theme>.png` so
+the spec-writer's `_reference` paths line up. Keys per
+`references/isolate-format.md`.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-034 ×3): the
+  spec-writer names every key and the isolate-format reference; the
+  `pending`/`rolled-back` pair with `_network` failing the command; capture and
+  spec-writer share the still naming and `motion.json`.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-035 — build proves fidelity, optimism and logic placement by commands, not by eye
+
+> "the app will be faithful to the mock", "the app is optimistic and does not
+> have latency waiting on the server to run its logic", "the logic of the app
+> stays in the backend meaning NO business logic at all goes in the frontned",
+> "the app stays dry, meaning that components are reused whenever reasonable"
+
+The builder compared two images and could "accept a deviation"; templates.md
+told it to derive anything non-trivial in `logic.ts`; the whole-app step had no
+coverage check. Now the builder's visual check is the `_reference` row of
+`isolate test --json` (a deviation is a widened tolerance with a `reason` the
+report prints); every server write uses `optimistic(sig, next, call)`; every
+unit's green includes `sprig check ui` with its lints; templates.md says derive
+nothing domain-shaped in the client, `logic.ts` holds UI state only; step 3 runs
+`sprig spec-check spec/ui/breakdown --built ui/src --compose` and `sprig check
+ui`, red on any finding; the cheatsheet carries the suppression comments; the
+`sprig-app` interface's Validation names both commands.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-035 ×5): the
+  builder drops "accept a deviation" and the MCP eyeball diff and names the
+  `_reference` row and tolerance widening; `optimistic(sig, next, call)` and
+  `sprig check ui` in builder + playbook; templates.md's new rule; step 3's two
+  commands in the playbook, `sprig-app` interface and scaffolder; the five
+  suppression comments in the cheatsheet recipe.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-036 — each prototype command declares its feedback timing
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic"
+
+`commands.json` entries were `{type, kind, input, does}` — nothing said whether
+the UI may reflect an intent before the reply. Now each entry carries
+`"feedback": "instant" | "confirmed"` (confirmed = the UI waits, reason in
+`does`), and the prototype's call site honours it: instant renders the intent
+before awaiting `window.commands.run` and reverts on rejection; confirmed shows
+a pending state until the reply. The breakdown derives each unit's tier from it
+(REQ-033).
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-036 ×1): the
+  prototype interface's entry shape and field, the builder's instant/confirmed
+  rule, the prototype skill naming `feedback`.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-037 — the audit sees the mock and names client-side logic and blocking writes
+
+> "the app will be faithful to the mock", "the logic of the app stays in the
+> backend meaning NO business logic at all goes in the frontned", "the app is
+> optimistic and does not have latency waiting on the server to run its logic"
+
+The audit's oracle was `user-stories.md` + the live app; it never saw the mock.
+Now the hunter's inputs include the breakdown's page-level stills and
+`spec/ui/breakdown/inventory.json`, and a page whose composed render departs
+from its still is a bug (catalog F15). The catalog gains F14 "Domain logic in
+the client" (a `sprig check` `logic-placement` finding) beside F8, and F7's
+blocking write is the `optimistic-writes` finding.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-037 ×2): hunter and
+  audit playbook name the stills and `inventory.json`; the catalog carries
+  F14 (between F8 and F9), `logic-placement`, `optimistic-writes` and F15.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-038 — the cheatsheet's "composes" lines come from the composition graph
+
+> "the app stays dry, meaning that components are reused whenever reasonable"
+
+The build analyst derived "composes" from the breakdown specs' prose. Now, once
+units exist, it runs `sprig map --compose --json ui` and copies each unit's
+children from the graph (the specs only for units not built yet); it gains the
+Bash tool for that one command.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-038 ×1): the build
+  analyst names `sprig map --compose --json ui` for its composes lines and
+  lists Bash in its tools.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-027 — the `tokens` lint holds every style to the app's design tokens
+
+> "the app will be faithful to the mock" … "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+An app's design tokens live in `ui/src/css-variables.json`, but nothing checked
+that the styles actually use them: a component could hard-code `#36f` next to a
+`--color-primary: #3366ff` token and drift from the mock without a word.
+`lintTokens({ uiSrc })` (`framework/.sprig/compiler/lints/tokens.ts`) reads
+every unit's `styles.css` and every `style="…"` attribute and `<style>` block in
+every `template.html` (parsed with the compiler's own tree-sitter grammar), and
+reports as errors: a raw color literal (hex, the color functions, named colors;
+`transparent`/`currentColor`/CSS-wide keywords pass, a color function over
+`var(` passes) with the token of exactly that value as the hint, else "add it to
+css-variables.json and use var(--…)"; a `px`/`rem` length equal to a token's
+value, naming the token; a `font-family` literal — off-system (listing the font
+tokens) or equal to a token's value (naming it). A suppression carries a reason
+(`/* sprig-token: <why> */` on the line, `<!-- sprig-token: <why> -->` before the
+element) and is listed with it; a reasonless one is an error, an idle one a
+warning. No `css-variables.json` → `skipped`, with the reason. Directories the
+build does not compile (`_isolate`, `isolate`, `static`, `node_modules`, `dist`)
+are left out by name in `notes` (`ui-files.ts`, shared with REQ-028). The
+design skill's `adherence.oxlintrc.json` is not wired: it is an oxlint
+`no-restricted-syntax` config whose selectors match ESTree `Literal` nodes, so
+it can only read JS/TS string literals — never `styles.css` or `template.html` —
+its font rule still carries `{{DisplayFont}}` placeholders, and oxlint is in
+neither `deno.lock` nor the npm cache here, so running it would need a network
+fetch.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/tokens.test.ts` (REQ-027 ×13): exact
+  and absent token hints for hex/rgba/named colors, rgb spacing, the allowed
+  keywords and `var()`, identifiers/strings/`url()` never colors, token-valued
+  lengths, media preludes ignored, font-family off-system/equal/var, CSS and
+  HTML suppressions with reasons, a reasonless suppression, comments ignored,
+  template style lines.
+- integration — `framework/.sprig/compiler/lints/tokens.int.test.ts` (REQ-027
+  ×3): `fixtures/lints/tokens-clean` (no findings, one listed justification,
+  `_isolate/` named as skipped), `tokens-dirty` (every offender file:line with
+  its hint, one HTML suppression), `tokens-none` (skipped with the reason).
+- e2e — n/a — a source lint with no page; `sprig check` wiring (and its e2e) is
+  the orchestrator's.
+
+## REQ-028 — the `duplicate-templates` lint finds components that should be one
+
+> "the app stays dry, meaning that components are reused whenever reasonable"
+
+Two units whose templates share a structure are the same component written
+twice. `lintDuplicateTemplates({ uiSrc, threshold = 0.85 })`
+(`framework/.sprig/compiler/lints/duplicate-templates.ts`) parses each
+`template.html` with the compiler's tree-sitter grammar and keeps only
+structure — tag names, attribute NAMES as written (`class`, `[title]`,
+`(click)`, `*ngIf`, `sets:org`), control-flow keywords (`@if`, `@for`,
+`@empty`, …) — dropping text, interpolations and values. Each labeled node
+contributes the last 3 labels of its root-to-node path; two templates score the
+Jaccard index of those shingle sets (symmetric, deterministic). A pair at or
+above the threshold is an error "near-duplicate templates: A and B (0.92) —
+compose one from the other, promote to shared-components/, or justify with
+`<!-- sprig-duplicate: <reason> -->` in either template"; a justified pair is
+listed as "justified: A ~ B (score) — <reason>", a reasonless justification is
+an error and one that excuses no pair a warning. Templates under 4
+element/control-flow nodes are skipped by name in `notes`.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/duplicate-templates.test.ts`
+  (REQ-028 ×8): values and text never reach the structure, names and control
+  flow do, wiring/binding names kept, unrelated templates score low and
+  symmetric, one extra footer lowers the score, node counting, justification
+  parsing, empty-set Jaccard.
+- integration — `framework/.sprig/compiler/lints/duplicate-templates.int.test.ts`
+  (REQ-028 ×5): `fixtures/lints/dup-app` — the two cards are one error naming
+  both at 1.00, the order/invoice lists are one listed justification, the
+  one-node icon is skipped by name, a threshold above every score leaves only
+  the idle-justification warning, and two runs are identical.
+- e2e — n/a — a source lint with no page; `sprig check` wiring is the
+  orchestrator's.
+
+## REQ-029 — `optimistic(sig, next, call)`: the UI moves first, the server catches up
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic" — "is there any way that this can be hardened?" — "lets spawn opus
+> 5.5 agents to do all this".
+
+The optimistic default was prose only (component-model.md's "snapshot → mutate
+→ call → reconcile"), hand-rolled per island and easy to get wrong: no helper
+existed anywhere in framework/, packages/ or docs/. Now
+`framework/.sprig/optimistic.ts` exports one primitive, re-exported from
+`@techgoose-labs/sprig` (core.ts) and listed in `publish.include`:
+`optimistic<T, R>(sig, next, call, { reconcile?, onError? }) → { done, pending,
+error }`. The local write is applied synchronously, before `call` starts; a
+rejection (or a synchronous throw) restores the previous value, sets `error`,
+and fires `onError(err, prev)` — without `onError` it is logged, never
+swallowed; `pending` is true from call start to settle; on success
+`reconcile(result, prev)` replaces the optimistic value with the server's
+projection. Concurrent writes to one signal are last-write-wins by start order
+(a per-signal ledger of the confirmed value and the writes in flight): an older
+failure never clobbers a newer write, the newest failing rolls back to the next
+write still in flight or to the confirmed value, and a success supersedes older
+writes. Any signal-shaped value works (`(): T` + `.set(v)`).
+
+Tests:
+
+- unit — `framework/.sprig/optimistic.test.ts` (REQ-029 ×15): (a) same-tick
+  read sees the new value and the call observes it; (b) rollback + onError,
+  error signal + console.error with no onError, sync throw; (c) pending across
+  success and failure; (d) reconcile and its absence; (e) four concurrent
+  orderings + independence across signals; (f) a hand-rolled accessor; the
+  package entry exports it and publish ships it.
+- integration — `framework/.sprig/compiler/lints/optimistic-writes.int.test.ts`
+  (REQ-030) lints `fixtures/lints/optimistic-clean`, whose island uses the
+  primitive from `@techgoose-labs/sprig`, clean.
+- e2e — n/a: a runtime primitive with no page of its own; nothing serves one.
+
+## REQ-030 — the optimistic-writes lint: no server call awaited before the UI changes
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic" — "is there any way that this can be hardened?"
+
+`framework/.sprig/compiler/lints/optimistic-writes.ts` exports
+`lintOptimisticWrites({ uiSrc }): Promise<LintResult>` (and the pure
+`lintOptimisticSource(src, file)`). Over every `logic.ts` under `uiSrc`, read
+with the shared token scanner (`ts-scan.ts`; no TypeScript dependency, the
+wiring lint's syntactic stance), every function body — arrow, `function`,
+method; nested functions judged on their own — is a candidate, not only the
+template-bound handlers: a helper a handler calls makes the user wait just the
+same. An `await` of `fetch(`, `client.<x>(`, `.fetch(`, `.get(`, `.post(`,
+`.put(`, `.patch(`, `.delete(` before the first signal write (`.set(` /
+`.update(` / `.value =` / `sig(v)` on a declared signal, or `optimistic(`) is
+an error at the await's file:line:col: "server write awaited before the UI
+changed — use optimistic(sig, next, call) or write the signal first", naming
+the function and its first write. Functions that write no signal are exempt.
+`// sprig-wait: <reason>` on the await's line or the line above suppresses it
+and is listed with the reason (a bare `// sprig-wait:` does not); it replaces
+the prose `data-note` escape. No island / no ui dir is reported as `skipped`.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/optimistic-writes.test.ts`
+  (REQ-030 ×10): positive (fetch, client.x, .fetch/.get/.post, class
+  methods), negative (write first, optimistic()), exempt (no write), non-server
+  awaits, nested callbacks, suppression with reason listed, bare marker not a
+  suppression, strings/comments ignored.
+- integration — `framework/.sprig/compiler/lints/optimistic-writes.int.test.ts`
+  (REQ-030 ×3): `fixtures/lints/optimistic-clean` passes with its sprig-wait
+  listed; `fixtures/lints/optimistic-dirty` fails at each file:line, printed
+  through `formatLintResult` with the fix hint; an empty tree and a missing
+  dir are skipped out loud.
+- e2e — n/a: a source lint; nothing serves a page.
+
+## REQ-031 — the docs teach `optimistic(...)`, not the awaited fetch
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic" — "is there any way that this can be hardened?"
+
+The docs' own island example (`docs/sprig/islands.md`, "Talking to the backend
+from an island") awaited the fetch before touching any state — the
+anti-pattern. It is replaced by the `optimistic(...)` form with its
+guarantees (synchronous write, rollback surfaced, last-write-wins) and the
+`// sprig-wait: <reason>` escape. `claude/skills/sprig:build/references/component-model.md`'s
+optimistic section now shows the primitive in one example, keeps the "when to
+wait" guidance, and routes the escape to `// sprig-wait: <reason>` instead of
+an inline `data-note`.
+
+Tests:
+
+- unit — `framework/.sprig/optimistic-docs.test.ts` (REQ-031 ×5): both docs
+  import and show `optimistic(`; neither carries the await-first example, and
+  every ```ts block in them passes the optimistic-writes lint;
+  component-model.md's section names `// sprig-wait: <reason>` and no longer
+  `data-note`.
+- integration — n/a: documentation; the unit test reads the shipped files.
+- e2e — n/a: documentation; nothing serves a page.
+
+## REQ-024 — an unknown tag is a build error, not a silent native element
+
+> "what mechanisms do we have to make sure that the app stays dry, meaning that
+> components are reused whenever reasonable" … "is there any way that this can
+> be hardened?" → "lets spawn opus 5.5 agents to do all this".
+
+The renderer resolved a non-native tag through the registry and, when nothing
+answered, emitted it as a plain element (`render.ts`, the `NATIVE.has(tag) ?
+undefined : opts.registry.get(tag)` fall-through) — so a typo'd `<stat-crd>`, or
+a component that was renamed, deleted, or never shared, shipped as an empty
+unknown element and nobody heard. `buildClient` (so `sprig build`, `sprig dev`
+and the workbench build) now runs the composition check first
+(`framework/.sprig/compiler/composition.ts` → `unknown-tag.ts`): every tag in
+every template (and the `bootstrap/` shell) must be a standard HTML/SVG/MathML
+element (the renderer's own NATIVE set, now exported as `isNativeTag`, plus the
+standard names it does not list), a renderer-reserved tag (`router-outlet`,
+`content`, `ng-content`, `ng-container`), or a selector registered in that
+template's scope — resolved through the SAME `ScopedRegistry` the renderer
+builds (`composition-registry.ts`, now shared by `mod.ts`, `build.ts` and the
+check). Each offender is one `file:line error: unknown tag <x>` line naming the
+scope searched and the nearest selector within edit distance 2 ("did you mean
+<stat-card>?"); the build throws listing all of them. The one escape for a
+genuine third-party web component is `src/custom-elements.json` (sprig reads no
+app config key, so this sits beside `css-variables.json`): a JSON array of
+custom-element names, validated (a name without a hyphen is refused — sprig
+components never go there). Each allowed tag in use prints
+`allowing <x-foo> (custom-elements)`; a listed name no template uses prints too.
+A clean run prints what it checked (templates, tags, selectors). No existing
+fixture used an unregistered tag; none changed.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/unknown-tag.test.ts` (REQ-024 ×6):
+  did-you-mean within distance 2; HTML/SVG camelCase/MathML known, a typo not;
+  a typo fails at file:line with the suggestion and the allowlist hint while
+  real markup and reserved tags pass; a page-local selector resolves on its own
+  page only; the allowlist admits a tag and reports used/stale names;
+  `custom-elements.json` absent → null, malformed or hyphen-less → throws
+  naming the entry. `composition.test.ts` (REQ-024/REQ-025 ×2):
+  `assertComposition` prints the allow line and its summary, and throws one
+  error listing every offender.
+- integration — `framework/.sprig/compiler/composition.int.test.ts` (REQ-024
+  ×2): the real CLI's `build --ui-only` on a copy of
+  `fixtures/composition-app` with `<stat-card>` typo'd exits 1 naming
+  `src/pages/dashboard/template.html:2`, the tag and `<stat-card>`; the clean
+  fixture builds and prints `allowing <x-foo> (custom-elements)`.
+- e2e — n/a: a build-time check; no page is served — the integration test
+  drives the real CLI end to end.
+
+## REQ-025 — shadowing a shared selector needs an explicit opt-in
+
+> "what mechanisms do we have to make sure that the app stays dry, meaning that
+> components are reused whenever reasonable" … "is there any way that this can
+> be hardened?"
+
+A page-local component (`pages/<p>/components/<name>/`) whose selector equals a
+shared one's replaced the shared component on that page with no word — the
+page registry resolves page-local first (`mod.ts` `registryForPage`), so the
+reuse the shared component exists for was forked silently. The build now
+refuses it (`framework/.sprig/compiler/shadow.ts`, run by the same
+composition check): one `file:1 error` line naming the page-local folder, the
+shared folder and the page, with the three fixes — reuse the shared one,
+rename, or opt in. The opt-in is the page-local `template.html` opening with
+`<!-- sprig-shadows: <reason> -->` (an empty reason is refused); an opted-in
+shadow prints `<page>/<selector> shadows shared <selector>: <reason>` on every
+build. A page mounting its own same-named island
+(`pages/workbench/components/workbench/`) is not a shadow — the global of that
+name is the page itself.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/shadow.test.ts` (REQ-025 ×4): the marker
+  is the leading comment only; an undeclared shadow is refused naming both
+  folders, an empty reason too; an opted-in one passes with the exact line;
+  the page-owns-its-island pattern is not a shadow.
+- integration — `framework/.sprig/compiler/composition.int.test.ts` (REQ-025
+  ×2): the real CLI build refuses the fixture with the marker removed (exit 1,
+  both folders named) and prints `dashboard/card shadows shared card: …` on
+  the opted-in fixture.
+- e2e — n/a: a build-time check; no page is served.
+
+## REQ-026 — the composition graph: who composes whom, from the renderer's own resolution
+
+> "what mechanisms do we have to make sure that the app stays dry, meaning that
+> components are reused whenever reasonable" → "lets spawn opus 5.5 agents to
+> do all this".
+
+`sprig map` drew only wiring channels; nothing showed which pages reuse which
+components. `framework/.sprig/compiler/composition.ts` exports
+`compositionGraph(appDir)` → `{ pages: { <name>: { dir, composes } },
+components: { <key>: { dir, scope, page?, composes, composedBy } } }` (a shared
+component keyed by selector, a page-local one as `<page>/<selector>`), built by
+resolving every template tag through the renderer's `ScopedRegistry` — ground
+truth, not a regex. `renderCompositionMap(g)` prints one line per unit (pages,
+then shared, then page-local): `page dashboard → composes: …`,
+`shared/confirm-dialog ← composed by: dashboard, settings; composes: card`, and
+says so when nothing composes a component. `compositionGraphJson(g)` is the
+stable sorted-key JSON form. The `sprig map --compose [--json]` wiring in
+`cli.ts` is left to the orchestrator.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/composition.test.ts` (REQ-026 ×4): the
+  shared registry's page-local-first resolution and duplicate refusal; the
+  fixture's graph (pages, shared and page-local components, composedBy); the
+  exact text map; the JSON form sorted, stable and round-tripping.
+- integration — `framework/.sprig/compiler/composition.int.test.ts` (REQ-026):
+  after the real CLI builds the fixture app, its graph and map show what the
+  templates compose.
+- e2e — n/a: no page is served; the map is CLI text.
+
+## REQ-022 — with a contract, the UI reaches the backend only through the typed client (`contract-calls` lint)
+
+> "the logic of the app stays in the backend meaning NO business logic at all
+> goes in the frontned" — "is there any way that this can be hardened?" —
+> "lets spawn opus 5.5 agents to do all this"
+
+When `<git-root>/spec/contract/client/` exists, the contract is the only way
+the UI talks to the backend. `lintContractCalls({ uiSrc, gitRoot })`
+(`framework/.sprig/compiler/lints/contract-calls.ts`) reads every non-test
+`.ts` under the ui source and reports, as `error` findings with file:line:col:
+a `fetch(` whose URL is a string or template literal (`globalThis.`/`window.`
+/`self.fetch` included); any `fetch(` at all in an island `logic.ts` (islands
+go through the client too); `inject(Backend)` not passed straight into
+`createClient(...)`; and `.get(` / `.get<T>(` / `.fetch(` with a literal path
+on a Backend-injected value (the name it was bound to, or chained directly).
+Every finding's hint is "call the typed client (spec/contract/client) — reads
+are queries, writes are commands". `// sprig-contract: <reason>` on the line or
+the line above suppresses it; a suppression without a reason does not count;
+suppressed lines come back with their reasons. With no contract client there
+is nothing to enforce, and the result says so:
+`skipped: "no spec/contract/client at <gitRoot>"`. The lint is a pure function
+of the filesystem (no exit); `formatLintResult` (`lints/lint-types.ts`, the
+shared `Finding`/`LintResult` shapes) prints what it checked or why it
+skipped, each finding with its fix, and each suppression with its reason. The
+source is read with a dependency-free token scanner (`lints/ts-scan.ts`:
+comments dropped, strings/templates/regex literals whole) — `npm:typescript` is
+not in the lock, and the rules need only a token stream.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/contract-calls.test.ts` (REQ-022 ×6):
+  literal/template fetch flagged, variable URL, comments, strings and a
+  `fetch` method definition not; every island fetch flagged; `inject(Backend)`
+  into `createClient` clean, otherwise flagged (field, `#private`, const);
+  `.get<T>("…")`, `.fetch(\`…\`)`, chained `inject(Backend).get("…")` flagged,
+  a variable path and an unrelated `Map.get("k")` not; hint, column, severity;
+  suppression on the line / line above with reasons, empty reason ignored.
+- integration — `framework/.sprig/compiler/lints/contract-calls.int.test.ts`
+  (REQ-022 ×3): over `fixtures/lints/clean-app` (contract present) nothing, 2
+  files checked; over `fixtures/lints/dirty-app` 4 findings named file:line and
+  1 suppression with its reason, the printed summary line and 4 fix lines;
+  over `fixtures/lints/no-contract-app` skipped with the reason, nothing found.
+- e2e — n/a: a source lint with no page; `sprig check` wiring (and its e2e) is
+  the orchestrator's.
+
+## REQ-023 — no business logic in island logic.ts or page resolve.ts (`logic-placement` lint)
+
+> "the logic of the app stays in the backend meaning NO business logic at all
+> goes in the frontned" — "is there any way that this can be hardened?" —
+> "lets spawn opus 5.5 agents to do all this"
+
+`lintLogicPlacement({ uiSrc })`
+(`framework/.sprig/compiler/lints/logic-placement.ts`) reads every island
+`logic.ts` and page `resolve.ts` under the ui source (services are out of
+scope) and reports business logic as `error` findings. The definition of
+business logic, verbatim as decided:
+
+(a) arithmetic (`+ - * / %` and compound assignments) where both operands are
+identifiers/member expressions (data × data), or where one operand is a member
+expression and the other a numeric literal other than 0 or 1 (rates, taxes,
+thresholds). Exempt: member expressions rooted in `event`, `e`, `window`,
+`document`, `el`, `this.el`, `rect`, `Math`, `Date`, or names ending in
+Width|Height|Top|Left|X|Y|Index|Count|Length|Offset|Scroll — UI geometry, not
+domain.
+(b) domain branching: a comparison inside `if`/ternary/`&&`/`||`/`switch` where
+BOTH sides are identifiers/member expressions (data vs data). Comparisons to
+literals, `null`, `undefined`, `.length`, booleans are allowed (state
+switching).
+(c) validation beyond required/type: `.test(`, `.match(`, `RegExp`, or a
+`.length` compared to a numeric literal > 1 inside an event handler. `!value`,
+`=== ""`, `typeof`, `Number.isNaN` are allowed (required/type).
+(d) a call to, or definition of, a function whose name matches
+/^(validate|compute|calculate|derive|total|price|discount|tax|eligib|score|rank|allocate|schedule)/i
+in client/resolve code.
+
+How the implementation reads it: an operand is an identifier/member chain,
+with zero-argument calls counted as reads (`this.price()` is a signal read);
+a call with arguments, a string, or a parenthesised expression is not an
+operand; operator precedence is respected (`rect.w / 2 + pad` does not pair
+`2` with `pad`), and TS generic lists (`signal<T[]>(…)`) are not comparisons.
+The geometry exemption applies to (b) as well as (a); `while` conditions and
+`switch (x) { case y: }` count as branching; a named constant (`ALL_CAPS` or a
+call-free `PascalCase.member`) compares like a literal. "Event handler" in (c)
+is a function the sibling `template.html` binds with `(event)="name(…)"`, one
+named `on…`/`handle…` (lifecycle hooks `onBrowserInit`, `onServerInit`, … are
+not), one taking an `event`/`e`/`ev`/`evt` parameter, or an
+`addEventListener` callback. (d) skips the `computed` primitive itself but
+flags a `computed` assigned to a matching name (a derived total is a
+derivation), and does not flag a zero-argument member read or a bare read of
+a signal the file declares. Messages name the rule letter and end "this is a
+query the backend should answer" ((a)(b)(d)) or "validate in the backend; the
+client checks required/type only" ((c)). `// sprig-logic: <reason>` on the line
+or the line above suppresses; suppressed lines are listed and counted with
+their reasons. A missing ui source, or one with no logic.ts/resolve.ts, is
+reported as skipped with why. Pure function of the filesystem, no exit.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/logic-placement.test.ts` (REQ-023
+  ×12): (a) data × data incl. compound assignment; member × literal ≠ 0/1,
+  `±1`/`×0`/ident × literal/unary/`++` clean; every geometry root and every
+  geometry suffix exempt; strings, calls with args, generics, comments clean;
+  (b) if/ternary/&&/||/while/nested parens/switch-case flagged; literals,
+  null/undefined, `.length`, booleans, constants, typeof, a non-branch
+  assignment, geometry clean; (c) `.test(`/`.match(`/`RegExp` flagged,
+  `.replace(/re/)` and required/type checks clean; `.length > 1` only inside a
+  template-bound handler, an `on…` method (not a lifecycle hook), an
+  `addEventListener` callback; (d) function/method/arrow/computed definitions
+  and calls flagged, signal reads, `computed` itself and imports clean;
+  message text; suppression with reasons.
+- integration — `framework/.sprig/compiler/lints/logic-placement.int.test.ts`
+  (REQ-023 ×3): `fixtures/lints/clean-app` clean over 2 files;
+  `fixtures/lints/dirty-app` 5 findings named file:line with rule letters (the
+  handler found through its `template.html`), 1 suppression with its reason,
+  the service out of scope, the printed summary; `fixtures/lints/no-contract-app`
+  runs (1 file, clean) and a missing ui source reports skipped.
+- e2e — n/a: a source lint with no page; `sprig check` wiring (and its e2e) is
+  the orchestrator's.
+
+## REQ-027 AMENDMENT — the tokens lint reads the themed css-variables.json the build compiles
+
+> "is there any way that this can be hardened?" — calibrating the lint on the
+> repo's real apps showed it read the wrong shape.
+
+The build (`framework/.sprig/compiler/build.ts`, the css-variables compiler)
+accepts only `{ "default", "themes": { <name>: { --token: value } } }`; REQ-027
+read a flat `--*` map, so on a real app (`fixtures/eval-app`) it saw zero
+tokens and every hint said "add it" for colors that ARE tokens. `readTokenFile`
+now reads every theme's `--*` keys (a value matches its token in any theme; a
+flat map is still read, with a note). A `var(--x, <fallback>)` whose fallback
+restates `--x`'s own value is the token and passes; a drifted fallback is
+still a raw value. The tokens fixtures use the themed shape.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/tokens.test.ts` (REQ-027 ×3 more):
+  themed file read across themes, flat map read and noted, var() fallback
+  equal vs drifted.
+- integration — `framework/.sprig/compiler/lints/tokens.int.test.ts` (REQ-027):
+  the fixtures' themed files resolve `#36f` → `var(--color-primary)`.
+- e2e — n/a — a source lint with no page.
+
+## REQ-023 AMENDMENT — rule (b) is relational only: data-vs-data equality is identity/selection
+
+> The coordinator's decision on rule (b): "equality/inequality between two data
+> members (`x.key === c.key`, `route !== active()`) is identity/selection — UI
+> state, not a domain rule. Narrow (b) to RELATIONAL comparisons only (`<`,
+> `>`, `<=`, `>=`) between two identifiers/member expressions, keeping the
+> geometry exemptions; equality stays allowed."
+
+Rule (b) now fires only on `<`, `>`, `<=`, `>=` between two
+identifiers/member expressions in an if / while / ternary / `&&` / `||`
+condition; the geometry and named-constant exemptions stand. `==`, `===`,
+`!=`, `!==` between data — including `switch (x) { case y: }`, which is an
+equality — are allowed, so the switch-case check is deleted. Rule (c)'s
+`.length` check still reads every comparison operator. `LintResult` gains
+`notes?: string[]` (partial skips and why, used by other lints), and
+`formatLintResult` prints each as `  note: …` after the summary, also under a
+skip. Measured on real code: `lintLogicPlacement` over `app/src`,
+`fixtures/{bullshit-app,eval-app,eval/audit-app,sprig-app}/src` and
+`fixtures/spec-check/clean/ui/src` reports 0 findings (the six workbench (b)
+hits before this amendment were all equality).
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/logic-placement.test.ts` (REQ-023
+  AMENDMENT ×1, REQ-023 (b) positives now all relational): the former
+  equality positives, `route !== active()`, a `.find` identity match, `!=`
+  and switch-case are clean; `if ((x.a >= y.b))` and `a.age >= b.minAge &&`
+  are flagged. `framework/.sprig/compiler/lints/lint-types.test.ts` (REQ-023
+  AMENDMENT ×1): notes print after the summary and after a skip.
+- integration — `framework/.sprig/compiler/lints/logic-placement.int.test.ts`
+  (REQ-023 ×3) unchanged and green: the dirty fixture's (b) is relational.
+- e2e — n/a: a source lint with no page.
+
+## REQ-024 AMENDMENT — a shared component may only compose shared components
+
+> "is there any way that this can be hardened?" (the coordinator, reviewing
+> REQ-024: a tag inside a shared component that resolves only through some
+> page's page-local scope renders as unknown on every other page).
+
+REQ-024 counted such a tag as resolved when any page's page-local scope
+defined it. A shared component (or the shell) renders on every page, so the
+match held on that one page only and the tag shipped as an empty unknown
+element everywhere else. Now a tag in a shared component resolves in the
+shared scope (or the custom-elements allowlist) only; a page-local match is an
+error naming the shared component, the tag and the page that defines it:
+`shared component <wrapper> uses <kpi>, which only page "home" defines
+(src/pages/home/components/kpi) … a shared component may only compose shared
+components; promote <kpi> to shared-components/ or make <wrapper> page-local`.
+The composition graph follows the same rule (no shared → page-local edges).
+The workbench app runs this same check, so `cli/lib/generate-previews.ts` now
+copies the project's `src/custom-elements.json` into it (and clears a stale
+one), as it already did for `css-variables.json`.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/unknown-tag.test.ts` (REQ-024 AMENDMENT):
+  a shared `<wrapper>` using page-local-only `<kpi>` fails at file:line with
+  the message above. `cli/lib/generate-previews.test.ts` (REQ-024 AMENDMENT):
+  the allowlist is copied into the workbench app, and removed when the project
+  drops it.
+- integration — `framework/.sprig/compiler/composition.int.test.ts` (REQ-024)
+  still drives the real CLI build over the fixture, which follows the rule.
+- e2e — n/a: a build-time check; no page is served.
+
+## REQ-027 AMENDMENT 2 — a length is held only to its property's token family
+
+> "the app will be faithful to the mock" — calibration on `fixtures/eval-app`
+> showed the value-only length rule told a `padding: 1.25rem` to use
+> `var(--radius-box)`.
+
+A length is now an error only when a token of the property's FAMILY holds that
+value, and the hint names only that family's tokens. A length equal to another
+family's token alone is not a finding; a property in no family (letter-spacing,
+border-width, …) is never a length finding. Families are inferred by token-name
+prefix:
+
+| family | properties | token prefixes |
+|--------|------------|----------------|
+| step   | font-size, line-height | `--step`, `--text`, `--font-size` |
+| radius | border-radius, border-*-radius | `--radius`, `--rounded` |
+| space  | gap/row-gap/column-gap, padding*, margin*, inset*, top, left, right, bottom, width, height, min-/max-width/height | `--space`, `--spacing`, `--size` |
+| shadow | box-shadow | `--shadow` |
+
+`lintTokens` adds a `notes` line naming each family and the app's tokens in it
+(`token families: step 8 (…), radius 3 (…), space 0, shadow 0`). On
+`fixtures/eval-app` the findings drop from 6 to 4: the rgb shadow and three
+font-size lengths naming `--step-*`.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/tokens.test.ts` (REQ-027 ×5 more):
+  font-size/line-height name only step tokens; another family's value alone is
+  no finding; space/radius/shadow pairing; a family-less property never
+  matches; the families notes line.
+- integration — `framework/.sprig/compiler/lints/tokens.int.test.ts` (REQ-027):
+  the dirty fixture's `padding: 8px` still names `--space-2`.
+- e2e — n/a — a source lint with no page.
+
+## REQ-032 — `spec-check` machine-checks the breakdown: nothing unassigned, bindings real, write islands prove their rollback, every unit built and composed where the mock puts it
+
+> "the logic of the app stays in the backend meaning NO business logic at all
+> goes in the frontned", "the app is optimistic and does not have latency
+> waiting on the server", "the app will be faithful to the mock", "components
+> are reused whenever reasonable", and "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this".
+
+The breakdown (`spec/ui/breakdown/`) and its contract binding were Markdown
+prose written by a model, and nothing read them back: a non-empty Unassigned
+list, a binding row naming an endpoint or DTO the contract never had, a write
+island with no rollback case, a unit the build never produced, or a shared
+component a page silently stopped composing all shipped without a sound. Now
+`framework/.sprig/spec-check.ts` exports
+`specCheck({ breakdownDir, gitRoot, uiSrc?, graph?, appDir? })` →
+`{ checks: { name, ok, read, skipped?, notes?, items, findings: { where, message, hint }[] }[], ok }`
+and `renderSpecCheck(r)` (one block per check: `ok (n items)` / `skipped` +
+reason / `FAIL (n findings)` with every offender and its `fix:` line, the paths
+read, and notes for any part that did not run). Seven checks over the fixed
+machine formats (`inventory.json`, the `| unit | need | kind | endpoint | dto |`
+table + `## Drift`, isolate cases' `_tier`/`_network`):
+`inventory` (shape, enums, dir ↔ scope, static ↔ tier, each unit's `<name>.md`
+exists); `unassigned` (each entry a finding; a missing inventory.json FAILS);
+`double-assignment` (unique names per selector scope, unique dirs);
+`binding-drift` (endpoints exist in openapi.json by method + path template,
+DTOs in `components.schemas` or `client/dtos.ts` exports — the note says which,
+query ↔ GET, every unit with dataNeeds bound, Drift says "none"; skipped only
+when there is no openapi.json); `tier-cases` (an optimistic-write unit has
+`pending` and a `rolled-back` whose `_network` fails the command it is bound to;
+every `_tier` agrees; `_network` values well-formed); `built` (with `uiSrc`:
+each unit's folder with `template.html` per the compiler's scoping — shared in
+`shared-components/`, `components/` or `islands/`; an island has `logic.ts`, a
+static unit ships none); `composition` (usedOn ↔ the composition graph,
+transitively, page-local shadows resolved first; page-local-named-like-shared is
+shadowing). `deno run -A framework/.sprig/spec-check.ts [--root] [--ui-src]
+[--app] [--graph] [--json]` exits 0/1/2.
+
+Tests:
+
+- unit — `framework/.sprig/spec-check/binding.test.ts` (REQ-032 ×12): table
+  parser, Drift parser, endpoint parser, path-template matching, method-aware
+  operation lookup, dtos.ts exports, every binding finding.
+- unit — `framework/.sprig/spec-check/graph.test.ts` (REQ-032 ×6): transitive
+  reachability, page-local-first resolution, cycles, stale matrix, shadowing.
+- unit — `framework/.sprig/spec-check/inventory.test.ts` (REQ-032 ×5),
+  `tier.test.ts` (REQ-032 ×5), `built.test.ts` (REQ-032),
+  `framework/.sprig/spec-check.test.ts` (REQ-032 ×2): shape validation,
+  unassigned, double-assignment, `_network` values, rollback cases, src layout
+  mapping, the never-silent renderer.
+- integration — `framework/.sprig/spec-check.int.test.ts` (REQ-032 ×14): the
+  clean tree in `fixtures/spec-check/clean/` passes all seven checks; each
+  `fixtures/spec-check/fail-<check>/` overlay fails exactly its one check; a
+  missing inventory, a missing openapi.json / binding.md / dtos.ts, no uiSrc or
+  graph; the CLI's output and exit codes.
+- e2e — n/a: a static checker over files; nothing serves a page.
+
+## REQ-024 AMENDMENT 2 — the workbench copies hyphen-less dependencies too
+
+> "is there any way that this can be hardened?" (the coordinator: "Selectors
+> are folder basenames and hyphen-less ones are normal (`sparkline`), so
+> `copyDeps` must match every tag that `findComponentDir` resolves (excluding
+> native tags via `isNativeTag`), not only hyphenated ones.")
+
+`cli/lib/generate-previews.ts` `copyDeps` matched only dash-tags, so a
+target composing `<sparkline>` got no `sparkline/` in the workbench. It used to
+render as a silent empty element; under REQ-024 the workbench build refused it
+as an unknown tag. `copyDeps` now matches every opening tag, skips the
+renderer's native tags (`isNativeTag`) and the reserved ones, and copies any
+tag that names a component folder, transitively.
+
+Tests:
+
+- unit — `cli/lib/generate-previews.test.ts` (REQ-024 AMENDMENT 2): a target
+  using `<sparkline>` with a sibling `sparkline/` folder gets it copied; the
+  native `<div>`/`<p>` are skipped.
+- integration — n/a: the unit drives the real copy on disk; the workbench
+  build over it is `buildClient`, covered by `composition.int.test.ts`.
+- e2e — n/a: the workbench page itself is not served by this change's tests.
+
+## REQ-030 AMENDMENT — the loading flag is no excuse; only server writes must be optimistic
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic" — "is there any way that this can be hardened?"
+
+The first cut let `loading.set(true); const r = await fetch(…POST…);
+items.set(r)` pass: the flag counted as "writing the signal first", yet it is
+exactly the spinner-and-wait. And it treated every awaited `fetch`/`.get(` as
+a server write, so a legitimate read (search-as-you-type, load-more) was
+flagged. Now:
+
+- **Rule 2 (new):** a signal write AFTER an awaited server write is an error
+  at the write — "the UI changed only after the server answered — use
+  optimistic(sig, next, call) so the write lands first and reconcile() applies
+  the server's projection" — unless the body calls `optimistic(` (its
+  reconcile owns the post-await write) or `// sprig-wait: <reason>` sits on the
+  await's line (or the line above) or the write's. Rule 1 (write-before-first-
+  signal-write) stays. A write takes effect when its call closes, so
+  `items.set(await x())` writes after the await.
+- **Only writes are judged.** An awaited call is a server WRITE when any call
+  in its operand is: `fetch(`/`.fetch(` with a literal `method:` POST, PUT,
+  PATCH or DELETE (no method or GET = read); `.post(` `.put(` `.patch(`
+  `.delete(` (`.get(` = read); `client.<op>(` (receiver's last segment
+  `client`) whose operationId maps to a non-GET method in
+  `<gitRoot>/spec/contract/openapi.json`, or is missing from it — with no
+  openapi.json every `client.<op>(` is a write; a callee whose last segment is
+  save|create|update|remove|delete|send|submit|post|put|patch; any other call
+  whose receiver chain has a segment ending in api|client|backend
+  (case-insensitive), unless its name starts get|list|load|fetch|find|search|
+  query|read|count. `lintOptimisticWrites` takes `{ uiSrc, gitRoot? }`.
+- **Notes** (`LintResult.notes`, printed by `formatLintResult`): how
+  `client.<op>` was classified (openapi.json and its op count, or "no
+  spec/contract/openapi.json under <root> — treating every client.<op>() as a
+  write"), any ops openapi.json does not know, and the counts of exempt
+  functions (await a server write, write no signal) and awaited reads.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/optimistic-writes.test.ts`
+  (REQ-030 ×17): the loading-flag spinner flagged at the late write; reads
+  (no method, GET, `.get(`, query-named api call) exempt and counted;
+  service objects (`this.api.save`, `svc.create`, `backend.submitOrder`,
+  `store.remove`, `this.todoApi.archiveAll`) flagged; a body calling
+  optimistic() exempt from rule 2; sprig-wait on the await covers the later
+  write; openapi ops classify `client.<op>` (GET read, POST write, unknown =
+  write, named) and without them every `client.<op>` is a write; exempt count.
+- integration — `framework/.sprig/compiler/lints/optimistic-writes.int.test.ts`
+  (REQ-030 ×3): the `todo-list` island awaiting `client.listTodos()` passes in
+  `fixtures/lints/optimistic-clean` (its `spec/contract/openapi.json` says GET)
+  and fails in `fixtures/lints/optimistic-dirty` (no openapi.json — the note
+  says so); notes asserted and printed.
+- e2e — n/a: a source lint; nothing serves a page.
+
+## REQ-033 AMENDMENT — the breakdown prose states the exact shapes `sprig spec-check` parses
+
+> "is there any way that this can be hardened?" → "lets spawn opus 5.5 agents
+> to do all this"
+
+`sprig spec-check` (REQ-033's gate) parses the breakdown exactly, so the
+analyst now states it exactly: `inventory.json` `dir` is the path the scope
+implies (shared → `shared-components/<name>`, page → `pages/<page>`,
+page-local → `pages/<page>/components/<name>`); a `static` unit has tier
+`static` and an island never does; each unit's spec lands at
+`<dir>/<name>.md` (the spec-writer says the same); a binding query row's
+endpoint is `GET …` and a command row's never is; the `## Drift` body is
+exactly `none` when empty. No prompt names a spec-check flag the tool does
+not take.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-033 ×2 more): the
+  analyst carries each shape sentence; no touched prompt says `--built ui/src`
+  or `spec-check --compose`; (REQ-034) the spec-writer names `<dir>/<name>.md`.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-035 AMENDMENT — the build's final spec-check is `--ui-src ui/src --app ui`
+
+> "the app will be faithful to the mock", "the app stays dry, meaning that
+> components are reused whenever reasonable"
+
+The whole-app step runs `sprig spec-check spec/ui/breakdown --ui-src ui/src
+--app ui` (the flags the tool takes: the built tree and the app whose
+composition graph it compares with the usage matrix), not `--built … --compose`.
+The build playbook, the `ui-breakdown` and `sprig-app` interfaces, the wiring
+reference and catalog F15 name that form. The build prompts also retire the
+hand-rolled snapshot → mutate → call → roll back prose for `optimistic(...)`,
+and name every `sprig check` marker, `// sprig-contract: <reason>` and
+`src/custom-elements.json` included, in the cheatsheet recipe.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-035): step 3 names
+  the `--ui-src ui/src --app ui` form in the playbook; builder + playbook say a
+  wait needs `// sprig-wait: <reason>` and is reported by `sprig check`, and no
+  longer carry the hand-rolled snapshot prose; the cheatsheet recipe carries
+  `// sprig-contract: <reason>` and `src/custom-elements.json`.
+- integration — n/a: docs.
+- e2e — n/a: docs.
+
+## REQ-048 — `sprig check` runs every hardening check and gives one verdict; `sprig map --compose`; `sprig spec-check`
+
+> "is there any way that this can be hardened?" → "lets spawn opus 5.5 agents
+> to do all this, lets do as much in parallel as we can … you get final sign
+> off of the work."
+
+The checks the other entries built (REQ-022/023 contract-calls and
+logic-placement, REQ-024/025 unknown tags and shadowing, REQ-026 the
+composition graph, REQ-027/028 tokens and duplicate templates, REQ-030
+optimistic-writes, REQ-032 spec-check) were modules with no command. Now:
+
+- `sprig check [appDir] [--root <git-root>]` runs, in order, the typecheck,
+  the wiring lint, the composition check and the five source lints — EVERY
+  one runs even when an earlier one is red (a red typecheck used to exit
+  before the wiring lint ran), each prints what it checked, skipped and found
+  (`formatLintResult`), and the last line is one verdict:
+  `sprig check: green — …` or `sprig check: red — <failed> (green: <rest>)`,
+  exit 1. `--root` says where `spec/contract` lives (default: the app's git
+  root) so a fixture app can carry its own contract.
+- `sprig map [appDir] --compose [--json]` prints the composition graph (who
+  composes whom) from the renderer's own registry.
+- `sprig spec-check [breakdownDir] [--root] [--ui-src] [--app] [--json]`
+  runs the breakdown's machine checks; exit 1 on any finding.
+- `sprig build` prints a composition error as one message naming every
+  offender, never a stack.
+- `splitArgs` keeps a flag's value from being read as the app directory.
+- The new modules are in `publish.include` (REQ-014's rule).
+
+Tests:
+
+- unit — `framework/.sprig/cli-help.test.ts` (REQ-002, extended): `spec-check`
+  has its own usage block; `framework/publish-include.test.ts` (REQ-014):
+  every module cli.ts now imports ships.
+- integration — `framework/cli-lints.int.test.ts` (REQ-048 ×5): the real CLI
+  on `fixtures/lints/dirty-app` runs all five lints and the composition check
+  and is red naming `optimistic-writes`/`logic-placement`; on
+  `fixtures/lints/clean-app` all run and it is green; `map --compose` prints
+  `composes` lines and `--json` parses to `{pages, components}`; `spec-check`
+  is green on `fixtures/spec-check/clean` and red on the `fail-unassigned`
+  overlay; a build of the composition fixture with an unknown tag exits 1
+  with "composition check failed", the tag named, and no stack frame.
+- e2e — n/a: no page; the CLI's exit code and text are the whole surface.

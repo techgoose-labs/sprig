@@ -1,0 +1,6 @@
+{
+  "title": "Water the plants",
+  "done": false,
+  "_tier": "optimistic-write",
+  "_network": { "markDone": "delay:500" }
+}

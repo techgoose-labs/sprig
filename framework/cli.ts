@@ -33,6 +33,22 @@ import {
   type WiringDiagnostic,
 } from "./.sprig/compiler/wiring-lint.ts";
 import { createDevServer } from "./.sprig/compiler/dev.ts";
+import {
+  assertComposition,
+  compositionGraph,
+  compositionGraphJson,
+  renderCompositionMap,
+} from "./.sprig/compiler/composition.ts";
+import {
+  formatLintResult,
+  type LintResult,
+} from "./.sprig/compiler/lints/lint-types.ts";
+import { lintContractCalls } from "./.sprig/compiler/lints/contract-calls.ts";
+import { lintLogicPlacement } from "./.sprig/compiler/lints/logic-placement.ts";
+import { lintTokens } from "./.sprig/compiler/lints/tokens.ts";
+import { lintDuplicateTemplates } from "./.sprig/compiler/lints/duplicate-templates.ts";
+import { lintOptimisticWrites } from "./.sprig/compiler/lints/optimistic-writes.ts";
+import { renderSpecCheck, specCheck } from "./.sprig/spec-check.ts";
 import { createRenderer, Frontend, loadRoutes } from "../packages/keep/mod.ts";
 import { Bedrock } from "@techgoose-labs/bedrock";
 // The runtime via the BARE specifier, not "./.sprig/core.ts": in the merged-config dev child the
@@ -662,7 +678,17 @@ async function build(
   }
   // ONE build — `sprig dev` serves exactly these bytes (no dev variant). HMR rides on top as a
   // runtime flag (cfg.hmr) + the dormant receiver, never a different bundle.
-  const r = await buildClient(srcDir, outDir);
+  let r: Awaited<ReturnType<typeof buildClient>>;
+  try {
+    r = await buildClient(srcDir, outDir);
+  } catch (e) {
+    // REQ-024/025: a composition error is one message naming every offender — never a stack.
+    if (e instanceof Error && e.message.includes("composition check failed")) {
+      console.error(e.message);
+      Deno.exit(1);
+    }
+    throw e;
+  }
   await writeBuildInfo(resolve(appDir), outDir);
   console.log(
     `sprig build: ${r.islands.length} island chunk(s) ` +
@@ -979,12 +1005,15 @@ async function collectTs(dir: string, out: string[] = []): Promise<string[]> {
  *  drops its @techgoose-labs/sprig pin (the CLI is the sole runtime owner): the app authors against the
  *  @techgoose-labs/sprig interface, the CLI supplies the one implementation, so what typechecks is
  *  exactly what builds — there is no second copy to drift against. */
-async function check(appDir = "."): Promise<void> {
+async function check(appDir = ".", rootArg?: string): Promise<void> {
   const srcDir = join(resolve(appDir), "src");
   if (!(await pathExists(srcDir))) {
     console.error(`sprig check: no src/ under ${resolve(appDir)}`);
     Deno.exit(1);
   }
+  // REQ-048: every check runs, then one verdict — a red typecheck never hides a
+  // red lint. `red` collects the names of the checks that failed.
+  const red: string[] = [];
   const tmp = await Deno.makeTempDir({ prefix: "sprig-check-" });
   // A temp deno.json carrying BOTH the forced runtime imports AND the app's compilerOptions —
   // islands run in the browser, so the app's `lib` (dom) + decorator options must apply or
@@ -1001,30 +1030,88 @@ async function check(appDir = "."): Promise<void> {
   const files = await collectTs(srcDir);
   try {
     if (files.length === 0) {
-      console.log(`sprig check: no .ts files under ${srcDir}`);
-      return;
+      console.log(`sprig check: no .ts files under ${srcDir} — nothing to typecheck`);
+    } else {
+      const res = await new Deno.Command("deno", {
+        args: ["check", "--config", cfgPath, ...files],
+        stdout: "inherit",
+        stderr: "inherit",
+      }).output();
+      if (res.success) {
+        console.log(
+          `sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`,
+        );
+      } else red.push("typecheck");
     }
-    const res = await new Deno.Command("deno", {
-      args: ["check", "--config", cfgPath, ...files],
-      stdout: "inherit",
-      stderr: "inherit",
-    }).output();
-    if (!res.success) Deno.exit(1);
-    console.log(
-      `sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`,
-    );
   } finally {
     await Deno.remove(tmp, { recursive: true }).catch(() => {});
   }
   // TEMPLATE WIRING lint (spec §6): the same required check `sprig build` gates on —
   // run it here too so `sprig check` is the one pre-flight that catches everything.
   const wiring = await analyzeWiring(resolve(appDir));
-  if (reportWiringDiags("sprig check", wiring.diagnostics)) Deno.exit(1);
+  if (reportWiringDiags("sprig check", wiring.diagnostics)) red.push("wiring");
   if (wiring.channels.length && !wiring.diagnostics.length) {
     console.log(
       `sprig check: ${wiring.channels.length} wiring channel(s) lint clean (\`sprig map\` draws them).`,
     );
   }
+  // COMPOSITION (REQ-024/025): every tag resolves, no undeclared shadowing — the
+  // same check the build gates on, so `sprig check` is the one pre-flight.
+  try {
+    await assertComposition(srcDir, "sprig check");
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    red.push("composition");
+  }
+  // SOURCE LINTS (REQ-022/023/027/028/030): each prints what it checked, what it
+  // skipped and why, every finding with its fix, every suppression with its reason.
+  const gitRoot = rootArg
+    ? resolve(rootArg)
+    : gitRepoRoot(resolve(appDir)) ?? resolve(appDir);
+  const lints: [string, () => Promise<LintResult>][] = [
+    ["contract-calls", () => lintContractCalls({ uiSrc: srcDir, gitRoot })],
+    ["logic-placement", () => lintLogicPlacement({ uiSrc: srcDir })],
+    ["tokens", () => lintTokens({ uiSrc: srcDir })],
+    ["duplicate-templates", () => lintDuplicateTemplates({ uiSrc: srcDir })],
+    ["optimistic-writes", () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot })],
+  ];
+  for (const [name, run] of lints) {
+    const r = await run();
+    for (const line of formatLintResult(name, r)) console.log(line);
+    if (r.findings.some((f) => f.severity === "error")) red.push(name);
+  }
+  const all = [
+    "typecheck",
+    "wiring",
+    "composition",
+    ...lints.map(([n]) => n),
+  ];
+  if (red.length) {
+    console.error(
+      `sprig check: red — ${red.join(", ")} (green: ${
+        all.filter((n) => !red.includes(n)).join(", ") || "none"
+      })`,
+    );
+    Deno.exit(1);
+  }
+  console.log(`sprig check: green — ${all.join(", ")}`);
+}
+
+/** Split a command's args into positionals and the values of the named `--flag <value>`
+ *  options, so a flag's value is never mistaken for the app directory. */
+function splitArgs(
+  args: string[],
+  valued: string[],
+): { positional: string[]; values: Record<string, string> } {
+  const positional: string[] = [];
+  const values: Record<string, string> = {};
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (valued.includes(a)) {
+      values[a] = args[++i] ?? "";
+    } else if (!a.startsWith("-")) positional.push(a);
+  }
+  return { positional, values };
 }
 
 /** `sprig map [appDir]` — render the app's dataflow from its templates alone (spec §5):
@@ -1032,11 +1119,21 @@ async function check(appDir = "."): Promise<void> {
  *  `org: set by side-nav → edited by org-quick-rename → read by org-detail, app-detail`.
  *  Stable-ordered (declaring template path, then template line), so it diffs cleanly —
  *  the proof that the HTML is the source of truth, and the regression guard. */
-async function mapCmd(appArg = "."): Promise<void> {
+async function mapCmd(
+  appArg = ".",
+  opts: { compose?: boolean; json?: boolean } = {},
+): Promise<void> {
   const app = resolve(appArg);
   if (!(await pathExists(join(app, "src")))) {
     console.error(`sprig map: no src/ under ${app}`);
     Deno.exit(1);
+  }
+  // --compose (REQ-026): who composes whom, from the same registry resolution the
+  // renderer uses — the ground truth for reuse, not a regex over templates.
+  if (opts.compose) {
+    const g = await compositionGraph(app);
+    console.log(opts.json ? compositionGraphJson(g) : renderCompositionMap(g));
+    return;
   }
   const analysis = await analyzeWiring(app);
   if (!analysis.channels.length) {
@@ -2654,13 +2751,37 @@ switch (cmd) {
     break;
   }
   case "check": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await check(appArg);
+    const { positional, values } = splitArgs(rest, ["--root"]);
+    await check(positional[0] ?? ".", values["--root"]);
     break;
   }
   case "map": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await mapCmd(appArg);
+    const { positional } = splitArgs(rest, []);
+    await mapCmd(positional[0] ?? ".", {
+      compose: rest.includes("--compose"),
+      json: rest.includes("--json"),
+    });
+    break;
+  }
+  case "spec-check": {
+    // REQ-032: the breakdown's machine checks — unassigned, binding drift, tier
+    // cases, built coverage, composition vs usage matrix, double assignment.
+    const { positional, values } = splitArgs(rest, ["--root", "--ui-src", "--app"]);
+    const gitRoot = values["--root"]
+      ? resolve(values["--root"])
+      : gitRepoRoot(Deno.cwd()) ?? Deno.cwd();
+    const breakdownDir = positional[0]
+      ? resolve(positional[0])
+      : join(gitRoot, "spec", "ui", "breakdown");
+    const r = await specCheck({
+      gitRoot,
+      breakdownDir,
+      uiSrc: values["--ui-src"] ? resolve(values["--ui-src"]) : undefined,
+      appDir: values["--app"] ? resolve(values["--app"]) : undefined,
+    });
+    if (rest.includes("--json")) console.log(JSON.stringify(r, null, 2));
+    else console.log(renderSpecCheck(r));
+    if (!r.ok) Deno.exit(1);
     break;
   }
   case "dev":

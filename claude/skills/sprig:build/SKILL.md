@@ -91,7 +91,8 @@ Pass each one its input contract and summarize what it returns.
    the cheatsheet itself and the run hit the wall clock with two units never
    started). A builder-returned gotcha propagates by APPENDING one line to the
    cheatsheet — never by fattening later briefs. Before a page-composition wave,
-   optionally re-spawn the analyst to refresh the sheet against as-built props.
+   optionally re-spawn the analyst to refresh the sheet against as-built props
+   and the composition graph (`sprig map --compose`).
    **Cross-island state is wired, never stored.** Islands share state ONLY via
    the `sets:`/`reads:`/`edits:` template verbs (`references/wiring.md`); the
    cheatsheet MUST carry the **channel map** (channel → origin `sets:` → editors
@@ -108,7 +109,9 @@ Pass each one its input contract and summarize what it returns.
    delegate to **`sprig-build-component`** with its breakdown spec as **resolved
    ABSOLUTE paths you looked up in `index.md` / the breakdown tree ONCE**: the
    unit's breakdown folder, its `<name>.md`, `isolate/`, `screenshots/`, and the
-   target src dir. Never brief a specialist with just a name and "glob for it" —
+   target src dir. A unit is green when its `isolate test --json` rows pass —
+   every `_reference` pixel-diff row within tolerance included — AND
+   `sprig check ui` reports no finding against its folder. Never brief a specialist with just a name and "glob for it" —
    a measured fleet did that 652 times and every agent re-searched the tree the
    orchestrator already held. Each unit must be green in `sprig isolate`
    **before** the units that compose it — and start each composition the moment
@@ -175,7 +178,14 @@ Pass each one its input contract and summarize what it returns.
    receipt — one `SPRIG_WB_ROOT=/tmp/wb-final isolate test --json` at the app
    root, every case in a single run (units were only ever proven one at a time;
    a composition can break a sibling's case and per-unit verdicts won't show it)
-   — then have the scaffolder run the prod-build smoke (`deno task build` →
+   — then, from the git root, `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui`
+   (every inventory unit built, the usage matrix equal to the composition
+   graph, no double assignment) and `sprig check ui` (typecheck, wiring, and the
+   `contract-calls` / `logic-placement` / `tokens` / `duplicate-templates` /
+   `optimistic-writes` lints). The build is red on any finding from either;
+   route each finding to the owning unit's builder — a suppression comment is
+   the builder's call only with a reason (the cheatsheet lists them). Then have
+   the scaffolder run the prod-build smoke (`deno task build` →
    `deno task start`, hit a real URL). Deeper QA of the running app — hunting
    bugs, perf, regressions — is the **`sprig:audit`** stage downstream, not this
    skill.
@@ -267,10 +277,20 @@ as behavior/scoped-styles and strips them from output.)
 
 ## Top gotchas (enforce across specialists)
 
-- **Server writes are optimistic by default** (mandatory): update the UI now,
-  call in the background, roll back on failure — never
-  spinner-and-`location.reload()`. Spinner-and-wait only when the result is
-  unknowable client-side or a `data-note` says so.
+- **Server writes are optimistic** (mandatory): every write is
+  `optimistic(sig, next, call)` from `@techgoose-labs/sprig` — the UI updates
+  now, rolls back on failure — never spinner-and-`location.reload()`. Waiting
+  is for a command whose prototype `feedback` is `confirmed` (or whose result
+  is unknowable client-side): a wait needs `// sprig-wait: <reason>` and is
+  reported by `sprig check`; the `optimistic-writes` lint fails any other
+  await-then-write.
+- **No business logic in the client:** filter/sort/search/totals/prices and
+  every rule beyond required/type come from the backend (a query or a
+  command); `logic.ts` holds UI state only — the `logic-placement` lint
+  enforces it.
+- **DRY:** reuse the shared component the breakdown names; the
+  `duplicate-templates` lint fails near-identical templates and the compiler
+  refuses a page-local component shadowing a shared selector.
 - **Data crosses the waist through the generated typed client** when one exists
   (`spec/contract/client/`, generated from the rune OpenAPI):
   `resolve.ts`/services and islands import its DTO types and endpoint wrappers —

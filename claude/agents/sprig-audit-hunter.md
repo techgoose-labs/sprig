@@ -35,6 +35,10 @@ The orchestrator passes:
   `fronts keep backend (Backend token / /api) at server/`.
 - **USER STORIES** — the contents of `user-stories.md`, or
   `"none — derive from the route table + islands"`.
+- **MOCK** — the breakdown's `spec/ui/breakdown/inventory.json` and the
+  page-level stills
+  (`spec/ui/breakdown/pages/<page>/screenshots/<page>@<width>[-<theme>].png`,
+  absolute), or `none — no breakdown`. With the stories, they are your oracle.
 - **EVIDENCE DIR** — `<project>/fixes-evidence/` (write screenshots/JSON here).
 
 **Finding a Playwright-MCP screenshot — read the returned path, never search for
@@ -86,7 +90,13 @@ user story and route:
   NETWORK (4xx/5xx, failed assets, `/api` errors) on every page;
 - MEASURE performance (long tasks, CLS, dropped frames under scroll/hover/drag,
   waterfall) — a number with conditions, not "feels slow";
-- resize to the source's real `@media` breakpoints and re-check.
+- resize to the source's real `@media` breakpoints and re-check;
+- hold each page to its mock: at every page-level still's width/theme, shoot the
+  live route and run the page's isolate cases
+  (`SPRIG_WB_ROOT=/tmp/wb-audit isolate test <page> --json` — their `_reference`
+  rows are the measured diff); a page whose composed render departs from its
+  still (missing region, wrong component, token/layout drift) is a bug (catalog
+  F15), and so is an `inventory.json` unit absent from a page in its `usedOn`.
 
 Capture evidence for each deviation as you see it (screenshot/console
 line/network entry/number) into the EVIDENCE DIR.
@@ -103,7 +113,10 @@ backend — the in-process `Backend` calls and keep endpoints/DTOs (fake data
 shown as real, empty-store/no-op-keep fallback, slow SSR fetch). Confirm or drop
 each UI suspicion against the actual code.
 
-**PASS 3 — CLIENT.** Read the island/component/CSS code for the client-side
+**PASS 3 — CLIENT.** Run `sprig check ui` once: each `logic-placement` finding
+is F14 (domain logic in the client), each `optimistic-writes` finding F7 (a
+blocking write) — reproduce it in the browser before logging (a stale total, a
+save that spins). Then read the island/component/CSS code for the client-side
 causes: an interactive folder with no `logic.ts` (its `(event)` bindings never
 fire — dead island), non-serializable `@inputs`, non-signal state that never
 re-renders, an unguarded browser global in `setup()`, manual
@@ -164,39 +177,33 @@ Return your final message as **exactly** this JSON, nothing else:
 `ui|server|client|backend`. Return ONLY this JSON.
 
 <!-- BEGIN sprig-agent-guardrail: scripts/agent-guardrail.md -->
-
 ## Never crawl the filesystem for framework source
 
-Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at
-`/` (`find / …`, or a whole-disk `grep -r … /`) fans out across the entire
-volume and pegs several cores for minutes — and it is **never** the right way to
-locate sprig internals or build artifacts. **Do not run `find /` or any
-whole-disk search.** Everything agents have historically crawled the disk for is
-already at hand:
+Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at `/`
+(`find / …`, or a whole-disk `grep -r … /`) fans out across the entire volume and pegs
+several cores for minutes — and it is **never** the right way to locate sprig internals or
+build artifacts. **Do not run `find /` or any whole-disk search.** Everything agents have
+historically crawled the disk for is already at hand:
 
-- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`),
-  the component model, routing, serving/SSR, templates — are documented in the
-  skill references installed alongside you. Read them directly instead of
-  hunting the runtime source:
+- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
+  component model, routing, serving/SSR, templates — are documented in the skill references
+  installed alongside you. Read them directly instead of hunting the runtime source:
   - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
   - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
   - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
-- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read
-  the PROJECT's `deno.json` `imports` map — the alias is defined there and
-  nowhere else. Never search for it.
-- **To find the sprig runtime's real `.ts` in the cache:** run
-  `deno info jsr:@techgoose-labs/sprig` (or `deno info <specifier>`) — it prints
-  the exact cached path in milliseconds. If you must grep vendored source, scope
-  it to that path or to `~/Library/Caches/deno`, never `/`.
-- **Playwright screenshots / console logs** land in the PROJECT's own
-  `.playwright-mcp/` (at the app root) and `~/Library/Caches/ms-playwright-mcp/`
-  — look there, never crawl the disk for the `.png` or `.log`.
-- **Build output** (compiled islands, previews) lives under the app's own
-  `dist/` / `.sprig/` — check the project tree, not the whole volume.
+- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
+  `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
+- **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`
+  (or `deno info <specifier>`) — it prints the exact cached path in milliseconds. If you must
+  grep vendored source, scope it to that path or to `~/Library/Caches/deno`, never `/`.
+- **Playwright screenshots / console logs** land in the PROJECT's own `.playwright-mcp/`
+  (at the app root) and `~/Library/Caches/ms-playwright-mcp/` — look there, never crawl the
+  disk for the `.png` or `.log`.
+- **Build output** (compiled islands, previews) lives under the app's own `dist/` /
+  `.sprig/` — check the project tree, not the whole volume.
 
-If something genuinely isn't in the project or the caches above, say so and ask
-— do not escalate to a root-wide `find`.
-
+If something genuinely isn't in the project or the caches above, say so and ask — do not
+escalate to a root-wide `find`.
 <!-- END sprig-agent-guardrail -->
 
 ## Never
