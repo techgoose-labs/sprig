@@ -799,3 +799,35 @@ Tests:
   carries the sentence after the hosted task line and before it moves on,
   credits a local `sprig build`, no longer says "a line the build stamps", and
   says "no install root".
+
+## REQ-021 — the repo declares the merge gate's four tasks, and each lane reaches only its own kind
+
+> "The gate is four tasks, by convention (REQ-278). Every repo declares
+> `test:unit`, `test:int`, `test:e2e` and `serve` … there is no `n/a` lane
+> (REQ-316: no exceptions). A test's kind is its filename and the gate checks
+> every lane's files BEFORE running."
+
+This repo declared none of them, so `wt-gate` refused at discovery. Now
+`deno.json` declares `test:unit`, `test:int`, `test:e2e` — each
+`deno run -A scripts/lane.ts <lane>` (object form, described
+`parallel: deno test --parallel underneath`) — and `serve`
+(`deno serve -A --unstable-kv --port $PORT serve.ts`; the gate always exports
+`PORT`, and `start` stays the human's default-port task). `scripts/lane.ts`
+classifies every test file git sees by the gate's filename rule (`*.smk.test.*`
+smoke, never run; `*.e2e.test.*` or under `e2e/` e2e; `*.int.test.*` /
+`*.docker.test.*` int; else unit), answers `--plan` with one path per line,
+and otherwise runs `deno test -A --parallel` over exactly those files. A bare
+`deno test` line could not do this: positional paths cannot exclude a kind,
+and the gate skips `--ignore`. `env/example` and `env/dev` carry the required
+`DENO_DEPLOY` key (empty — fakes); `.gitignore` tracks only `env/example`.
+
+Tests:
+
+- unit — `scripts/lane.test.ts` (REQ-021 ×2): `kindOf` mirrors the gate's
+  rule for every kind; `laneFiles` keeps only test files of the lane's kind
+  and never a smoke test.
+- integration — `scripts/lane.int.test.ts` (REQ-021 ×4): the real script's
+  `--plan` for each lane lists only files of that kind, all present on disk,
+  none empty; an unknown lane exits 2.
+- e2e — n/a: the gate itself (`wt-gate --plan`, run by hand: discovery,
+  parallel and kinds all OK) is the end-to-end consumer; nothing serves a page.

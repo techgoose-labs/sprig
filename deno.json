@@ -34,6 +34,19 @@
     "dev": "deno run -A framework/cli.ts dev app",
     "build": "deno run -A framework/cli.ts build app --ui-only",
     "start": "deno serve -A --unstable-kv serve.ts",
+    "serve": "deno serve -A --unstable-kv --port $PORT serve.ts",
+    "test:unit": {
+      "command": "deno run -A scripts/lane.ts unit",
+      "description": "parallel: deno test --parallel underneath (REQ-021)"
+    },
+    "test:int": {
+      "command": "deno run -A scripts/lane.ts int",
+      "description": "parallel: deno test --parallel underneath (REQ-021)"
+    },
+    "test:e2e": {
+      "command": "deno run -A scripts/lane.ts e2e",
+      "description": "parallel: deno test --parallel underneath (REQ-021)"
+    },
     "sync:rune": "deno run -A scripts/sync-rune.ts",
     "sync:agent-guardrail": "deno run -A scripts/sync-agent-guardrail.ts",
     "check:agent-guardrail": "deno run -A scripts/sync-agent-guardrail.ts --check"
