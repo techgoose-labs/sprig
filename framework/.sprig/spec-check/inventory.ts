@@ -14,7 +14,7 @@ const isStrArr = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** The dir a unit's scope implies — the breakdown contract's folder layout. */
-export function expectedDir(
+function expectedDir(
   u: Pick<InventoryUnit, "name" | "scope" | "page">,
 ): string {
   if (u.scope === "shared") return `shared-components/${u.name}`;

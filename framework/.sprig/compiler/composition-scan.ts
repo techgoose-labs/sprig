@@ -43,7 +43,7 @@ export interface AppScan {
 }
 
 /** Every element tag in a parsed template, in document order, with its 1-based line. */
-export function tagsOf(root: Node, lineOffset = 0): TagUse[] {
+function tagsOf(root: Node, lineOffset = 0): TagUse[] {
   const text: string = root.text ?? "";
   const out: TagUse[] = [];
   const visit = (n: Node) => {

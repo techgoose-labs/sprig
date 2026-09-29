@@ -112,7 +112,7 @@ const IDENT_PROPS = new Set([
  * |        | left, right, bottom, width, height, min-/max-width/height |                                 |
  * | shadow | box-shadow                                              | --shadow                          |
  */
-export const LENGTH_FAMILIES = ["step", "radius", "space", "shadow"] as const;
+const LENGTH_FAMILIES = ["step", "radius", "space", "shadow"] as const;
 type Family = typeof LENGTH_FAMILIES[number];
 const TOKEN_PREFIXES: Record<Family, string[]> = {
   step: ["--step", "--text", "--font-size"],

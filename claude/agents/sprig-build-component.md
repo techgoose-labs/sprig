@@ -132,24 +132,25 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    `SPRIG_WB_ROOT=/tmp/wb-<PORT> isolate test <unit> --json`: **the visual check
    is the `_reference` row of `isolate test --json`** — the runner measures each
    case's pixel diff against its still and fails it over tolerance; you never
-   judge two images by eye. Confirm islands hydrate (interact → DOM reacts),
-   lift each **Events** predicate into `cases/<case>/tests/*.spec.ts`, run the
-   case tests, then run `sprig check ui` (typecheck, wiring, `contract-calls`,
-   `logic-placement`, `tokens`, `duplicate-templates`, `optimistic-writes`).
-   **Green = every case row green AND no `sprig check ui` finding in your folder
-   — before composing this unit into a page.** Fix a finding; a suppression
-   comment needs a real reason (the cheatsheet lists them). Pages isolate too.
-   **Iteration budget: if the SAME case is still red after 3 build-fix-verify
-   cycles, stop grinding** — return it red with your best one-line diagnosis
-   (the orchestrator re-routes or descopes; the measured alternative was one
-   builder burning 402 requests on a single case). **Iteration budget: at most 5
-   diff-fix cycles per case.** If a case is still red after 5, STOP and return
-   it as `red` with your diagnosis and the closest-attempt evidence — a deep
-   loop past that point rarely converges and burns the whole fleet's budget
-   (measured: single component agents running 200+ requests). The orchestrator
-   decides whether to re-spec or re-scope. A deliberate visual deviation is
-   never silent: widen that case's `_reference` tolerance with a `reason`, which
-   the report prints.
+   judge two images by eye. Note: the interactive workbench does not yet apply
+   `_viewport`/`_theme` — `sprig isolate test` (the runner) is authoritative.
+   Confirm islands hydrate (interact → DOM reacts), lift each **Events**
+   predicate into `cases/<case>/tests/*.spec.ts`, run the case tests, then run
+   `sprig check ui` (typecheck, wiring, `contract-calls`, `logic-placement`,
+   `tokens`, `duplicate-templates`, `optimistic-writes`). **Green = every case
+   row green AND no `sprig check ui` finding in your folder — before composing
+   this unit into a page.** Fix a finding; a suppression comment needs a real
+   reason (the cheatsheet lists them). Pages isolate too. **Iteration budget: if
+   the SAME case is still red after 3 build-fix-verify cycles, stop grinding** —
+   return it red with your best one-line diagnosis (the orchestrator re-routes
+   or descopes; the measured alternative was one builder burning 402 requests on
+   a single case). **Iteration budget: at most 5 diff-fix cycles per case.** If
+   a case is still red after 5, STOP and return it as `red` with your diagnosis
+   and the closest-attempt evidence — a deep loop past that point rarely
+   converges and burns the whole fleet's budget (measured: single component
+   agents running 200+ requests). The orchestrator decides whether to re-spec or
+   re-scope. A deliberate visual deviation is never silent: widen that case's
+   `_reference` tolerance with a `reason`, which the report prints.
 
 ## The recipe (verified against sprig's own fixture app — covers the shapes you'd otherwise go researching; references below are for edge cases)
 

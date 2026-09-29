@@ -14,7 +14,7 @@ import {
 } from "./composition-scan.ts";
 
 /** Tags the renderer handles itself (outlet, content projection, grouping). */
-export const RESERVED_TAGS: ReadonlySet<string> = new Set([
+const RESERVED_TAGS: ReadonlySet<string> = new Set([
   "router-outlet",
   "content",
   "ng-content",
@@ -152,7 +152,7 @@ export function didYouMean(
 }
 
 /** The app's escape hatch for genuine third-party web components. */
-export const CUSTOM_ELEMENTS_FILE = "custom-elements.json";
+const CUSTOM_ELEMENTS_FILE = "custom-elements.json";
 
 /** Read `<srcDir>/custom-elements.json` — a JSON array of custom-element names
  *  (`["x-foo"]`). Absent → null. A malformed file or an entry that is not a valid

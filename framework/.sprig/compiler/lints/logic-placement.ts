@@ -668,7 +668,7 @@ function branching(toks: Tok[], a: number, b: number): boolean {
 }
 
 /** The handler names a component's template binds: `(event)="name(…)"`. */
-export function templateHandlers(html: string): Set<string> {
+function templateHandlers(html: string): Set<string> {
   const out = new Set<string>();
   for (const m of html.matchAll(/\(([\w.:-]+)\)\s*=\s*"([^"]*)"/g)) {
     for (const c of m[2].matchAll(/([A-Za-z_$][\w$]*)\s*\(/g)) out.add(c[1]);

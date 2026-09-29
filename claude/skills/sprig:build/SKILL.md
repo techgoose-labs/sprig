@@ -111,7 +111,7 @@ Pass each one its input contract and summarize what it returns.
    unit's breakdown folder, its `<name>.md`, `isolate/`, `screenshots/`, and the
    target src dir. A unit is green when its `isolate test --json` rows pass —
    every `_reference` pixel-diff row within tolerance included — AND
-   `sprig check ui` reports no finding against its folder. Never brief a specialist with just a name and "glob for it" —
+   `sprig check ui` reports no finding against its folder (the interactive workbench does not yet apply `_viewport`/`_theme`; the runner, `sprig isolate test`, is authoritative). Never brief a specialist with just a name and "glob for it" —
    a measured fleet did that 652 times and every agent re-searched the tree the
    orchestrator already held. Each unit must be green in `sprig isolate`
    **before** the units that compose it — and start each composition the moment

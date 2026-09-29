@@ -9,7 +9,7 @@ import {
   result,
 } from "./types.ts";
 
-export const BINDING_HEADER = "| unit | need | kind | endpoint | dto |";
+const BINDING_HEADER = "| unit | need | kind | endpoint | dto |";
 const HEADER_CELLS = ["unit", "need", "kind", "endpoint", "dto"];
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
 

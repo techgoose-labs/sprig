@@ -32,8 +32,8 @@ import { collectUiFiles, type LintReport, unitName } from "./ui-files.ts";
 
 const RULE = "duplicate-templates";
 const SHINGLE = 3;
-export const MIN_NODES = 4;
-export const DEFAULT_THRESHOLD = 0.85;
+const MIN_NODES = 4;
+const DEFAULT_THRESHOLD = 0.85;
 
 const ELEMENTS = new Set([
   "element",

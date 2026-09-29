@@ -99,7 +99,9 @@ see what landed).
    deterministically** (`pause(); currentTime = t`) at 0/20/40/60/80/100%,
    composite a `filmstrip.png`, and write the raw capture (per animation:
    keyframes + computed timing, as returned) to `screenshots/motion.json` — the
-   spec-writer's `_motion` case points at it. One live (unscrubbed) instrumented run →
+   spec-writer's `_motion` case points at it. Cases cite these files
+   git-root-relative (`spec/ui/breakdown/<unit dir>/screenshots/…`), so write
+   them only under the unit's own `screenshots/` and never rename them. One live (unscrubbed) instrumented run →
    dropped-frame %, max frame time, CLS into `jank.md`.
 4. **Jank lints** — run the static CSS + JS checklists from the recipes over the
    extracted CSS _and_ JS: layout-property keyframes, `transition: all`,

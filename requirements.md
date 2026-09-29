@@ -1727,3 +1727,216 @@ Tests:
   overlay; a build of the composition fixture with an unknown tag exits 1
   with "composition check failed", the tag named, and no stack frame.
 - e2e — n/a: no page; the CLI's exit code and text are the whole surface.
+
+## REQ-039 — an unknown `_` key in a case JSON is an error naming the key and the case file
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+`parseCaseValues` (`server/src/core/business/discover/mod.ts`) recognised four
+`_` keys and silently dropped every other one, so a typo (`_viewprt`) or a key
+from a newer contract looked like it worked while doing nothing. The case-key
+list is now closed — `_name`, `_innerHtml`, `_signals`, `_mocks`, `_viewport`,
+`_theme`, `_reference`, `_network`, `_tier`, `_motion` — and anything else (or a
+known key with a malformed value) is a `case-key` Problem whose detail names the
+key, lists the known ones and names the case file. `isolate test` treats it like
+a malformed fixture: it stops before provisioning or serving anything (exit 1,
+the problem in `--json` and in the human report under "invalid case key").
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-039 ×2):
+  an unknown key is an error naming it and listing the known keys; the known
+  keys parse clean.
+- integration — `server/src/core/business/discover/case-keys.int.test.ts`
+  (REQ-039 ×1): `discover()` reports it as `case-key` with the case file;
+  `cli/commands/test.int.test.ts` (REQ-039 ×1): the real CLI exits 1 in `--json`
+  and human mode, naming the key and file, and never reaches the runner.
+- e2e — n/a: the refusal happens before any page is served; the CLI int test
+  runs the real binary end to end.
+
+## REQ-040 — `_viewport`: a case renders and tests at its breakpoint
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+`_viewport` (a px width, or `{ "width", "height" }`; a bare width gets height
+720) is parsed onto the case, and the runner now executes every case through a
+generated wrapper spec (written with a harness and a Playwright config into the
+run's evidence dir, outside the project) that imports the case's own spec files
+and `test.use({ viewport })` for all of them and for the generated check rows.
+Rows record `case <unit>/<case>: viewport 375x720` in `detail`. The workbench
+stage keeps its manual presets (its manifest passes through the server's
+`CaseDto`, which strips unknown fields); the docs say the runner is
+authoritative.
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-040 ×2):
+  number and object forms, junk rejected; `server/src/core/business/runner/case-run.test.ts`
+  (REQ-040 ×3): explicit files select their cases, the wrapper imports the
+  case's specs and carries the viewport, Playwright is spawned on the generated
+  config and never on raw spec paths.
+- integration — `server/src/core/business/runner/case-run.int.test.ts`
+  (REQ-040..045 ×1): the fixture app's specs run inside their case wrappers and
+  their rows carry case context.
+- e2e — `cli/commands/test.e2e.test.ts` (REQ-040..045): in Chromium against the
+  served workbench, `swatch/match`'s own spec sees `innerWidth === 375`.
+
+## REQ-041 — `_theme`: `data-theme` on `<html>` for every test of the case
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+`_theme` (a non-empty string) is installed by the case wrapper as an init script
+that sets `<html data-theme>` before any page script runs and re-asserts it if
+the markup overwrites it — so the case's specs and its `reference:` capture both
+render in the captured theme.
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-041 ×1);
+  `server/src/core/business/runner/case-run.test.ts` (REQ-040/041/043 ×1): the
+  wrapper carries the theme.
+- integration — `server/src/core/business/runner/case-run.int.test.ts`: the dark
+  reference row is settled against the dark capture.
+- e2e — `cli/commands/test.e2e.test.ts`: `swatch/dark`'s spec sees
+  `data-theme="dark"` and the dark background, and `reference: swatch/dark`
+  passes at measured 0.
+
+## REQ-042 — `_reference`: the rendered case is pixel-compared against the captured still, with a number
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+Fidelity used to be a model looking at two images. `_reference` (`"<png>"` or
+`{ image, tolerance, reason }`, relative to the case dir, must exist at
+discovery; default tolerance 0.01, above it a `reason` is required) adds a
+generated test `reference: <unit>/<case>` that screenshots the rendered target
+element at the case's viewport/theme (stage pinned to whole pixels, animations
+settled). The runner then decodes both PNGs with its own codec
+(`runner/png.ts`), measures the fraction of pixels whose RGBA moved by more than
+24/255 (`runner/reference.ts`), writes a diff PNG to the evidence dir, and sets
+the row: `measured 0.000 ≤ tolerance 0.010 — 0/9600 px differ at 120×80; …` or
+failing `measured 0.250 > tolerance 0.010 …` with `measured`, `tolerance` and
+`evidence` fields. The evidence dir is `--evidence <dir>`, else
+`$SPRIG_WB_ROOT/evidence/<stamp>`, else a temp dir; a chosen dir inside the
+project is refused. A case with only a `_reference` (no specs) still runs.
+
+Tests:
+
+- unit — `server/src/core/business/runner/reference.test.ts` (REQ-042 ×6): PNG
+  round-trip, non-PNG refusal, identical = 0, threshold counting + diff marks,
+  size mismatch, verdict text; `server/src/core/business/discover/case-keys.test.ts`
+  (REQ-042 ×3): string form, tolerance-without-reason error, junk shapes;
+  `server/src/core/business/runner/case-run.test.ts` (REQ-042 ×5): planning of
+  check-only cases, filters, the generated row, evidence inside the project
+  refused.
+- integration — `server/src/core/business/discover/case-keys.int.test.ts`
+  (REQ-042/045 ×1): a missing image is a problem at discovery;
+  `server/src/core/business/runner/case-run.int.test.ts` (REQ-040..045 ×1): on
+  the fixture app, equal = measured 0 pass, drift = `measured 0.250 > tolerance
+  0.010` with a 120×80 diff PNG outside the tree.
+- e2e — `cli/commands/test.e2e.test.ts`: the same pass and fail in Chromium, the
+  diff PNG under the workbench's evidence dir, nothing written in the fixture.
+
+## REQ-043 — `_network`: fake a case's requests so a story proves rollback and no-wait
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic", "is there any way that this can be hardened?" → "lets spawn opus
+> 5.5 agents to do all this"
+
+`_network` maps `"METHOD /path"` (`{id}`/`:id` one segment, `*` anything) or a
+contract command name (an `operationId` in `spec/contract/openapi.json` at the
+git root, prefixed by its first server's path; without a contract a command key
+is an error naming it) to `"fail"`, `"delay:<ms>"` or `{ status, body }`. The
+case wrapper installs each as `page.route` before every test of the case (abort /
+hold then send on / fulfil), and after each test annotates
+`network <key> → <action>: fired N×` onto the row's `detail`, so a fake that
+never matched is visible.
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-043 ×5):
+  the three actions, command name without a contract, operationId mapping,
+  bad keys/actions each named, path patterns;
+  `server/src/core/business/runner/case-run.test.ts` (REQ-043 ×1): harness
+  annotations become the row detail.
+- integration — `server/src/core/business/discover/case-keys.int.test.ts`
+  (REQ-043 ×1): a real openapi.json at a git root maps `createTodo`;
+  `server/src/core/business/runner/case-run.int.test.ts` (REQ-043 ×1): the
+  fixture's wrapper carries the resolved rule and imports the case's spec.
+- e2e — `cli/commands/test.e2e.test.ts`: in Chromium, `saver/fail` rolls the
+  optimistic count back with the fake `fired 1×`, `saver/slow` shows the count
+  within 500ms while the POST is held 4s, `saver/ok`'s faked 200 keeps it.
+
+## REQ-044 — `_tier`: the case's interaction tier is recorded on the case and every report row
+
+> "the app is optimistic and does not have latency waiting on the server to run
+> its logic", "is there any way that this can be hardened?" → "lets spawn opus
+> 5.5 agents to do all this"
+
+`_tier` is one of `static | pure-client | optimistic-write | realtime`
+(anything else is an error listing them). It lands on the discovered `CaseDef`
+and on every `testResults[]` row of the case (`tier`), for `sprig spec-check` to
+consume; it changes no behaviour itself.
+
+Tests:
+
+- unit — `server/src/core/business/discover/case-keys.test.ts` (REQ-044 ×1);
+  `server/src/core/business/runner/case-run.test.ts` (REQ-040 ×1 asserts the
+  row's `tier`).
+- integration — `server/src/core/business/runner/case-run.int.test.ts`: rows of
+  `saver/fail` carry `optimistic-write`, `swatch/match` carries `static`.
+- e2e — `cli/commands/test.e2e.test.ts`: the same tiers on the real report.
+
+## REQ-045 — `_motion`: the rendered animations are compared to the captured `getAnimations()` spec
+
+> "the app will be faithful to the mock", "is there any way that this can be
+> hardened?" → "lets spawn opus 5.5 agents to do all this"
+
+`_motion: { "spec": "<json>" }` (relative to the case dir; must exist and be an
+array or `{ animations: [...] }` at discovery) adds a generated test
+`motion: <unit>/<case>` that opens the case with every animation paused at its
+start (DevTools playback rate 0), reads `document.getAnimations()` after
+hydration and writes the records to the evidence dir. `runner/motion.ts` reads
+both sides tolerantly (the flat `{ selector?, name?, duration, easing,
+keyframeCount, delay?, iterations? }` schema or the breakdown recipe's raw
+`{ target, keyframes, timing }` record; a CSS animation's curve comes from its
+keyframes when `timing.easing` is linear), pairs them, and fails the row naming
+each difference (duration ±1ms, easing, keyframe count, delay/iterations when
+recorded, missing and unexpected animations).
+
+Tests:
+
+- unit — `server/src/core/business/runner/motion.test.ts` (REQ-045 ×6): flat and
+  raw forms, easing normalisation, equal pass, each difference named, unexpected
+  animations; `server/src/core/business/discover/case-keys.test.ts` (REQ-045 ×1).
+- integration — `server/src/core/business/runner/case-run.int.test.ts`:
+  `motion-ok` passes, `motion-drift` names `duration 1200ms ≠ spec 800ms` and the
+  easing.
+- e2e — `cli/commands/test.e2e.test.ts`: the same verdicts from a real
+  Chromium's `getAnimations()`.
+
+## REQ-034 AMENDMENT — case paths are git-root-relative; the rolled-back case is an HTTP 500
+
+> "the app will be faithful to the mock", "the app is optimistic and does not
+> have latency waiting on the server to run its logic"
+
+`_reference` and `_motion.spec` resolve case-dir first, then git root, and a
+built unit's `isolate/` cannot reach the breakdown's PNGs case-relatively — so
+the spec-writer writes `spec/ui/breakdown/<unit dir>/screenshots/…` paths, and
+capture says cases cite its files that way. The `rolled-back` case uses
+`_network` `{ "status": 500 }` (the HTTP-error rollback path); `"fail"` (an
+aborted connection) is the offline case. The build prose (REQ-035) says the
+interactive workbench does not yet apply `_viewport`/`_theme`; the runner is
+authoritative.
+
+Tests:
+
+- unit — `framework/.sprig/skills-hardening.test.ts` (REQ-034 ×1 more, the
+  rolled-back assertion updated; REQ-035 ×1 more): git-root-relative
+  `_reference`/`_motion` in the spec-writer and capture; the 500 vs `"fail"`
+  split; the workbench caveat in builder + playbook.
+- integration — n/a: docs.
+- e2e — n/a: docs.

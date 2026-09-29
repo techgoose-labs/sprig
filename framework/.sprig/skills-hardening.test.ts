@@ -160,9 +160,29 @@ Deno.test("REQ-034: every optimistic-write unit gets pending + rolled-back cases
     s,
     "`pending`",
     "`rolled-back`",
-    '`_network`: { "<commandName>": "fail" }',
+    '`_network`: { "<commandName>": { "status": 500 } }',
+    '`"fail"` (an aborted connection) is the offline case',
     "`<dir>/<name>.md`",
   );
+});
+
+Deno.test("REQ-034: _reference and _motion paths are git-root-relative, reachable from the built isolate/ folder", async () => {
+  const s = await doc(SPEC_WRITER);
+  has(
+    s,
+    '`_reference`: "spec/ui/breakdown/<unit dir>/screenshots/<name>@<width>[-<theme>].png"',
+    '`_motion`: { "spec": "spec/ui/breakdown/<unit dir>/screenshots/motion.json" }',
+  );
+  has(await doc(CAPTURE), "spec/ui/breakdown/<unit dir>/screenshots/");
+});
+
+Deno.test("REQ-035: the build says the interactive workbench does not apply _viewport/_theme; the runner is authoritative", async () => {
+  for (const f of [COMPONENT, BUILD]) {
+    has(
+      await doc(f),
+      "the interactive workbench does not yet apply `_viewport`/`_theme`",
+    );
+  }
 });
 
 Deno.test("REQ-034: capture's still naming lines up with the spec-writer's _reference paths", async () => {

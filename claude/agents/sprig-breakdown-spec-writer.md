@@ -82,12 +82,17 @@ sections **and** item 10):
    `cases/<state>/<state>.json`, and every case carries `_tier` (the unit's
    tier). Each breakpoint/theme still becomes a case too: `_viewport` from its
    `screenshots/<name>@<width>.png` name, `_theme` from
-   `screenshots/<name>@<width>-<theme>.png`, and `_reference` pointing at that
-   still — the build's pixel diff, not a picture to eyeball. An
-   **optimistic-write** unit always gets a `pending` case (the intent rendered,
-   reply outstanding — `_network` delaying its command) and a `rolled-back` case
-   (`_network`: { "<commandName>": "fail" } — the pre-intent state restored and
-   the error surfaced).
+   `screenshots/<name>@<width>-<theme>.png`, and a GIT-ROOT-relative
+   `_reference`:
+   "spec/ui/breakdown/<unit dir>/screenshots/<name>@<width>[-<theme>].png"
+   (paths resolve case-dir first, then git root; the built unit's `isolate/`
+   cannot reach the breakdown by a case-relative path) — the build's pixel diff,
+   not a picture to eyeball. An **optimistic-write** unit always gets a
+   `pending` case (the intent rendered, reply outstanding — `_network` with
+   `"delay:<ms>"` on its command) and a `rolled-back` case (`_network`: {
+   "<commandName>": { "status": 500 } } — the HTTP-error path: pre-intent state
+   restored, error surfaced); `"fail"` (an aborted connection) is the offline
+   case, added only when the unit shows an offline state.
 5. **Events** — what it emits and when, each as a **concrete `capture(page)`
    predicate sketch**, not prose — e.g.
    `ev.expect(e => e.source === "button#confirm" && e.type === "click")`. (The
@@ -95,8 +100,9 @@ sections **and** item 10):
 6. **Motion** — the capture agent's **extracted**
    trigger/properties/keyframes/duration/easing + jank findings and the rebuild
    fix; pointer to `screenshots/filmstrip.png`. A unit with extracted motion
-   gets a case whose `_motion` spec is capture's `screenshots/motion.json` (the
-   runner compares duration/easing/keyframe count).
+   gets a case with `_motion`: { "spec":
+   "spec/ui/breakdown/<unit dir>/screenshots/motion.json" } (git-root-relative;
+   the runner compares duration/easing/keyframe count).
 7. **Responsive** — behavior per breakpoint, against the source's real `@media`
    values.
 8. **A11y** — roles, labels, focus order/trapping, keyboard, reduced-motion.
@@ -143,8 +149,9 @@ island state); each `cases/<state>/<state>.json` pins REAL captured values
 { "_name": "Greeting", "_tier": "pure-client", "_signals": { "count": 0 } }
 ```
 
-A breakpoint case adds `"_viewport": 700` and a `_reference` to
-`screenshots/greeter@700.png`, in the path form `isolate-format.md` defines.
+A breakpoint case adds `"_viewport": 700` and
+`"_reference": "spec/ui/breakdown/shared-components/greeter/screenshots/greeter@700.png"`
+(git-root-relative).
 
 **Knowledge boundary:** this definition + the unit folder's evidence +
 `isolate-format.md` are ALL your reference material — never read another skill's

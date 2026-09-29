@@ -32,12 +32,12 @@ export interface CompositionGraph {
 
 /** A unit's key in the graph: a page by its name, a shared component by its selector, a
  *  page-local component as `<page>/<selector>`. */
-export function unitKey(u: Unit): string {
+function unitKey(u: Unit): string {
   return u.kind === "page-local" ? `${u.page}/${u.selector}` : u.selector;
 }
 
 /** Build the graph from an already-scanned app. */
-export function graphOf(scan: AppScan): CompositionGraph {
+function graphOf(scan: AppScan): CompositionGraph {
   const pages: CompositionGraph["pages"] = {};
   const components: CompositionGraph["components"] = {};
   for (const u of scan.units) {
