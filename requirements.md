@@ -2085,10 +2085,12 @@ Tests:
 
 - unit — `scripts/lane.test.ts` (REQ-021 AMENDMENT): the guard — was red
   naming `perf.test.ts`, `render-version-env.test.ts`,
-  `render-version-race.test.ts` (chdir) and `cli/lib/runner.test.ts` (env);
+  `render-version-race.test.ts` (chdir), `cli/lib/runner.test.ts`,
+  `composition-root.test.ts`, `skills.test.ts` and `expr-pipe-format.test.ts`
+  (env; the TZ cases now run in a child process with TZ on ITS env);
   green once each took its option. `framework/.sprig/compiler/{perf,
   render-version-env, render-version-race}.test.ts` and
   `cli/lib/runner.test.ts` keep their assertions on the injected options.
-- integration — `deno task test:unit` three times in a row: 668 green each
+- integration — `deno task test:unit` three times in a row: 667 green each
   (before: 1–4 random reds per run).
 - e2e — n/a: no page.
