@@ -34,12 +34,12 @@ async function pathExists(p: string): Promise<boolean> {
 /** the env these readers use — injectable so tests never mutate Deno.env (REQ-021 AMENDMENT) */
 export type EnvReader = { get(key: string): string | undefined };
 
-export function skillsDest(env: EnvReader = Deno.env): string {
+function skillsDest(env: EnvReader = Deno.env): string {
   return env.get("CLAUDE_SKILLS_DIR") ?? join(home(), ".claude", "skills");
 }
 
 /** Agent destination = user scope. NEVER a project/checkout path. Honors CLAUDE_AGENTS_DIR. */
-export function agentsDest(env: EnvReader = Deno.env): string {
+function agentsDest(env: EnvReader = Deno.env): string {
   return env.get("CLAUDE_AGENTS_DIR") ?? join(home(), ".claude", "agents");
 }
 
