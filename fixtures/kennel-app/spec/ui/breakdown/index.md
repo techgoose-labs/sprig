@@ -6,15 +6,15 @@ Source: `spec/ui/kennel-prototype/` (two-seam prototype: `_test-prototype.html` 
 components). There is no ratified contract (no `spec/contract/openapi.json`, no
 `spec/runes/`), so the data seam is the pre-contract [`data-model.md`](data-model.md).
 Tokens: [`design-tokens.md`](design-tokens.md) (default theme `brand`, plus
-`brand-dark`). Machine inventory: [`inventory.json`](inventory.json), 24 units.
+`brand-dark`). Machine inventory: [`inventory.json`](inventory.json), 25 units.
 
 ## Page inventory
 
 | page | mock route | purpose | composes |
 |---|---|---|---|
-| [board](pages/board/board.md) | `#/board` (default) | "Today's dogs": every dog booked today, counted by status, filterable by status (query param `?status=`) | top-bar (main-nav, theme-toggle), status-strip, status-filter-tabs, dog-grid → dog-card (status-badge, overdue-badge), load-error; owns the header row, the "Day closed" badge and the loading skeleton |
+| [board](pages/board/board.md) | `#/board` (default) | "Today's dogs": every dog booked today, counted by status, filterable by status (query param `?status=`) | top-bar (main-nav, theme-toggle), status-strip, status-filter-tabs, dog-grid → dog-card (status-badge, overdue-badge), load-error, skeleton-card; owns the header row, the "Day closed" badge and the loading skeleton strip |
 | [dog-detail](pages/dog-detail/dog-detail.md) | `#/dog/<id>` | one dog's profile, stay and today's actions: move it through booked → checked-in ⇄ walking → checked-out, and add notes | top-bar, dog-heading (status-badge, overdue-badge), dog-profile-card, stay-card, dog-actions, dog-notes, toast-stack, load-error; owns the back link and the 404 not-found card |
-| [day-summary](pages/day-summary/day-summary.md) | `#/summary` | the day's occupancy, revenue and overdue pickups; close the day (locks the ledger) | top-bar, close-day-control, day-closed-alert, day-stats, status-breakdown (status-badge), overdue-pickups (overdue-badge), toast-stack, load-error; owns the header row |
+| [day-summary](pages/day-summary/day-summary.md) | `#/summary` | the day's occupancy, revenue and overdue pickups; close the day (locks the ledger) | top-bar, close-day-control, day-closed-alert, day-stats, status-breakdown (status-badge), overdue-pickups (overdue-badge), toast-stack, load-error, skeleton-card; owns the header row |
 
 ## Shared-component usage matrix
 
@@ -29,6 +29,7 @@ From `inventory.json` `usedOn`.
 | [status-badge](shared-components/status-badge/status-badge.md) | x | x | x |
 | [overdue-badge](shared-components/overdue-badge/overdue-badge.md) | x | x | x |
 | [load-error](shared-components/load-error/load-error.md) | x | x | x |
+| [skeleton-card](shared-components/skeleton-card/skeleton-card.md) | x |  | x |
 
 Page-local units (used on one page only): board → status-strip,
 status-filter-tabs, dog-grid, dog-card; dog-detail → dog-heading,
@@ -40,7 +41,7 @@ overdue-pickups.
 
 | tier | units | why |
 |---|---|---|
-| static (no `logic.ts`) | top-bar, status-badge, overdue-badge, load-error, status-strip, status-filter-tabs, dog-grid, dog-card, dog-profile-card, stay-card, status-breakdown, overdue-pickups; pages board, dog-detail, day-summary | server-rendered from `resolve.ts`/`Backend`. The filter tabs and strip cards are plain links to `?status=<s>`: the filter is a **query**, not client logic. load-error's Retry is a link reload |
+| static (no `logic.ts`) | top-bar, status-badge, overdue-badge, load-error, skeleton-card, status-strip, status-filter-tabs, dog-grid, dog-card, dog-profile-card, stay-card, status-breakdown, overdue-pickups; pages board, dog-detail, day-summary | server-rendered from `resolve.ts`/`Backend`. The filter tabs and strip cards are plain links to `?status=<s>`: the filter is a **query**, not client logic. load-error's Retry is a link reload |
 | pure-client | main-nav, theme-toggle, toast-stack, dog-heading, day-closed-alert, day-stats | main-nav: the active state follows soft-nav in the persistent shell. theme-toggle: flips `html[data-theme]`. toast-stack: a 3500 ms auto-dismiss queue. dog-heading / day-closed-alert / day-stats: islands only so they can `reads:` a page channel and re-render after a write |
 | optimistic-write | dog-actions (`dog.checkIn`/`startWalk`/`endWalk`/`checkOut`), dog-notes (`dog.addNote`) | `commands.json` `feedback: instant`: render the intent, call, reconcile on the reply, roll back + toast on failure. Both carry `pending` + `rolled-back` cases |
 | confirmed-write | close-day-control (`day.close`) | `commands.json` `feedback: confirmed`: the button goes pending, the reply decides (REQ-064) — proven by a `pending` case, nothing to roll back |
@@ -76,7 +77,7 @@ These are wiring channels, not stores. No `state/*.ts` module and no exported si
 ## Build order
 
 1. **Tokens:** design-tokens.md → the `:global(...)` `@theme` block with brand + brand-dark. Fix the scaffold drift: the default theme must be `brand`, not `brand-dark`.
-2. **Shared primitives:** status-badge, overdue-badge, load-error, theme-toggle, toast-stack.
+2. **Shared primitives:** status-badge, overdue-badge, load-error, skeleton-card, theme-toggle, toast-stack.
 3. **Shared composites:** main-nav, then top-bar (composes main-nav and theme-toggle).
 4. **Page-local:**
    - board: dog-card → dog-grid, status-strip, status-filter-tabs.
@@ -104,7 +105,7 @@ These are wiring channels, not stores. No `state/*.ts` module and no exported si
     - success alert → day-closed-alert.
     - `.stats` → day-stats.
     - the two cards → status-breakdown, overdue-pickups.
-  - any route: the loading skeleton → board (day-summary also carries a `loading` case), and the error alert → load-error.
+  - any route: the loading skeleton → board (day-summary also carries a `loading` case); its repeated placeholder card (`skeletonCards(n)`) → skeleton-card; and the error alert → load-error.
 
 **Source JS → owner:**
 - `[data-cmd]` click → `runStatus` → dog-actions.
@@ -122,7 +123,7 @@ These are wiring channels, not stores. No `state/*.ts` module and no exported si
 **Checks:**
 - Every unit has a tier. Every island's justification is in its `inventory.json` evidence.
 - Every live panel is request-response, and each has its honest-empty note.
-- All 24 units have `<name>.md` with an Isolate build plan and a real `isolate/fixture.json` + `cases/` (261 case files).
+- All 25 units have `<name>.md` with an Isolate build plan and a real `isolate/fixture.json` + `cases/` (264 case files).
 
 ## Unassigned
 

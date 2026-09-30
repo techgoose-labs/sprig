@@ -77,7 +77,8 @@
       "classification": "island",
       "scope": "shared",
       "usedOn": [
-        "dashboard"
+        "dashboard",
+        "archive"
       ],
       "tier": "confirmed-write",
       "evidence": "the save button disables until the server confirms",

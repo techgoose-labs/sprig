@@ -55,7 +55,12 @@ Deno.test("REQ-028: tiny templates are skipped by name; every template is listed
 });
 
 Deno.test("REQ-028: above every score, nothing is flagged and an idle justification is a warning", async () => {
-  const r = await lintDuplicateTemplates({ uiSrc, threshold: 1.01 });
+  const r = await lintDuplicateTemplates({
+    uiSrc,
+    threshold: 1.01,
+    containment: 1.01, // REQ-069: every rule above every score
+    sameJob: 1.01,
+  });
   assertEquals(r.suppressed, []);
   assertEquals(r.findings.map((f) => [f.file, f.severity]), [[
     tpl("invoice-list"),

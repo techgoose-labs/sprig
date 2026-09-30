@@ -71,6 +71,16 @@
       "dataNeeds": []
     },
     {
+      "name": "skeleton-card",
+      "dir": "shared-components/skeleton-card",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: card (card bg-base-100 border border-base-300 > card-body gap-3 with four daisyUI skeleton blocks h-6 w-2/3, h-4 w-1/2, h-5 w-20, h-5 w-14). skeletonCards(8) helper rendered by renderLoading() into the loading grid of every route while the load is pending (board, day summary). No props, no data, decorative (aria-hidden).",
+      "dataNeeds": []
+    },
+    {
       "name": "board",
       "dir": "pages/board",
       "classification": "page-composition",

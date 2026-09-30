@@ -42,7 +42,7 @@ main.board-main                       max-w-7xl mx-auto p-3 md:p-6
 │  │  ├─ div
 │  │  │  ├─ h1.font-display.text-4xl  "Today's dogs"
 │  │  │  └─ p.text-base-content/70    "Tuesday, September 29"   (formatted today.date)
-│  │  └─ daisyUI `badge badge-neutral` + lock icon "Day closed"   (only when today.closed)
+│  │  └─ <icon-badge icon="lock" tone="neutral"> "Day closed"   (shared; badge badge-neutral + lock; only when today.closed)
 │  ├─ <status-strip>                  (page-local; byStatus + current status + empty flag)
 │  ├─ <status-filter-tabs>            (page-local; current status)
 │  └─ <dog-grid>                      (page-local; dogList + current status; composes <dog-card>)
@@ -52,15 +52,12 @@ main.board-main                       max-w-7xl mx-auto p-3 md:p-6
 │  ├─ div.board-loading-note          flex items-center gap-2 mb-4 text-base-content/70
 │  │  └─ daisyUI `loading loading-spinner loading-sm` + "Loading today's dogs…"
 │  └─ div.board-skel-grid             grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4
-│     └─ 8 × daisyUI `card bg-base-100 border border-base-300` > `card-body gap-3`
-│          ├─ skeleton h-6 w-2/3
-│          ├─ skeleton h-4 w-1/2
-│          └─ div.flex.gap-2 > skeleton h-5 w-20, skeleton h-5 w-14
+│     └─ 8 × <skeleton-card>   (shared: card > card-body with 4 skeleton bars — compose, never re-create)
 └─ [error]    <load-error>            (shared; "Couldn't load today's board", Retry)
 ```
 
 - **Page-owned class names** are prefixed `board-`: `board-main`, `board-head`, `board-loading`, `board-skel-strip`, `board-loading-note`, `board-skel-grid`.
-- **daisyUI components kept as-is:** `badge badge-neutral` (Day closed), `skeleton`, `loading loading-spinner`, and `card`/`card-body` inside the skeleton cards.
+- **daisyUI components kept as-is:** `skeleton` (strip tiles) and `loading loading-spinner`. The "Day closed" badge composes the shared `<icon-badge icon="lock" tone="neutral">`; the skeleton cards compose the shared `<skeleton-card>`.
 - **Icons are inline SVG** rendered on the server. The mock's `lucide.createIcons()` swap is a CLS source.
 - **Source markup:**
   - Live DOM: `source.html`

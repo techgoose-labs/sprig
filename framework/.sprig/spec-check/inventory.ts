@@ -136,6 +136,21 @@ export function validateInventory(
         );
       }
       if (findings.length > before) return;
+      // REQ-070: `distinct` excuses a DRY pair only with a reason. The unit stays in the
+      // inventory (every other check still sees it); the empty reason is the finding.
+      if ("distinct" in x) {
+        if (typeof x.distinct !== "string") {
+          bad(
+            `${unit.name}'s distinct is not a string`,
+            'write "distinct": "<why this unit must stay separate>"',
+          );
+        } else if (!x.distinct.trim()) {
+          bad(
+            `${unit.name} has an empty distinct reason`,
+            'write "distinct": "<why this unit must stay separate>", or drop the key and merge the units the DRY checks paired',
+          );
+        }
+      }
       units.push({ ...unit, dir: unit.dir.replace(/\/+$/, "") });
     },
   );

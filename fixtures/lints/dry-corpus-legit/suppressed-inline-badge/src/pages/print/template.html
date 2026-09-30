@@ -1,0 +1,9 @@
+<!-- sprig-duplicate: the print sheet is static HTML mailed as-is; it cannot load components -->
+<main class="p-6">
+  <h1 class="text-3xl">Run sheet</h1>
+  @for (d of dogs; track d.id) {
+  <p class="flex gap-2">{{ d.name }}
+    <span class="badge badge-soft badge-success gap-1 whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-4"><path d="M20 6 9 17l-5-5"></path></svg><span>Checked in</span></span>
+  </p>
+  }
+</main>

@@ -60,7 +60,7 @@ A wrapper holds exactly one of three children:
   │             svg lucide-lock (size 1.2em, aria-hidden) + "Close the day"
   ├─ pending: button#close-day.btn.btn-primary[disabled]
   │             span.loading.loading-spinner.loading-sm + "Closing the day…"
-  └─ closed:  span.badge.badge-neutral.badge-lg
+  └─ closed:  <icon-badge icon="lock" tone="neutral" size="lg" focusId="day-closed-badge">  (shared) = span.badge.badge-neutral.badge-lg#day-closed-badge[tabindex=-1]
                 svg lucide-lock (size 1em, aria-hidden) + "Day closed"
 ```
 

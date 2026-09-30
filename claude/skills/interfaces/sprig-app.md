@@ -49,6 +49,9 @@ A buildable sprig project (see `sprig:build`):
   `sprig serve`), not just `sprig dev`.
 - `user-stories.md` is the coverage map; each story has a browser test.
 - A `StateService` carries a `static key` (class names are minified in prod).
+- **DRY:** no template re-creates a shared unit; spec-check's DRY checks pass
+  or every exception carries `distinct` (in the breakdown's `inventory.json`,
+  with its reason).
 
 ## Validation
 

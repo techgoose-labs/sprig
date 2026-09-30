@@ -3060,3 +3060,193 @@ Tests:
   REQ-068: spec-check binds the kennel breakdown to the app's own contract —
   binding-drift runs, 7 of 7 checks"); `server/src/core/business/runner/stage.e2e.test.ts`
   (the row lists "stage text color rgb(59, 42, 30) …").
+
+## REQ-071 — the breakdown and build prompts make agents produce and honour the DRY checks: census first, compose never re-create, `distinct` for a stated exception
+
+> Write the prose that makes agents produce and honour this … the inventory
+> unit schema gains `distinct?: string` … the analyst's census pass … the
+> build side … sprig-app.md … Then read the breakdown and build prose once end
+> to end for any sentence that now contradicts these.
+
+1. `interfaces/ui-breakdown.md`: an inventory unit takes an optional
+   `distinct` — "this unit is deliberately separate from <unit> because
+   <reason>", an empty reason is an error — and the contract names the three
+   DRY checks the closing pass runs (census, same-job, reuse), which
+   `sprig spec-check` reports and the analyst resolves by merging units or
+   writing `distinct`; Validation requires every finding merged or carrying
+   `distinct`.
+2. The breakdown analyst runs a census before classifying: regions grouped by
+   repeated structure (same DOM shape, same classes) across ALL pages, one
+   repeated region = one unit with a `usedOn` list, never one unit per page; a
+   look-alike of a shared unit that differs is recorded with `distinct` naming
+   that unit and the reason. The closing pass reads spec-check's DRY lines and
+   stops on any unresolved finding. The spec-writer names a child unit by its
+   tag in the anatomy, never re-describing its markup.
+3. Build: the component agent composes, never re-creates (the
+   `duplicate-templates` lint fails inline re-creation and names the tag); the
+   build analyst's cheatsheet lists every shared unit's tag and props (never
+   cut for the size cap); the build SKILL's check step fixes a DRY finding by
+   composing, never by a `sprig-duplicate:` marker unless the reason is a real
+   design difference, stated.
+4. `interfaces/sprig-app.md` declares DRY: no template re-creates a shared
+   unit; spec-check's DRY checks pass or every exception carries `distinct`.
+5. Contradiction fixed: the breakdown SKILL's "page-local by default; promote
+   only with evidence" rule is replaced by the census rule; the analyst's
+   shared-vs-local and completeness-audit sentences say a region repeated on
+   several pages is one shared entry.
+
+Tests:
+
+- unit — `framework/.sprig/skills-dryrun.test.ts` (eleven "REQ-071: …" tests,
+  one per rule above); `framework/.sprig/skills-hardening.test.ts` stays green.
+- integration — n/a — prose-only change; the checks it describes are pinned
+  by the lint and spec-check requirements that implement them.
+- e2e — n/a — prose-only change; no runtime behavior.
+
+## REQ-070 — spec-check's DRY checks: census, same-job, reuse — each with a `distinct: <reason>` escape
+
+> DRY is the weakest guarantee: the analyst can split one repeated mock region into two
+> units, or make two units that do the same job, and nothing catches it before the build.
+
+1. **census** — every non-page unit's `source.html` is reduced to shingles (the
+   duplicate-templates approach: `jaccard` imported; the walk is a local variant that
+   adds class tokens and treats an `<svg>` as one node) and compared pairwise. A pair at
+   or above **0.8** FAILS: "units <a> and <b> extract the same markup (0.91) — one unit,
+   or `distinct: <reason>` on both in inventory.json". Pages are not compared (a page's
+   markup is the sum of its units); a unit whose markup holds the other's (a list and its
+   row) is nested, not a duplicate; page-local pairs on two pages are left to reuse.
+   Calibrated on kennel: highest non-nested pair dog-profile-card ~ stay-card 0.62; two
+   extracted instances of one dog card score 0.92–0.96.
+2. `distinct` is an optional string on an inventory unit; an empty (or non-string) reason
+   is an inventory error. A pair is excused only when BOTH units carry a reason; the
+   excuse is printed as a note.
+3. **same-job** — two units of one classification binding the same non-empty set of
+   needs (binding.md rows as `endpoint → dto`; without binding.md, inventory
+   `dataNeeds`, and the note says which) FAIL, unless one composes the other (graph or
+   nested markup) or both carry `distinct`.
+4. **reuse** — a shared unit composed by exactly one page (graph; `usedOn` without one)
+   where the breakdown agrees FAILS "shared `<x>` is composed only by <page> —
+   page-local, or `distinct:`"; the shell's units are on every page. Two page-local
+   units on different pages with the same name, or markup at/above 0.8, FAIL
+   "<a> on page P and <b> on page Q — one shared unit".
+5. Each is its own report line and counts in "N of M checks ran" (10 of 10 on the clean
+   fixture).
+
+Tests:
+
+- unit — `framework/.sprig/spec-check/dry.test.ts` ("REQ-070: markupOf …",
+  "REQ-070: nestedIn …", "REQ-070: checkCensus …" ×3, "REQ-070: checkSameJob …",
+  "REQ-070: checkReuse …").
+- integration — `framework/.sprig/spec-check.int.test.ts` ("REQ-070: fail-census …",
+  "fail-census-distinct-one", "fail-distinct-empty", "fail-same-job",
+  "fail-shared-once", "fail-page-local-twins", "pass-census-distinct",
+  "pass-shared-once-distinct", "REQ-070: pre-contract … same-job compares inventory
+  dataNeeds", "REQ-070: the clean tree runs ten checks …").
+- e2e — n/a in this change: `framework/kennel-app.e2e.test.ts` asserts "7 of 7" and a
+  green kennel run; it is not this change's file (see the kennel findings).
+- (REQ-071, cont.) the prose also states: a pair is excused only when both units carry a non-empty `distinct` (a shared unit one page composes carries its own), and same-job fires only on the same set of at least two needs, or a command, with the same classification — pinned by two more "REQ-071: …" tests in `framework/.sprig/skills-dryrun.test.ts`.
+
+## REQ-070 AMENDMENT — same-job needs two needs or a command: one shared query is not the same job
+
+> Decision: same-job fires only when the shared need set has at least two needs or
+> includes a command (a single query bound by two units is not evidence of the same job —
+> every unit on a page reads the page's DTO). Keep the endpoint→dto comparison as is; no
+> fields column for now.
+
+1. same-job compares the same endpoint → dto sets as before, but a pair whose shared set
+   is ONE query (no command) is a note ("one query, no command — not evidence of one
+   job"), never a finding. Pre-contract (inventory dataNeeds) the set needs two needs.
+2. The kennel breakdown runs 10 of 10 checks green (its four single-query pairs are
+   notes); `framework/kennel-app.e2e.test.ts` asserts "10 of 10 checks ran".
+
+Tests:
+
+- unit — `framework/.sprig/spec-check/dry.test.ts` ("REQ-070 AMENDMENT: checkSameJob —
+  one shared query is not evidence; one shared COMMAND is").
+- integration — `framework/.sprig/spec-check.int.test.ts` ("REQ-070 AMENDMENT: …
+  pass-same-job-single-query passes"; "REQ-070: fail-same-job …" now two needs).
+- e2e — `framework/kennel-app.e2e.test.ts` ("REQ-062 / REQ-068: … 7 of 7 checks" —
+  title unchanged, its assertion now "10 of 10 checks ran, 0 skipped").
+
+## REQ-069 — duplicate-templates catches a component re-created inline, and two components doing the same job
+
+> "the app stays dry, meaning that components are reused whenever reasonable" —
+> the whole-template score (REQ-028) misses a builder re-creating an existing
+> shared component INLINE (a status badge rebuilt from raw daisyUI classes
+> inside dog-card instead of `<status-badge>`), or two components that are the
+> same job with different markup.
+
+`lintDuplicateTemplates` (`framework/.sprig/compiler/lints/duplicate-templates.ts`)
+gains two rules; `sprig check` wiring is unchanged.
+
+1. **Inline re-creation (error).** Every component — shared (global, not
+   `shell`), and page-local within its own page — is reduced to features: the
+   last-3 tag path of each element from its root (`^/span/svg`) plus one
+   `tag.class` per static class token (`span.badge`); control flow is
+   transparent, `<svg>` is a leaf (icons differ), its own `<selector>-…`
+   classes and `[class.x]` variants are not required of a copy. Every subtree
+   of every other template scores containment |component ∩ subtree| /
+   |component|. At ≥ **0.85** the best-scoring subtree (deepest on a tie, one
+   finding per copy) is "`<file>:<line>` this markup is `<x>` (containment
+   0.93) — compose it". Calibrated, not guessed: over the corpus + calibration
+   apps + kennel-app, every legitimate pair scored ≤ **0.81** (kennel
+   stay-card ⊇ dog-profile-card; the legit corpus peaks at 0.59) and every
+   reinvented copy ≥ **0.88** (0.88 status badge in a list row, 0.92 toast with
+   one class changed, the rest 1.00); 0.85 is the midpoint, and lets a
+   component of 7+ features survive one changed class (6/7 = 0.857). 0.9 misses
+   the list-row badge; 0.8 flags the kennel cards. A component is looked for
+   only with ≥ **4** features and ≥ **1** class token: the grid over
+   minFeatures 1–6 × minClasses 0–2 gives 0 false positives on the legit corpus
+   and calibration apps only at minFeatures 4–5 with minClasses ≥ 1 (below 4
+   the one-element `divider` primitive matches; minClasses 0 lets a classless
+   `<header><main><footer>` wrapper and the kennel/legit thin wrappers
+   `status-badge` ⊇ `overdue-badge` score 1.00); 4 is the smallest, keeping the
+   4-feature `icon-badge` copy caught. A size cap on the subtree changed no
+   verdict at 1.5×, 2.5× or ∞ and is not kept. A pair the whole-template rule
+   already reported or justified is not reported again; the HOST template's
+   `<!-- sprig-duplicate: <reason> -->` excuses its copies ("justified:
+   <host>:<line> ⊇ <x> (score) — reason"). The notes list which components were
+   looked for.
+2. **Same-job pairs (warning).** Two templates of the same role (the daisyUI
+   component their root is built on — `card`, `list` for `list-row`, `modal` —
+   else the root tag), whose READS (free names of `{{ }}`, `[prop]`,
+   `[(two-way)]`, `@if/@for/@switch/@let`; never a member, pipe, local,
+   `$`-name or literal) have Jaccard ≥ **0.8** with 3+ names each, whose
+   HANDLERS (callees of `(event)` bindings; the DOM event name is markup) are
+   equal, that are not a near-duplicate pair and where neither composes the
+   other: "same bindings as `<x>` (names): one component or a `sprig-duplicate:`
+   reason". Legit/calibration pairs peak at 0.60 read-Jaccard, reinvented pairs
+   are 1.00. A WARNING, not an error: the same inputs are evidence, not proof —
+   a list row and a grid tile of one DTO read the same fields by design (the
+   role check separates the corpus case, not every real one), so a person
+   decides.
+3. **DRY corpus.** `fixtures/lints/dry-corpus-reinvented/` (19 cases) and
+   `fixtures/lints/dry-corpus-legit/` (17 cases). Red on HEAD: 14 passed / 18
+   failed (only whole-template-copy caught). Green: 18 reinvented caught, 17
+   legit pass (one suppressed, listed). KNOWN HOLE: `card-rerolled-element-names`
+   — the same card with article/div/h2 renamed section/section/h3 keeps every
+   class but no tag path (tag containment < 0.6); class-only containment would
+   catch it at 1.00 but also scores two different kennel cards built from the
+   same daisyUI parts (dog-actions in dog-notes) at 1.00. Also not covered: a
+   fragment repeated inline in two templates with no component to compose
+   (kennel's skeleton cards in pages/board and pages/day-summary), and a copy
+   that drops one of a tiny component's few classes (kennel's inline "Day
+   closed" badge, 3 of icon-badge's 4 features = 0.75).
+4. Calibration: `app` (3 sprig-wait suppressions only), `fixtures/lints/clean-app/ui`,
+   `fixtures/spec-check/clean/ui`, `fixtures/eval-app`, `fixtures/kennel-app` —
+   duplicate-templates 0 errors, 0 warnings, 0 suppressed on each.
+
+Tests:
+
+- unit — `framework/.sprig/compiler/lints/duplicate-templates.test.ts` (REQ-069 ×5:
+  features, own classes/variants not required, containment asymmetry, bindings
+  reads/handlers, role).
+- integration — `framework/.sprig/compiler/lints/duplicate-templates-corpus.int.test.ts`
+  ("REQ-069: catches <case>" ×18, "REQ-069: known hole …", "REQ-069: allows
+  <case>" ×17 incl. the suppressed one, every case on disk named);
+  `framework/.sprig/compiler/lints/mutations.int.test.ts` (REQ-069 ×4: inline
+  rule bites, same-job rule bites, `sprig-duplicate:` suppresses each);
+  `duplicate-templates.int.test.ts` "above every score" now raises every rule's
+  bar.
+- e2e — n/a — a source lint with no page; `sprig check` over the calibration
+  apps is the check above.

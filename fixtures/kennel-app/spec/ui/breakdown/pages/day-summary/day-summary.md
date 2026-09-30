@@ -89,7 +89,7 @@ The page wires the page-scoped **channels** (wiring only, no stores):
   - `loading`: 4 `skeleton h-20 rounded-box` tiles in
     `grid-cols-2 md:grid-cols-4`, then a spinner with "Loading today's dogs…",
     then 8 skeleton cards in `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`.
-    This is the shared board skeleton.
+    This is the shared board skeleton; each card is the shared `<skeleton-card>`.
   - `error`: `div[role=alert].alert.alert-error.alert-soft.max-w-2xl.mx-auto.mt-10`
     with a wifi-off icon, **"Couldn't load today's board"**, "The kennel server
     didn't answer. Your last check-ins are safe — nothing was lost.", and a

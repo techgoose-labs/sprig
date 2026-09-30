@@ -203,7 +203,12 @@ Pass each one its input contract and summarize what it returns.
    `contract-calls` / `logic-placement` / `tokens` / `duplicate-templates` /
    `optimistic-writes` lints). The build is red on any finding from either;
    route each finding to the owning unit's builder — a suppression comment is
-   the builder's call only with a reason (the cheatsheet lists them). Then have
+   the builder's call only with a reason (the cheatsheet lists them). A DRY
+   finding is fixed by composing the shared unit's tag, never by a
+   `sprig-duplicate:` marker unless the reason is a real design difference,
+   stated (`duplicate-templates` names the tag; spec-check's census / same-job
+   / reuse findings go back to the breakdown — merge the units, or the
+   inventory carries `distinct`). Then have
    the scaffolder run the prod-build smoke (`deno task build` →
    `deno serve -A --unstable-kv --port <PORT> serve.ts`, then GET every route
    in `src/mod.ts` at least once, one with a real id from the fixture data;
@@ -314,9 +319,11 @@ as behavior/scoped-styles and strips them from output.)
   every rule beyond required/type come from the backend (a query or a
   command); `logic.ts` holds UI state only — the `logic-placement` lint
   enforces it.
-- **DRY:** reuse the shared component the breakdown names; the
-  `duplicate-templates` lint fails near-identical templates and the compiler
-  refuses a page-local component shadowing a shared selector.
+- **DRY:** compose the shared component the breakdown names — by its tag,
+  never by re-creating its markup; the `duplicate-templates` lint fails
+  near-identical templates and any template that re-creates a shared unit's
+  markup inline, naming the tag to compose, and the compiler refuses a
+  page-local component shadowing a shared selector.
 - **Data crosses the waist through the generated typed client** when one exists
   (`spec/contract/client/`, generated from the rune OpenAPI):
   `resolve.ts`/services and islands import its DTO types and endpoint wrappers —

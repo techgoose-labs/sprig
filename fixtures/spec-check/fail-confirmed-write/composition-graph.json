@@ -12,7 +12,8 @@
       "dir": "pages/archive",
       "composes": [
         "task-row",
-        "app-badge"
+        "app-badge",
+        "save-note"
       ]
     }
   },
@@ -51,7 +52,8 @@
       "scope": "shared",
       "composes": [],
       "composedBy": [
-        "dashboard"
+        "dashboard",
+        "archive"
       ]
     }
   }

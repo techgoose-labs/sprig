@@ -95,6 +95,11 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
 2. **Author the template** — Angular-flavored bindings: `{{ expr }}`, `[prop]`,
    `(event)`, `@if`/`@for … track`/`@empty`, `<content>` projection,
    `<child-selector [in]="x">` composition. Detail: `references/templates.md`.
+   **Compose, never re-create** — if a shared unit exists for the markup you
+   are writing, use its tag; the `duplicate-templates` lint fails inline
+   re-creation and names the tag to compose. The cheatsheet's **Shared units**
+   line gives each tag and its props; markup that matches one of them inside
+   your template is a finding even when it is only part of the template.
 3. **Author `logic.ts` (islands)** — a class (the template scope) or
    `defineComponent({ setup })`; lifecycle `onServerInit` (load data, server) /
    `onBrowserInit` (after hydration); `inject()` only synchronously (constructor
@@ -154,7 +159,9 @@ makes it an island** (hydrates client-side); template-only ships zero JS and its
    `tokens`, `duplicate-templates`, `optimistic-writes`). **Green = every case
    row green AND no `sprig check ui` finding in your folder — before composing
    this unit into a page.** Fix a finding; a suppression comment needs a real
-   reason (the cheatsheet lists them). Pages isolate too. **Iteration budget: if
+   reason (the cheatsheet lists them) — a `duplicate-templates` finding is
+   fixed by composing the tag it names, and `<!-- sprig-duplicate: <reason> -->`
+   is only for a real design difference, stated. Pages isolate too. **Iteration budget: if
    the SAME case is still red after 3 build-fix-verify cycles, stop grinding** —
    return it red with your best one-line diagnosis (the orchestrator re-routes
    or descopes; the measured alternative was one builder burning 402 requests on
@@ -396,7 +403,8 @@ escalate to a root-wide `find`.
   every server write is `optimistic(...)`; a real wait carries
   `// sprig-wait: <reason>`.
 - Put domain logic in `logic.ts` (the `logic-placement` lint), or copy a shared
-  component's template instead of composing it (`duplicate-templates`).
+  component's template — whole or as a fragment inside yours — instead of
+  composing its tag (`duplicate-templates`).
 - Make an island that takes server data as frozen props and `reload()`s after
   actions, or a whole-page island.
 - Share state between islands through a `state/*.ts` module, an exported signal,

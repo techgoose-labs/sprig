@@ -1,0 +1,11 @@
+<main class="max-w-md mx-auto p-6">
+  <form class="flex flex-col gap-4" (submit)="submit()">
+    <form-field label="Name" name="name" [value]="name" [error]="errors.name"></form-field>
+    <fieldset class="fieldset w-full">
+      <legend class="fieldset-legend">Email</legend>
+      <input class="input input-bordered w-full" name="email" type="email" [value]="email" />
+      <p class="label text-error">{{ errors.email }}</p>
+    </fieldset>
+    <button class="btn btn-primary" type="submit">Sign up</button>
+  </form>
+</main>

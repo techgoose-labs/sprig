@@ -63,7 +63,9 @@ sections **and** item 10):
    it reconciles in place; each region's **data source** with honest-empty where
    there's none; **liveness** (request-response vs pushed realtime island); any
    **data-shape hazard**. One-line justification per island.
-2. **Anatomy** — DOM/visual structure sketch; slots/children. Any class name you
+2. **Anatomy** — DOM/visual structure sketch; slots/children. A child region
+   that is its own inventory unit is named by its tag (`<status-badge>`),
+   never re-described as markup — the build composes it. Any class name you
    propose for the unit's own elements is **prefixed** (`cm-dot`,
    `<folder>-part`) — never a daisyUI name (`stat`, `badge`, `status`, `list`,
    `card`, `label`, `link`, `toggle`, `tab`, or parts like

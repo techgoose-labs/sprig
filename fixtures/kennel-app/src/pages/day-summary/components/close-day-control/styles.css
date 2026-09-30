@@ -16,17 +16,9 @@
   transition-property: color, background-color, border-color;
 }
 
-/* Lucide lock: 1.2em in the button, 1em in the badge (mock size-[1.2em] / size-[1em]). */
+/* Lucide lock: 1.2em in the button (mock size-[1.2em]); the "Day closed" badge is the
+   composed <icon-badge> (lock, neutral, lg), which sizes its own icon and focus ring. */
 .close-day-control-icon {
   width: 1.2em;
   height: 1.2em;
-}
-
-.close-day-control-icon--badge {
-  width: 1em;
-  height: 1em;
-}
-
-.close-day-control-badge:focus {
-  outline: none;
 }

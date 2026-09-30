@@ -1,7 +1,8 @@
 // spec-check (REQ-032): machine checks over the breakdown (`spec/ui/breakdown/`) and its
 // contract binding, so a breakdown or build that drifted from the mock or the contract fails
 // loudly instead of shipping as prose. Every check prints what it read, what it skipped and
-// why, and each offender with a fix hint.
+// why, and each offender with a fix hint. REQ-070 adds the DRY checks (census, same-job,
+// reuse — spec-check/dry.ts), each excusable per unit with `"distinct": "<reason>"`.
 //
 //   deno run -A framework/.sprig/spec-check.ts [--root <git-root>] [--ui-src <dir>]
 //     [--app <dir>] [--graph <graph.json>] [--json]      → exit 0 ok, 1 findings, 2 usage
@@ -16,6 +17,15 @@ import {
 import { checkBuilt } from "./spec-check/built.ts";
 import { resolveContractRoot } from "./compiler/lints/contract.ts";
 import { checkComposition } from "./spec-check/graph.ts";
+import {
+  checkCensus,
+  checkReuse,
+  checkSameJob,
+  type Markup,
+  markupOf,
+  type NeedSets,
+  type UnitMarkup,
+} from "./spec-check/dry.ts";
 import {
   checkDoubleAssignment,
   checkUnassigned,
@@ -354,6 +364,7 @@ export async function specCheck(
   } else if (!inventory) checks.push(skipped("built", [], noInv));
   else checks.push(await checkBuilt(inventory, resolve(opts.uiSrc), root));
 
+  let usedGraph: CompositionGraph | undefined = opts.graph;
   // ── composition ────────────────────────────────────────────────────────────────
   const pathFindings = [uiSrcMissing, appMissing].filter((f): f is Finding =>
     !!f
@@ -388,6 +399,7 @@ export async function specCheck(
         read.push(where);
       }
     }
+    usedGraph = graph;
     const r = checkComposition(inventory, graph, read, invWhere);
     if (graphFailure) {
       r.findings.unshift(graphFailure);
@@ -398,6 +410,116 @@ export async function specCheck(
       if (!r.notes.length) delete r.notes;
     }
     checks.push(r);
+  }
+
+  // ── census · same-job · reuse (REQ-070: DRY) ──────────────────────────────────
+  if (!inventory) {
+    for (const n of ["census", "same-job", "reuse"]) {
+      checks.push(skipped(n, [], noInv));
+    }
+  } else {
+    const units: UnitMarkup[] = [];
+    const markups = new Map<typeof inventory.units[number], Markup>();
+    const censusRead: string[] = [];
+    const censusNotes: string[] = [];
+    const noSource: string[] = [];
+    for (const u of inventory.units) {
+      const f = join(bd, u.dir, "source.html");
+      const html = await readText(f);
+      if (html === null) {
+        if (u.scope !== "page") noSource.push(u.name);
+        continue;
+      }
+      censusRead.push(rel(f));
+      let markup: Markup;
+      try {
+        markup = await markupOf(html);
+      } catch (e) {
+        censusNotes.push(
+          `${rel(f)} not compared: unparseable (${
+            (e as Error).message.split("\n")[0]
+          })`,
+        );
+        continue;
+      }
+      markups.set(u, markup);
+      units.push({ unit: u, where: rel(f), markup });
+    }
+    if (noSource.length) {
+      censusNotes.push(
+        `not compared — no source.html (the capture pass extracts it): ${
+          noSource.join(", ")
+        }`,
+      );
+    }
+    checks.push(
+      units.some((u) => u.unit.scope !== "page")
+        ? checkCensus(
+          inventory,
+          units,
+          censusRead,
+          invWhere,
+          censusNotes,
+          undefined,
+          usedGraph,
+        )
+        : skipped(
+          "census",
+          censusRead,
+          "no unit has a source.html — the capture pass extracts each unit's mock markup there",
+        ),
+    );
+
+    const needs: NeedSets = new Map();
+    const commandNeeds = new Set<string>();
+    let source: string;
+    const table = bindingText === null
+      ? undefined
+      : parseBindingTable(bindingText);
+    if (table?.headerFound) {
+      source = `${rel(bindingPath)} (endpoint → dto per row)`;
+      for (const r of table.rows) {
+        if (r.kind === "command") commandNeeds.add(`${r.endpoint} → ${r.dto}`);
+      }
+      for (const u of inventory.units) {
+        needs.set(
+          u,
+          new Set(
+            table.rows.filter((r) => r.unit === u.name).map((r) =>
+              `${r.endpoint} → ${r.dto}`
+            ),
+          ),
+        );
+      }
+    } else {
+      source = `inventory dataNeeds (${
+        bindingText === null
+          ? `no ${rel(bindingPath)} — pre-contract`
+          : `${rel(bindingPath)} has no binding table`
+      })`;
+      for (const u of inventory.units) needs.set(u, new Set(u.dataNeeds));
+    }
+    checks.push(
+      checkSameJob(
+        inventory,
+        needs,
+        source,
+        table?.headerFound ? [invWhere, rel(bindingPath)] : [invWhere],
+        invWhere,
+        markups,
+        usedGraph,
+        commandNeeds,
+      ),
+    );
+    checks.push(
+      checkReuse(
+        inventory,
+        markups,
+        [invWhere, ...censusRead],
+        invWhere,
+        usedGraph,
+      ),
+    );
   }
 
   return { checks, ok: checks.every((c) => c.ok) };

@@ -47,7 +47,7 @@ Deno.test("REQ-032: the clean breakdown tree passes all seven checks, none skipp
   try {
     const r = await run(root);
     assertEquals(failed(r), [], renderSpecCheck(r));
-    assertEquals(r.checks.map((c) => c.name), [
+    assertEquals(r.checks.map((c) => c.name).slice(0, 7), [
       "inventory",
       "unassigned",
       "double-assignment",
@@ -113,12 +113,38 @@ const CASES: [string, string, string[]][] = [
   ["fail-confirmed-write", "tier-cases", [
     'confirmed-write save-note has no "pending" case',
   ]],
+  // REQ-070: DRY — two units extracting the same mock markup, two units doing the same
+  // job, a shared unit only one page composes, page-local twins on two pages.
+  ["fail-census", "census", [
+    "units task-row and stat-card extract the same markup (1.00) — one unit, or `distinct: <reason>` on both in inventory.json",
+  ]],
+  ["fail-census-distinct-one", "census", [
+    "units task-row and stat-card extract the same markup (1.00)",
+  ]],
+  ["fail-distinct-empty", "inventory", [
+    "app-badge has an empty distinct reason",
+  ]],
+  ["fail-same-job", "same-job", [
+    "units dashboard and archive do the same job — both page-composition, binding the same needs (GET /api/tasks → TaskDto · GET /api/tasks/counts → TaskCountsDto) — one unit, or `distinct: <reason>` on both",
+  ]],
+  ["fail-shared-once", "reuse", [
+    "shared `app-badge` is composed only by archive — page-local, or `distinct:`",
+  ]],
+  ["fail-page-local-twins", "reuse", [
+    "stat-card on page dashboard and stat-card on page archive — one shared unit",
+  ]],
 ];
 
 const REQ_OF: Record<string, string> = {
   "fail-composition-page-local": "REQ-057",
   "fail-composition-nowhere": "REQ-064",
   "fail-confirmed-write": "REQ-064",
+  "fail-census": "REQ-070",
+  "fail-census-distinct-one": "REQ-070",
+  "fail-distinct-empty": "REQ-070",
+  "fail-same-job": "REQ-070",
+  "fail-shared-once": "REQ-070",
+  "fail-page-local-twins": "REQ-070",
 };
 
 for (const [overlay, name, expected] of CASES) {
@@ -259,7 +285,7 @@ Deno.test("REQ-032: the CLI prints every check and exits 0 on a clean tree, 1 wi
     ]);
     let out = new TextDecoder().decode(o.stdout);
     assertEquals(o.code, 0, out + new TextDecoder().decode(o.stderr));
-    assertStringIncludes(out, "spec-check: ok — 7 of 7 checks ran");
+    assertStringIncludes(out, "spec-check: ok — 10 of 10 checks ran");
     o = await cmd(["--root", bad, "--json"]);
     out = new TextDecoder().decode(o.stdout);
     assertEquals(o.code, 1);
@@ -432,6 +458,96 @@ Deno.test("REQ-064: with appDir, the compiler's real graph carries src/shell —
       "top-bar is used on page dashboard per the breakdown, but it is not composed by dashboard or the shell",
       "top-bar is used on page archive per the breakdown, but it is not composed by archive or the shell",
     ]);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-070: the clean tree runs ten checks — census, same-job and reuse after composition — none skipped, each saying what it compared", async () => {
+  const root = await tree();
+  try {
+    const r = await run(root);
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), [], text);
+    assertEquals(r.checks.map((c) => c.name).slice(7), [
+      "census",
+      "same-job",
+      "reuse",
+    ]);
+    assert(r.checks.every((c) => !c.skipped), text);
+    assert(
+      check(r, "census").read.includes(
+        "spec/ui/breakdown/shared-components/task-row/source.html",
+      ),
+      text,
+    );
+    assert(
+      check(r, "census").notes!.some((n) => n.includes("threshold 0.8")),
+      text,
+    );
+    assert(
+      check(r, "same-job").notes!.some((n) => n.includes("binding.md")),
+      text,
+    );
+    for (const n of ["census", "same-job", "reuse"]) {
+      assertStringIncludes(text, `spec-check ${n}: ok (`);
+    }
+    assertStringIncludes(text, "spec-check: ok — 10 of 10 checks ran");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+for (const overlay of ["pass-census-distinct", "pass-shared-once-distinct"]) {
+  Deno.test(`REQ-070: ${overlay} passes every check — \`distinct: <reason>\` excuses the pair, and the report says so`, async () => {
+    const root = await tree(overlay);
+    try {
+      const r = await run(root);
+      const text = renderSpecCheck(r);
+      assertEquals(failed(r), [], text);
+      assert(r.checks.every((c) => !c.skipped), text);
+      assertStringIncludes(text, "distinct:");
+    } finally {
+      await Deno.remove(root, { recursive: true });
+    }
+  });
+}
+
+Deno.test("REQ-070: pre-contract (no binding.md), same-job compares inventory dataNeeds and says so", async () => {
+  const root = await tree("fail-same-job");
+  try {
+    await Deno.remove(join(root, "spec/contract/binding.md"));
+    await Deno.remove(join(root, "spec/contract/openapi.json"));
+    const r = await run(root);
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), ["same-job"], text);
+    const c = check(r, "same-job");
+    assertEquals(c.findings.length, 1, text);
+    assertStringIncludes(
+      c.findings[0].message,
+      "units dashboard and archive do the same job — both page-composition, binding the same needs (list open tasks · task counts)",
+    );
+    assert(
+      c.notes!.some((n) => n.includes("inventory dataNeeds")),
+      text,
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("REQ-070 AMENDMENT: two units binding the same SINGLE query is not the same job — pass-same-job-single-query passes, and the note says why", async () => {
+  const root = await tree("pass-same-job-single-query");
+  try {
+    const r = await run(root);
+    const text = renderSpecCheck(r);
+    assertEquals(failed(r), [], text);
+    assert(
+      check(r, "same-job").notes!.some((n) =>
+        n.includes("dashboard ~ archive") && n.includes("one query")
+      ),
+      text,
+    );
   } finally {
     await Deno.remove(root, { recursive: true });
   }

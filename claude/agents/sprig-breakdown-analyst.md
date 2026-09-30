@@ -79,6 +79,17 @@ deliverable.
    mock that says "guestbook" throughout names the page `guestbook`, never a
    generic `home`), kebab-cased; invent a name only where the source is
    nameless. Downstream tooling and diffs key on these names.
+   **Census before classifying.** Group the mock's regions by repeated
+   structure (same DOM shape, same classes) across ALL pages before you
+   classify any of them: one repeated region is one unit with a `usedOn` list,
+   never one unit per page (a status pill on four pages is one
+   `shared-components/status-pill`, not four page-local copies). Hold each
+   group against the design-system primitives and the units already grouped —
+   a region that looks like an existing shared unit but differs is recorded
+   with `distinct` naming that unit and the reason
+   (`"distinct": "status-pill because it carries a live countdown the pill
+   never shows"`), and the shared unit gets its own `distinct` naming the
+   look-alike; a difference you cannot name in one clause is the same unit.
 2. **Classify every region** — `static` (pure display / server-rendered content,
    `template.html` only, zero JS) vs `island` (needs a `logic.ts`:
    dropdown/modal/palette, **any server write**, drag-drop, realtime) vs
@@ -98,10 +109,11 @@ deliverable.
    (`resolve.ts` / `Backend` / an island call through the typed client),
    **liveness** (request-response vs pushed/realtime), and **honest-empty**
    notes. Server writes are **optimistic UI** (snapshot → mutate → call → roll
-   back), never client-toast + `location.reload()`. Shared vs page-local: usage
-   counts AND **authorial signals** (mock comments, shared CSS sections, global
-   mounts) — follow authorial intent, default page-local only when both
-   ambiguous. **Design-system primitives first:** when
+   back), never client-toast + `location.reload()`. Shared vs page-local: the
+   census's repeat count AND **authorial signals** (mock comments, shared CSS
+   sections, global mounts) — a region the census found on more than one page
+   is shared; for a single-page region follow authorial intent, default
+   page-local only when both are ambiguous. **Design-system primitives first:** when
    `spec/ui/design-system/components.md` exists, bind each mock region to a
    named primitive from it (button, card, table, modal…) before inventing a
    component, and record the binding in the unit's evidence (`primitive: card`);
@@ -164,7 +176,9 @@ deliverable.
    "classification": "static"|"island"|"page-composition", "scope":
    "shared"|"page-local"|"page", "page"?, "usedOn": [pages], "tier":
    "static"|"pure-client"|"optimistic-write"|"confirmed-write"|"realtime", "evidence",
-   "dataNeeds": [need names] } ], "unassigned": [] }`.
+   "dataNeeds": [need names], "distinct"?: "<unit> because <reason>" } ],
+   "unassigned": [] }` — `distinct` only on a unit kept apart from a look-alike
+   (step 1's census, or a DRY finding at closing), never empty.
    `dir` is the path its scope implies: shared → `shared-components/<name>`,
    page → `pages/<page>`, page-local → `pages/<page>/components/<name>`; a
    `static` unit has tier `static` and an island never does; every unit's spec
@@ -197,7 +211,8 @@ the **channel map** (every cross-island seam as `sets:`/`edits:`/`reads:`
 participants + scope — no store modules), **build order** (tokens → shared
 primitives → shared composites → page-local → page compositions),
 risks/unknowns. 7. **Completeness audit** — walk each page's top-level DOM
-regions (each maps to exactly one component/composition entry) and the source JS
+regions (each maps to exactly one component/composition entry — a region
+repeated on several pages maps to the same shared entry) and the source JS
 (each listener/timer/observer/animation owned by some component's
 Events/Motion). Confirm every interaction has a tier, every island is justified,
 every live panel is marked request-response vs pushed with an honest-empty note,
@@ -206,9 +221,17 @@ plan. Anything unmapped → `unassigned` in `inventory.json` and the Unassigned
 list in `index.md`. Then RUN `sprig spec-check spec/ui/breakdown --root .` from
 the app root — it fails on a non-empty Unassigned, binding endpoints/DTOs missing from
 `openapi.json`, units with `dataNeeds` but no binding row, optimistic-write
-units without `pending` + `rolled-back` cases, and double assignment. The
+units without `pending` + `rolled-back` cases, double assignment, and the DRY
+checks (census, same-job, reuse — `interfaces/ui-breakdown.md`). The
 breakdown is not done until it exits 0: assign the region, add the row, or
-report the drift upward, then re-run. `spec-check` ships only in a sprig newer
+report the drift upward, then re-run. Read `sprig spec-check`'s DRY lines
+(census, same-job, reuse) and stop on any unresolved finding: merge the units
+or write `distinct` with the reason, then re-run — a merge folds the twin's
+`usedOn` into the kept unit and drops the twin's row. A pair is excused only
+when both units carry a non-empty `distinct`; a shared unit only one page
+composes needs `distinct` on itself. same-job fires only when two units bind
+the same set of at least two needs, or a command, with the same
+classification. `spec-check` ships only in a sprig newer
 than 2.1.3: `sprig: unknown command "spec-check"` means the installed sprig is
 older — run `sprig -v`, then `sprig update`, and re-run; if it is still
 unknown, return `blocked: sprig spec-check unavailable (sprig <version>)` —
@@ -291,4 +314,7 @@ escalate to a root-wide `find`.
   island unjustified.
 - Make a unit an island to filter, sort, compute or validate data — that is a
   query or command the backend owns.
-- Return CLOSING while `sprig spec-check` is red.
+- Return CLOSING while `sprig spec-check` is red or a DRY finding is
+  unresolved.
+- Split one repeated region into a unit per page, or write `distinct` without
+  a reason.

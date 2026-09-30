@@ -77,11 +77,11 @@ Deno.test("REQ-062: sprig spec-check is green on the kennel fixture", async () =
   assertMatch(r.text, /spec-check: ok —/);
 });
 
-Deno.test("REQ-062 / REQ-068: spec-check binds the kennel breakdown to the app's own contract — binding-drift runs, 7 of 7 checks", async () => {
+Deno.test("REQ-062 / REQ-068: spec-check binds the kennel breakdown to the app's own contract — binding-drift runs, 10 of 10 checks", async () => {
   const r = await specCheck();
   assertEquals(r.code, 0, r.text.slice(-4000));
   assertMatch(r.text, /spec-check binding-drift: ok \(\d+ items\)/);
-  assertMatch(r.text, /spec-check: ok — 7 of 7 checks ran, 0 skipped/);
+  assertMatch(r.text, /spec-check: ok — 10 of 10 checks ran, 0 skipped/);
   assert(r.text.includes("contract: the app root's"), r.text.slice(-4000));
 });
 

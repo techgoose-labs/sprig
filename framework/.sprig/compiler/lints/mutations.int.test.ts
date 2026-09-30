@@ -711,6 +711,120 @@ Deno.test("REQ-049: duplicate-templates suppression sprig-duplicate: turns the f
   });
 });
 
+// REQ-069: the containment rule (a shared component re-created inline) and the
+// same-job rule (two templates, different markup, the same bindings).
+const BADGE_TPL = "ui/src/shared-components/status-badge/template.html";
+const ROW_TPL = "ui/src/pages/orders/components/order-row/template.html";
+const BADGE = `<span class="badge badge-soft gap-1" [class.badge-success]="ok">
+  <svg class="size-4"><path d="M1 1"></path></svg>
+  <span>{{ label }}</span>
+</span>
+`;
+const rowWith = (inner: string, head = "") =>
+  `${head}<li class="list-row">
+  <span class="font-medium">{{ sku }}</span>
+  ${inner}
+</li>
+`;
+const INLINE_BADGE = `<span class="badge badge-soft badge-success gap-1">
+    <svg class="size-4"><path d="M1 1"></path></svg>
+    <span>Shipped</span>
+  </span>`;
+
+Deno.test("REQ-069: duplicate-templates rule inline bites on a shared component re-created inline", async () => {
+  await withCopy(CLEAN, async (c) => {
+    await c.write(BADGE_TPL, BADGE);
+    await c.write(
+      ROW_TPL,
+      rowWith(`<status-badge [ok]="shipped" label="Shipped"></status-badge>`),
+    );
+    assertGreen(await dup(c), "a row composing <status-badge>");
+    await c.edit(
+      ROW_TPL,
+      (s) => s.replace(/<status-badge[^\n]*<\/status-badge>/, INLINE_BADGE),
+    );
+    const [hit] = assertOnly(
+      await dup(c),
+      "duplicate-templates",
+      /^this markup is `<status-badge>` \(containment 1\.00\) — compose it$/,
+    );
+    assertEquals([hit.file, hit.line], [join(c.root, ROW_TPL), 3]);
+  });
+});
+
+Deno.test("REQ-069: duplicate-templates suppression sprig-duplicate: turns an inline copy into a suppressed entry", async () => {
+  await withCopy(CLEAN, async (c) => {
+    await c.write(BADGE_TPL, BADGE);
+    await c.write(
+      ROW_TPL,
+      rowWith(
+        INLINE_BADGE,
+        "<!-- sprig-duplicate: the export view renders without components -->\n",
+      ),
+    );
+    const r = await dup(c);
+    assertEquals(r.findings, [], show(r));
+    assertEquals(r.suppressed.length, 1);
+    assertMatch(
+      r.suppressed[0].reason,
+      /^justified: pages\/orders\/components\/order-row:4 ⊇ <status-badge> \(1\.00\) — the export view renders/,
+    );
+  });
+});
+
+const CARD_TPL = "ui/src/pages/orders/components/order-card/template.html";
+const TILE_TPL = "ui/src/pages/orders/components/order-tile/template.html";
+const ORDER_CARD = `<div class="card border">
+  <div class="card-body">
+    <h2 class="font-semibold">{{ number }}</h2>
+    <p>{{ customer }} · {{ total }}</p>
+  </div>
+</div>
+`;
+const ORDER_TILE = `<article class="card card-side bg-base-200">
+  <section class="card-body p-3">
+    <h3 class="card-title">{{ customer }}</h3>
+    <dl><dt>Order</dt><dd>{{ number }}</dd><dt>Total</dt><dd>{{ total }}</dd></dl>
+  </section>
+</article>
+`;
+
+Deno.test("REQ-069: duplicate-templates rule same-job warns on two cards binding the same names", async () => {
+  await withCopy(CLEAN, async (c) => {
+    await c.write(CARD_TPL, ORDER_CARD);
+    await c.write(
+      TILE_TPL,
+      ORDER_TILE.replaceAll("{{ total }}", "{{ amount }}"),
+    );
+    assertGreen(await dup(c), "two cards reading different names");
+    await c.edit(TILE_TPL, (s) => s.replaceAll("{{ amount }}", "{{ total }}"));
+    assertOnly(
+      await dup(c),
+      "duplicate-templates",
+      /^same bindings as `<order-tile>` \(customer, number, total\): one component or a `sprig-duplicate:` reason$/,
+      "warn",
+    );
+  });
+});
+
+Deno.test("REQ-069: duplicate-templates suppression sprig-duplicate: turns a same-job pair into a suppressed entry", async () => {
+  await withCopy(CLEAN, async (c) => {
+    await c.write(CARD_TPL, ORDER_CARD);
+    await c.write(
+      TILE_TPL,
+      "<!-- sprig-duplicate: the tile is the kiosk layout, the card the desk one -->\n" +
+        ORDER_TILE,
+    );
+    const r = await dup(c);
+    assertEquals(r.findings, [], show(r));
+    assertEquals(r.suppressed.length, 1);
+    assertMatch(
+      r.suppressed[0].reason,
+      /^justified: pages\/orders\/components\/order-card ≡ pages\/orders\/components\/order-tile \(customer, number, total\) — the tile is the kiosk layout/,
+    );
+  });
+});
+
 // ─── optimistic-writes (optimistic-clean) ────────────────────────────────────
 
 const OPT = join(LINTS, "optimistic-clean");

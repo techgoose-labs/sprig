@@ -2932,7 +2932,8 @@ switch (cmd) {
   }
   case "spec-check": {
     // REQ-032: the breakdown's machine checks — unassigned, binding drift, tier
-    // cases, built coverage, composition vs usage matrix, double assignment.
+    // cases, built coverage, composition vs usage matrix, double assignment;
+    // REQ-070: the DRY checks — census, same-job, reuse.
     const { positional, values } = splitArgs(rest, [
       "--root",
       "--ui-src",

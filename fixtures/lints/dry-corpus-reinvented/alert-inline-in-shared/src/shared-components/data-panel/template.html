@@ -1,0 +1,17 @@
+<section class="card bg-base-100 border">
+  <div class="card-body">
+    <h2 class="card-title">{{ heading }}</h2>
+    @if (failed) {
+    <div role="alert" class="alert alert-error alert-soft">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-5"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      <div>
+        <h3 class="font-bold">Couldn't load {{ heading }}</h3>
+        <div class="text-sm">The server did not answer.</div>
+      </div>
+      <a class="btn btn-sm" href="">Retry</a>
+    </div>
+    } @else {
+    <div class="overflow-x-auto">{{ rows.length }} rows</div>
+    }
+  </div>
+</section>

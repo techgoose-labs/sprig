@@ -49,7 +49,7 @@ spec/ui/breakdown/
   `data-model.md` is the **pre-contract fallback**, written only when no
   contract exists (standalone mock breakdowns).
 - **`inventory.json`** —
-  `{ "units": [ { "name", "dir", "classification", "scope", "page"?, "usedOn", "tier", "evidence", "dataNeeds" } ], "unassigned": [] }`,
+  `{ "units": [ { "name", "dir", "classification", "scope", "page"?, "usedOn", "tier", "evidence", "dataNeeds", "distinct"? } ], "unassigned": [] }`,
   `dir` relative to `spec/ui/breakdown/`, `scope` `shared`|`page-local`|`page`,
   `tier` `static`|`pure-client`|`optimistic-write`|`confirmed-write`|`realtime` (a write's tier
   from the prototype's `commands.json` `feedback`; every unit fits one — a
@@ -58,7 +58,21 @@ spec/ui/breakdown/
   `data-model.md` names and `spec-check` skips binding-drift until
   `spec/contract/openapi.json` exists. `evidence` names the
   design-system primitive a unit binds to when one exists. It is the source
-  `index.md`'s usage matrix is written from.
+  `index.md`'s usage matrix is written from. `distinct` — this unit is
+  deliberately separate from <unit> because <reason> — is optional and written
+  only to answer a DRY finding (below); an empty reason is an error.
+- **DRY — one repeated region is one unit.** A region that repeats across
+  pages (same DOM shape, same classes) is ONE unit with a `usedOn` list, never
+  one unit per page. The closing pass runs three DRY checks over the
+  inventory: **census** — two units whose extracted `source.html` match above a
+  threshold; **same-job** — two units binding the same `dataNeeds` with the
+  same classification; **reuse** — a shared unit composed by one page only, or
+  page-local twins across pages. `sprig spec-check` reports them; the analyst
+  resolves each finding by merging the units or writing `distinct`.
+  A pair is excused only when both units carry a non-empty `distinct`; a
+  shared unit only one page composes needs `distinct` on itself. same-job
+  fires only when two units bind the same set of at least two needs, or a
+  command, with the same classification.
 - **Tokens are Tailwind v4 `@theme` custom properties** — NOT a
   `tailwind.config.js`, NOT daisyUI _themes_. Build puts them in a
   `:global(...)` `@theme` block (usually `shell/styles.css`) and styles with
@@ -110,7 +124,8 @@ spec/ui/breakdown/
 Breakdown: `sprig spec-check spec/ui/breakdown` exits 0 — Unassigned empty,
 every `dataNeeds` entry bound, every bound endpoint/DTO present in
 `openapi.json`, no unit assigned twice, every optimistic-write unit carrying
-`pending` + `rolled-back` cases and every confirmed-write unit a `pending` case. Build: `sprig isolate test --json` is green for
+`pending` + `rolled-back` cases and every confirmed-write unit a `pending` case,
+every census / same-job / reuse finding merged or carrying `distinct`. Build: `sprig isolate test --json` is green for
 every component **and page**, including each case's `_reference` pixel-diff row
 within tolerance; then
 `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` (every inventory

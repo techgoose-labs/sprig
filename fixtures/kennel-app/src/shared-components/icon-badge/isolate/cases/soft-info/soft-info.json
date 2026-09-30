@@ -1,1 +1,1 @@
-{ "_name": "Soft info · md", "_tier": "static", "_theme": "brand", "_viewport": 1280, "icon": "calendar-clock", "tone": "info", "soft": true, "size": "md", "label": "Booked" }
+{ "_name": "Soft info · md", "_tier": "static", "_theme": "brand", "_viewport": 1280, "icon": "calendar-clock", "tone": "info", "soft": true, "size": "md", "label": "Booked", "focusId": "" }

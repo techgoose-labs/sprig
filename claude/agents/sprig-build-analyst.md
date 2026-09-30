@@ -65,6 +65,11 @@ The orchestrator passes — absolute, already resolved:
    - **Units** — one line per unit: `<selector>` · folder · static/island ·
      props `name: type = default, …` · events emitted · composes `<children>`
      (copied from the composition graph, never re-derived from prose).
+   - **Shared units** — every shared unit's `<tag>` and props, one line each,
+     so builders compose from the sheet (`<status-pill [status]="s">` · props
+     `status: string`), from `inventory.json` units with scope `shared` — a
+     builder about to write markup a shared unit already renders composes the
+     tag instead; the `duplicate-templates` lint fails the re-creation.
    - **Seams** — each shared service (DI singleton, resolve, typed client):
      path, public API one-liners.
    - **Channels** — the cross-island state map, one line per channel:
@@ -85,7 +90,9 @@ The orchestrator passes — absolute, already resolved:
      `logic.ts`/`resolve.ts`) · `// sprig-contract: <reason>` (contract-calls —
      a fetch outside the typed client) · `/* sprig-token: <reason> */` (tokens —
      a raw color/length equal to a token) · `<!-- sprig-duplicate: <reason> -->`
-     (duplicate-templates — a near-identical template kept apart) ·
+     (duplicate-templates — a near-identical template kept apart for a real,
+     stated design difference; the fix for any other finding is composing the
+     tag the lint names) ·
      `// sprig-wait: <reason>` (optimistic-writes — a genuine await before
      writing) · `<!-- sprig-shadows: <reason> -->` (first line of a page-local
      template that shadows a shared selector) · `src/custom-elements.json` (a
@@ -101,7 +108,8 @@ The orchestrator passes — absolute, already resolved:
      `sprig build`).
 3. Keep it ≤3KB. If a section would blow the cap, cut detail from **Gotchas**
    last and **Units** first (builders hold their own unit's full spec already —
-   the sheet is for SIBLING knowledge).
+   the sheet is for SIBLING knowledge); never cut **Shared units** — it is the
+   list builders compose from.
 
 ## Output contract
 

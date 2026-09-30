@@ -316,3 +316,131 @@ Deno.test("REQ-066: a _network command name maps through the --root app's contra
     );
   }
 });
+
+// ---------------------------------------------------------------- REQ-071
+// The DRY guarantee: the duplicate-templates lint fails a template that
+// re-creates a shared unit's markup, and spec-check's census / same-job /
+// reuse checks read the breakdown. The prompts make agents produce and honour
+// both; each rule is one sentence, pinned here.
+
+Deno.test("REQ-071: an inventory unit takes an optional `distinct` — deliberately separate from <unit> because <reason>", async () => {
+  const u = await doc(UI_BREAKDOWN);
+  has(
+    u,
+    '"dataNeeds", "distinct"? } ]',
+    "`distinct` — this unit is deliberately separate from <unit> because <reason>",
+    "an empty reason is an error",
+  );
+  has(
+    await doc(ANALYST),
+    '"distinct"?: "<unit> because <reason>"',
+  );
+});
+
+Deno.test("REQ-071: the ui-breakdown contract names the census, same-job and reuse checks and how each is resolved", async () => {
+  const u = await doc(UI_BREAKDOWN);
+  has(
+    u,
+    "**census** — two units whose extracted `source.html` match above a threshold",
+    "**same-job** — two units binding the same `dataNeeds` with the same classification",
+    "**reuse** — a shared unit composed by one page only, or page-local twins across pages",
+    "`sprig spec-check` reports them; the analyst resolves each finding by merging the units or writing `distinct`",
+    "every census / same-job / reuse finding merged or carrying `distinct`",
+  );
+});
+
+Deno.test("REQ-071: the analyst groups repeated regions across ALL pages before classifying — one region, one unit", async () => {
+  const a = await doc(ANALYST);
+  has(
+    a,
+    "**Census before classifying.** Group the mock's regions by repeated structure (same DOM shape, same classes) across ALL pages",
+    "one repeated region is one unit with a `usedOn` list, never one unit per page",
+  );
+});
+
+Deno.test("REQ-071: a region that looks like a shared unit but differs is recorded with `distinct` and the reason", async () => {
+  has(
+    await doc(ANALYST),
+    "a region that looks like an existing shared unit but differs is recorded with `distinct` naming that unit and the reason",
+  );
+});
+
+Deno.test("REQ-071: the closing pass reads spec-check's DRY lines and stops on any unresolved finding", async () => {
+  has(
+    await doc(ANALYST),
+    "Read `sprig spec-check`'s DRY lines (census, same-job, reuse) and stop on any unresolved finding",
+    "merge the units or write `distinct` with the reason, then re-run",
+  );
+});
+
+Deno.test("REQ-071: the spec-writer names a child unit by its tag, never re-describes its markup", async () => {
+  has(
+    await doc(SPEC_WRITER),
+    "A child region that is its own inventory unit is named by its tag (`<status-badge>`), never re-described as markup — the build composes it",
+  );
+});
+
+Deno.test("REQ-071: the component agent composes, never re-creates", async () => {
+  const c = await doc(COMPONENT);
+  has(
+    c,
+    "**Compose, never re-create** — if a shared unit exists for the markup you are writing, use its tag; the `duplicate-templates` lint fails inline re-creation and names the tag to compose",
+  );
+});
+
+Deno.test("REQ-071: the build analyst's cheatsheet lists every shared unit's tag and props", async () => {
+  has(
+    await doc(BUILD_ANALYST),
+    "**Shared units** — every shared unit's `<tag>` and props, one line each, so builders compose from the sheet",
+    "never cut **Shared units**",
+  );
+});
+
+Deno.test("REQ-071: the build's sprig check step fixes a DRY finding by composing, never by a marker without a design reason", async () => {
+  has(
+    await doc(BUILD),
+    "A DRY finding is fixed by composing the shared unit's tag, never by a `sprig-duplicate:` marker unless the reason is a real design difference, stated",
+  );
+});
+
+Deno.test("REQ-071: the sprig-app contract declares DRY", async () => {
+  has(
+    await doc(SPRIG_APP),
+    "**DRY:** no template re-creates a shared unit; spec-check's DRY checks pass or every exception carries `distinct`",
+  );
+});
+
+Deno.test("REQ-071: no breakdown prompt defaults a repeated region to page-local", async () => {
+  const b = await doc(BREAKDOWN);
+  lacks(
+    b,
+    "Page-local by default; promote to `shared-components/` only with evidence",
+  );
+  has(
+    b,
+    "a region repeated across pages (same DOM shape, same classes) is ONE unit with a `usedOn` list",
+  );
+  has(
+    await doc(ANALYST),
+    "a region repeated on several pages maps to the same shared entry",
+  );
+});
+
+Deno.test("REQ-071: a pair is excused only when both units carry `distinct`; a shared unit one page composes carries its own", async () => {
+  for (const f of [UI_BREAKDOWN, ANALYST]) {
+    has(
+      await doc(f),
+      "A pair is excused only when both units carry a non-empty `distinct`; a shared unit only one page composes needs `distinct` on itself.",
+    );
+  }
+  lacks(await doc(UI_BREAKDOWN), "writing `distinct` on the one kept apart");
+});
+
+Deno.test("REQ-071: same-job fires only on a shared set of at least two needs, or a command, with the same classification", async () => {
+  for (const f of [UI_BREAKDOWN, ANALYST]) {
+    has(
+      await doc(f),
+      "same-job fires only when two units bind the same set of at least two needs, or a command, with the same classification.",
+    );
+  }
+});

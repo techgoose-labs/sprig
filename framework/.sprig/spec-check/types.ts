@@ -34,6 +34,9 @@ export interface InventoryUnit {
   tier: Tier;
   evidence: string;
   dataNeeds: string[];
+  /** REQ-070: why this unit stays separate from a unit the DRY checks (census, same-job,
+   *  reuse) pair it with. Optional; when present the reason must not be empty. */
+  distinct?: string;
 }
 
 /** `spec/ui/breakdown/inventory.json`. */

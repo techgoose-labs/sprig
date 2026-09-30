@@ -1,0 +1,4 @@
+<ul class="menu bg-base-200 rounded-box w-56">
+  <li class="menu-title">{{ heading }}</li>
+  @for (i of items; track i.href) {<li><a [attr.href]="i.href" [class.menu-active]="i.href === current">{{ i.label }}</a></li>}
+</ul>

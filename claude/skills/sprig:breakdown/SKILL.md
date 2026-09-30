@@ -120,9 +120,11 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    order, tier summary, Unassigned) + the completeness audit, then it runs
    `sprig spec-check spec/ui/breakdown`. **The breakdown is done only when that
    exits 0** — a non-empty Unassigned, a binding row missing from
-   `openapi.json`, or an optimistic-write unit without `pending` + `rolled-back`
-   cases is a failure to fix, not a note to report. Re-delegate the owning pass
-   (analyst or the unit's spec-writer) until it passes.
+   `openapi.json`, an optimistic-write unit without `pending` + `rolled-back`
+   cases, or an unresolved DRY finding (census, same-job, reuse) is a failure
+   to fix, not a note to report. Re-delegate the owning pass (analyst or the
+   unit's spec-writer — a merge re-runs the kept unit's writer with the merged
+   `usedOn`) until it passes.
 
 Independent units within steps 2 and 3 run concurrently — **capped at 4–6
 concurrent, in chunked waves**
@@ -163,7 +165,11 @@ breakdown in a fresh session.
   **static**, justify every island, spec server writes as **optimistic UI**
   (snapshot → mutate → call → roll back). Performance is the build's job; here
   only flag expensive data _shapes_.
-- Page-local by default; promote to `shared-components/` only with evidence.
+- **Census before classifying:** a region repeated across pages (same DOM
+  shape, same classes) is ONE unit with a `usedOn` list in
+  `shared-components/`, never a copy per page; a single-page region stays
+  page-local unless the mock's authorial signals say shared. Two look-alikes
+  kept apart each carry `distinct` with its reason.
 - **Bind, don't re-derive** (bridge 2): with a ratified contract at the app
   root, every data-need binds to a real endpoint + DTO in
   `spec/contract/binding.md`; a mismatch is a **drift error** surfaced in

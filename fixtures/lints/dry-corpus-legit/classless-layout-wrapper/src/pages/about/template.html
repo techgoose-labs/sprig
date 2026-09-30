@@ -1,0 +1,12 @@
+<section class="hero bg-base-200 min-h-64">
+  <div class="hero-content text-center">
+    <div>
+      <header><h1 class="text-5xl font-bold">About us</h1></header>
+      <main><p class="py-6">We have boarded dogs since 1998.</p><team-grid></team-grid></main>
+      <footer><small class="opacity-60">Est. 1998</small></footer>
+    </div>
+  </div>
+</section>
+<ul class="timeline timeline-vertical">
+  @for (y of years; track y.year) {<li><div class="timeline-start">{{ y.year }}</div><div class="timeline-end timeline-box">{{ y.event }}</div></li>}
+</ul>
