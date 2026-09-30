@@ -1,0 +1,76 @@
+/* Rules from the live page that match at least one element of region `#app > .stats` (CDP CSS.getMatchedStylesForNode, user-agent rules excluded). Reference ground truth, not deliverable. */
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: base */
+*, ::after, ::backdrop, ::before, ::file-selector-button { box-sizing:border-box;border:0 solid;margin:0;padding:0 }
+/* src: inline:38 layer: base */
+*, ::after, ::before, ::backdrop, ::file-selector-button { box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid; }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stats { border-radius:var(--radius-box);grid-auto-flow:column;display:inline-grid;position:relative;overflow-x:auto }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2 */
+.stats-vertical { grid-auto-flow:row;overflow-y:auto }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2 */
+@media (width >= 768px) { .md\:stats-horizontal { grid-auto-flow:column;overflow-x:auto } }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.bg-base-100 { background-color:var(--color-base-100) }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.border-base-300 { border-color:var(--color-base-300) }
+/* src: inline:38 layer: utilities */
+.mb-5 { margin-bottom: calc(var(--spacing) * 5); }
+/* src: inline:38 layer: utilities */
+.w-full { width: 100%; }
+/* src: inline:38 layer: utilities */
+.border { border-style: var(--tw-border-style);
+    border-width: 1px; }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat { grid-template-columns:repeat(1,1fr);column-gap:1rem;width:100%;padding-block:1rem;padding-inline:1.5rem;display:inline-grid }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat:not(:last-child) { border-inline-end:var(--border) dashed color-mix(in oklab, currentColor 10%, #0000);border-block-end:none }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2 */
+.stats-vertical .stat:not(:last-child) { border-inline-end:none;border-block-end:var(--border) dashed color-mix(in oklab, currentColor 10%, #0000) }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2 */
+@media (width >= 768px) { .md\:stats-horizontal .stat:not(:last-child) { border-inline-end:var(--border) dashed color-mix(in oklab, currentColor 10%, #0000);border-block-end:none } }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat-figure { grid-row:1/span 3;grid-column-start:2;place-self:center flex-end }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.text-secondary { color:var(--color-secondary) }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: base */
+audio, canvas, embed, iframe, img, object, svg, video { vertical-align:middle;display:block }
+/* src: inline:38 layer: base */
+img, svg, video, canvas, audio, iframe, embed, object { display: block;
+    vertical-align: middle; }
+/* src: inline:38 layer: utilities */
+.size-8 { width: calc(var(--spacing) * 8);
+    height: calc(var(--spacing) * 8); }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat-title { white-space:nowrap;color:color-mix(in oklab, var(--color-base-content) 60%, transparent);grid-column-start:1;font-size:.75rem }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat-value { white-space:nowrap;grid-column-start:1;font-size:2rem;font-weight:800 }
+/* src: inline:38 layer: utilities */
+.tabular-nums { --tw-numeric-spacing: tabular-nums;
+    font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,); }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.text-base-content\/60 { color:var(--color-base-content); }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+@supports (color:color-mix(in lab, red, red)) { .text-base-content\/60 { color:color-mix(in oklab,var(--color-base-content)60%,#0000) } }
+/* src: inline:38 layer: utilities */
+.text-base { font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height)); }
+/* src: inline:38 layer: utilities */
+.font-normal { --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal); }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.stat-desc { white-space:nowrap;color:color-mix(in oklab, var(--color-base-content) 60%, transparent);grid-column-start:1;font-size:.75rem }
+/* src: inline:38 layer: base */
+progress { vertical-align: baseline; }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2.l3 */
+.progress { appearance:none;border-radius:var(--radius-box);background-color:color-mix(in oklab, currentcolor 20%, transparent);width:100%;height:.5rem;color:var(--color-base-content);position:relative;overflow:hidden }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities.daisyui.l1.l2 */
+.progress-secondary { color:var(--color-secondary) }
+/* src: inline:38 layer: utilities */
+.w-40 { width: calc(var(--spacing) * 40); }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.text-success { color:var(--color-success) }
+/* src: https://cdn.jsdelivr.net/npm/daisyui@5 layer: utilities */
+.text-error { color:var(--color-error) }

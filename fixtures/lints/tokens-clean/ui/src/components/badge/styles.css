@@ -1,0 +1,15 @@
+.badge {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  padding: var(--space-2) 3px;
+  border-radius: var(--radius-box);
+  font-family: var(--font-body);
+  border: 1px solid transparent;
+  outline-color: currentColor;
+}
+.badge--legal {
+  color: #b00020; /* sprig-token: the legal notice color is mandated by counsel, not the brand */
+}
+@media (min-width: 40rem) {
+  .badge { padding: var(--space-2); }
+}

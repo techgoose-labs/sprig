@@ -1,0 +1,8 @@
+<table class="grid">
+  <thead><tr><th>Name</th><th>Qty</th></tr></thead>
+  <tbody>
+    @for (r of rows; track r.id) {
+      <tr (click)="pick(r)"><td>{{ r.name }}</td><td>{{ r.qty }}</td></tr>
+    }
+  </tbody>
+</table>

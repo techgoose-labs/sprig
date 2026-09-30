@@ -136,16 +136,51 @@ disposes their effects/observers — no leaks.
 ## Talking to the backend from an island
 
 The `Backend` DI token is **SSR-only**. From client island code, use the network
-channel:
+channel — and never make the user wait on it to see their own action. A server
+write goes through `optimistic(sig, next, call)`: the signal takes the new value
+**now**, the call runs behind it, and a failure rolls the signal back.
 
 ```ts
-const res = await fetch("/api/http/post-test-run", {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ files }),
+import { defineComponent, optimistic, signal } from "@techgoose-labs/sprig";
+
+export default defineComponent({
+  setup: () => {
+    const done = signal(false);
+    const toggle = () => {
+      const w = optimistic(
+        done,
+        (d) => !d,
+        () =>
+          fetch("/api/http/toggle-todo", { method: "POST" }).then((r) =>
+            r.json()
+          ),
+        {
+          reconcile: (saved) => saved.done, // the server's answer replaces the guess
+        },
+      );
+      return w; // w.pending() · w.error() · await w.done
+    };
+    return { done, toggle };
+  },
 });
-const j = await res.json();
 ```
+
+- The write is synchronous: the template repaints before `fetch` starts.
+- On rejection the previous value is restored and `onError(err, prev)` fires;
+  without `onError` the error lands on `w.error()` and is logged — never
+  swallowed.
+- Concurrent writes to one signal are **last-write-wins** by start order: an
+  older failure never clobbers a newer write, and a rollback never lands on a
+  value that failed.
+- Any signal-shaped value works — callable to read, `.set(v)` to write.
+
+`sprig check`'s **optimistic-writes** lint flags, in an island's `logic.ts`, a
+server write awaited before the first signal write, and a signal written only
+after one (the loading-flag spinner). Reads — `fetch` with no method or GET,
+`.get(`, a `client.<op>` that `spec/contract/openapi.json` marks GET — may
+await. When the result of a write is truly unknowable client-side (a
+server-generated id, payment auth), wait on purpose and say why on the await:
+`// sprig-wait: <reason>`.
 
 `/api/*` is the token-gated, request-hardened keep handler — see
 [hosting.md](./hosting.md).

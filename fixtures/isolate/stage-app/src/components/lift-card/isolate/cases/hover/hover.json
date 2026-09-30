@@ -1,0 +1,4 @@
+{
+  "_name": "Hovered — the shadow transition",
+  "_motion": { "spec": "spec/motion/lift-card.json", "trigger": "hover" }
+}

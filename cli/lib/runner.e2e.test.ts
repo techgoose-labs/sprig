@@ -16,6 +16,7 @@ const REPO = fromFileUrl(new URL("../../", import.meta.url));
 const STUB_NPM = `#!/bin/sh
 case "$1" in
   init) printf '{"name":"stub"}\\n' > package.json ;;
+  i) printf '\\nadded 3 packages in 1s\\n'; exit 1 ;;
   *) exit 1 ;;
 esac
 `;
@@ -114,6 +115,9 @@ Deno.test({
       assert(!(await exists(join(home, ".isolate-runner"))));
       // 4. the one remaining failure (no @playwright/test) is a clean report naming THAT dir
       assertEquals(p.code, 1, `exit ${p.code}\n${all}`);
+      // 5. REQ-007 AMENDMENT: npm's own chatter ("added 3 packages") never lands in
+      //    the --json stdout — the report is the whole of it
+      assertEquals(out.trimStart().startsWith("{"), true, `stdout is not one JSON document:\n${out}`);
       const report = JSON.parse(out);
       assertEquals(report.ok, false);
       assertStringIncludes(report.error, dir);

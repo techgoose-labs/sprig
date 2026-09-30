@@ -1,0 +1,8 @@
+{
+  "_name": "All active, tablist overflowing (375)",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/status-filter-tabs/screenshots/status-filter-tabs@375.png",
+  "status": "all"
+}

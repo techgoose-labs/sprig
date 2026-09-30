@@ -1,0 +1,11 @@
+{
+  "category": "board",
+  "folder": "status-filter-tabs",
+  "controls": {
+    "status": {
+      "type": "select",
+      "options": ["all", "booked", "checked-in", "walking", "checked-out"],
+      "value": "all"
+    }
+  }
+}

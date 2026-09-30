@@ -1,0 +1,767 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "kennel",
+    "version": "0.1.0",
+    "description": "The kennel app's waist contract, derived from the two prototype seams (spec/ui/kennel-prototype/objects/*.json → queries, commands.json → commands). Queries are GET, commands are POST — never an editable record."
+  },
+  "paths": {
+    "/api/dog": {
+      "get": {
+        "operationId": "dogList",
+        "summary": "query: every dog (objects/dog.json) — filtered server-side by status / overdue",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DogDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "booked",
+                "checked-in",
+                "walking",
+                "checked-out"
+              ]
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dog/{id}": {
+      "get": {
+        "operationId": "dogGet",
+        "summary": "query: one dog by id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no such dog"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/day": {
+      "get": {
+        "operationId": "dayList",
+        "summary": "query: every day (objects/day.json)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/day/{id}": {
+      "get": {
+        "operationId": "dayGet",
+        "summary": "query: one day by id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no such day"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/owner": {
+      "get": {
+        "operationId": "ownerList",
+        "summary": "query: every owner (objects/owner.json)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OwnerDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/owner/{id}": {
+      "get": {
+        "operationId": "ownerGet",
+        "summary": "query: one owner by id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no such owner"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/stay": {
+      "get": {
+        "operationId": "stayList",
+        "summary": "query: every stay (objects/stay.json)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stay/{id}": {
+      "get": {
+        "operationId": "stayGet",
+        "summary": "query: one stay by id",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StayDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "no such stay"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dog/check-in": {
+      "post": {
+        "operationId": "dogCheckIn",
+        "summary": "command: Check a booked dog in to its kennel. Before the reply the card and detail badge flip to 'checked-in' and the Check in button disables; the reply's dog reconciles the badge. On rejection the badge reverts to 'booked', the button re-enables and an error toast names the dog. The server recomputes the day's per-status counts and occupancy (the UI never tallies them).",
+        "x-sprig-feedback": "instant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogCheckInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "dog.checkIn"
+      }
+    },
+    "/api/dog/start-walk": {
+      "post": {
+        "operationId": "dogStartWalk",
+        "summary": "command: Take a checked-in dog out for a walk. Before the reply the badge flips to 'walking' and the action swaps to End walk; on rejection the badge reverts to 'checked-in', Start walk returns, and an error toast shows.",
+        "x-sprig-feedback": "instant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogStartWalkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "dog.startWalk"
+      }
+    },
+    "/api/dog/end-walk": {
+      "post": {
+        "operationId": "dogEndWalk",
+        "summary": "command: Bring a walking dog back to its kennel. Before the reply the badge flips back to 'checked-in' and the action swaps to Start walk; on rejection the badge reverts to 'walking' and an error toast shows.",
+        "x-sprig-feedback": "instant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogEndWalkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "dog.endWalk"
+      }
+    },
+    "/api/dog/check-out": {
+      "post": {
+        "operationId": "dogCheckOut",
+        "summary": "command: Hand a dog back to its owner. Before the reply the badge flips to 'checked-out' and all stay actions disable; the total due shown stays the stay object's server figure and the overdue marker stays whatever the server's `overdue` flag says (the UI never decides overdue). The reply's dog reconciles the badge and the flag. On rejection the badge and actions revert to their prior state and an error toast shows. The server clears `overdue` and moves the stay's total into today's revenue.",
+        "x-sprig-feedback": "instant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogCheckOutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DogDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "dog.checkOut"
+      }
+    },
+    "/api/dog/add-note": {
+      "post": {
+        "operationId": "dogAddNote",
+        "summary": "command: Append a handling note to a dog's stay. Before the reply the note appears at the bottom of the list, dimmed with a 'saving…' label, and the form clears; the reply's note (server id + timestamp) replaces it. On rejection the dimmed note is removed, the typed text is restored into the form, and an error toast shows.",
+        "x-sprig-feedback": "instant",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DogAddNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "dog.addNote"
+      }
+    },
+    "/api/day/close": {
+      "post": {
+        "operationId": "dayClose",
+        "summary": "command: Close the day: the server locks today's ledger, settles revenue against every checked-out stay and issues the closing report. CONFIRMED because the UI cannot know the result before the reply — the final revenue figure and the lock are decided server-side and the close can be refused (e.g. dogs still walking). The button shows a spinner and stays disabled until the reply, then the summary renders the server's closed day.",
+        "x-sprig-feedback": "confirmed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DayCloseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayDto"
+                }
+              }
+            }
+          }
+        },
+        "x-sprig-command": "day.close"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "OwnerDto": {
+        "type": "object",
+        "description": "owner — objects/owner.json",
+        "required": [
+          "id",
+          "name",
+          "phone"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "StayDto": {
+        "type": "object",
+        "description": "stay — objects/stay.json (money fields are the server's figures)",
+        "required": [
+          "id",
+          "dog",
+          "checkIn",
+          "plannedCheckOut",
+          "nightlyRate",
+          "nights",
+          "totalDue"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dog": {
+            "type": "string"
+          },
+          "checkIn": {
+            "type": "string"
+          },
+          "plannedCheckOut": {
+            "type": "string"
+          },
+          "nightlyRate": {
+            "type": "number"
+          },
+          "nights": {
+            "type": "integer"
+          },
+          "totalDue": {
+            "type": "number"
+          }
+        }
+      },
+      "NoteDto": {
+        "type": "object",
+        "description": "note — a child of dog (dog.notes[]), appended by dog.addNote",
+        "required": [
+          "id",
+          "text",
+          "author",
+          "at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          }
+        }
+      },
+      "ByStatusDto": {
+        "type": "object",
+        "description": "the day's per-status counts (server-computed)",
+        "required": [
+          "booked",
+          "checked-in",
+          "walking",
+          "checked-out"
+        ],
+        "properties": {
+          "booked": {
+            "type": "integer"
+          },
+          "checked-in": {
+            "type": "integer"
+          },
+          "walking": {
+            "type": "integer"
+          },
+          "checked-out": {
+            "type": "integer"
+          }
+        }
+      },
+      "DayDto": {
+        "type": "object",
+        "description": "day — objects/day.json (every rollup server-computed)",
+        "required": [
+          "id",
+          "date",
+          "kennelsTotal",
+          "kennelsUsed",
+          "occupancyPct",
+          "revenueToday",
+          "byStatus",
+          "overdueCount",
+          "closed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "kennelsTotal": {
+            "type": "integer"
+          },
+          "kennelsUsed": {
+            "type": "integer"
+          },
+          "occupancyPct": {
+            "type": "integer"
+          },
+          "revenueToday": {
+            "type": "number"
+          },
+          "byStatus": {
+            "$ref": "#/components/schemas/ByStatusDto"
+          },
+          "overdueCount": {
+            "type": "integer"
+          },
+          "closed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DogDto": {
+        "type": "object",
+        "description": "dog — objects/dog.json as the queries project it: the owner joined (owner + ownerName), the stay joined when there is one, and the server's action rules: allowedActions (the commands this dog accepts now) and allowedAfter (for each allowed command, the commands it accepts once that one lands). The UI renders these; it never derives them from status.",
+        "required": [
+          "id",
+          "name",
+          "breed",
+          "owner",
+          "ownerName",
+          "kennel",
+          "status",
+          "arrival",
+          "overdue",
+          "notes",
+          "allowedActions",
+          "allowedAfter"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "breed": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/OwnerDto"
+          },
+          "ownerName": {
+            "type": "string"
+          },
+          "kennel": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "booked",
+              "checked-in",
+              "walking",
+              "checked-out"
+            ]
+          },
+          "arrival": {
+            "type": "string"
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "overdueBy": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NoteDto"
+            }
+          },
+          "stay": {
+            "$ref": "#/components/schemas/StayDto"
+          },
+          "allowedActions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowedAfter": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "DogCheckInDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "checked-in"
+            ]
+          }
+        }
+      },
+      "DogStartWalkDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "walking"
+            ]
+          }
+        }
+      },
+      "DogEndWalkDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "checked-in"
+            ]
+          }
+        }
+      },
+      "DogCheckOutDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "checked-out"
+            ]
+          }
+        }
+      },
+      "DogAddNoteDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "text",
+          "author"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "author": {
+            "type": "string"
+          }
+        }
+      },
+      "DayCloseDto": {
+        "type": "object",
+        "description": "command input — commands.json",
+        "required": [
+          "id",
+          "closed"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "closed": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

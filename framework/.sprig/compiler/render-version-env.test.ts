@@ -26,11 +26,10 @@ async function makeDegradedRenderer() {
     "shell/template.html": `<div><router-outlet></router-outlet></div>`,
     "pages/home/template.html": `<p>hi</p>`,
   });
-  const cwd = Deno.cwd();
   const bare = await Deno.makeTempDir({ prefix: "sprig-version-env-cwd-" });
-  Deno.chdir(bare); // no static/ here
-  const restore = () => Deno.chdir(cwd);
-  return { tmp, restore };
+  const assetsDir = joinPath(bare, "static"); // does not exist: the degraded condition
+  const restore = () => Deno.remove(bare, { recursive: true }).catch(() => {});
+  return { tmp, restore, assetsDir };
 }
 
 const vsOf = (html: string) => ({
@@ -40,9 +39,9 @@ const vsOf = (html: string) => ({
 });
 
 Deno.test("renderDocument prefers the env-threaded assetsVersion over its own readVersion()", async () => {
-  const { tmp, restore } = await makeDegradedRenderer();
+  const { tmp, restore, assetsDir } = await makeDegradedRenderer();
   try {
-    const r = await createRenderer(tmp, "/ui", {});
+    const r = await createRenderer(tmp, "/ui", { assetsDir });
     const html = await r.renderDocument("pages/home", {}, {
       assetsVersion: "cafe1234beef5678",
     });
@@ -59,15 +58,15 @@ Deno.test("renderDocument prefers the env-threaded assetsVersion over its own re
       "__sprig_config.v too (island imports use it)",
     );
   } finally {
-    restore();
+    await restore();
     await Deno.remove(tmp, { recursive: true });
   }
 });
 
 Deno.test("renderStream stamps the env version in head AND tail", async () => {
-  const { tmp, restore } = await makeDegradedRenderer();
+  const { tmp, restore, assetsDir } = await makeDegradedRenderer();
   try {
-    const r = await createRenderer(tmp, "/ui", {});
+    const r = await createRenderer(tmp, "/ui", { assetsDir });
     const html = await new Response(
       r.renderStream("pages/home", {}, { assetsVersion: "cafe1234beef5678" }),
     ).text();
@@ -79,18 +78,18 @@ Deno.test("renderStream stamps the env version in head AND tail", async () => {
       "no degraded URL survives when the env supplies the version",
     );
   } finally {
-    restore();
+    await restore();
     await Deno.remove(tmp, { recursive: true });
   }
 });
 
 Deno.test("a degraded NON-dev render warns ONCE, naming the directory it tried", async () => {
-  const { tmp, restore } = await makeDegradedRenderer();
+  const { tmp, restore, assetsDir } = await makeDegradedRenderer();
   const warns: string[] = [];
   const origWarn = console.warn;
   console.warn = (...a: unknown[]) => warns.push(a.join(" "));
   try {
-    const r = await createRenderer(tmp, "/ui", {});
+    const r = await createRenderer(tmp, "/ui", { assetsDir });
     assertEquals(
       warns.length,
       0,
@@ -103,7 +102,7 @@ Deno.test("a degraded NON-dev render warns ONCE, naming the directory it tried",
     assertStringIncludes(warns[0], "[sprig]");
     assertStringIncludes(
       warns[0],
-      joinPath(Deno.cwd(), "static"),
+      assetsDir,
       "names the dir it tried to hash",
     );
 
@@ -121,7 +120,7 @@ Deno.test("a degraded NON-dev render warns ONCE, naming the directory it tried",
     );
   } finally {
     console.warn = origWarn;
-    restore();
+    await restore();
     await Deno.remove(tmp, { recursive: true });
   }
 });

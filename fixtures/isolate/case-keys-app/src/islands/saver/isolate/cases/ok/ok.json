@@ -1,0 +1,5 @@
+{
+  "_name": "Save succeeds",
+  "_tier": "optimistic-write",
+  "_network": { "POST /api/save": { "status": 200, "body": { "ok": true } } }
+}

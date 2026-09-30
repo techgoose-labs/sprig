@@ -1,0 +1,26 @@
+{
+  "category": "kennel",
+  "folder": "board",
+  "controls": {
+    "loadState": {
+      "type": "select",
+      "options": [
+        "ready",
+        "loading",
+        "error"
+      ],
+      "value": "ready"
+    },
+    "status": {
+      "type": "select",
+      "options": [
+        "all",
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "all"
+    }
+  }
+}

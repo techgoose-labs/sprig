@@ -1,0 +1,14 @@
+<main class="p-6">
+  <h1 class="text-3xl mb-4">Invoices</h1>
+  @if (invoices.length) {
+  <invoice-table [rows]="invoices"></invoice-table>
+  } @else {
+  <div class="card bg-base-100 border border-dashed border-base-300">
+    <div class="card-body items-center text-center py-12">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-10 text-base-content/40"><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg>
+      <h2 class="text-2xl font-semibold">No invoices yet</h2>
+      <p class="text-base-content/70 max-w-sm">Invoices show up here once an order ships.</p>
+    </div>
+  </div>
+  }
+</main>

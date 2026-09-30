@@ -1,0 +1,91 @@
+<!-- board — runtime DOM of main#app in the demo states empty/loading/error. Verbatim outerHTML. -->
+
+<!-- ===== state=empty (http://localhost:8742/?state=empty#/board) ===== -->
+<main id="app" class="max-w-7xl mx-auto p-3 md:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-4">
+      <div><h1 class="font-display text-4xl">Today's dogs</h1>
+        <p class="text-base-content/70">Tuesday, September 29</p></div>
+      
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <button data-filter="booked" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-info badge-soft badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span></div>
+        <div class="text-3xl font-semibold tabular-nums">—</div>
+      </div>
+    </button>
+    <button data-filter="checked-in" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-success badge-soft badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span></div>
+        <div class="text-3xl font-semibold tabular-nums">—</div>
+      </div>
+    </button>
+    <button data-filter="walking" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-accent badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span></div>
+        <div class="text-3xl font-semibold tabular-nums">—</div>
+      </div>
+    </button>
+    <button data-filter="checked-out" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-outline badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span></div>
+        <div class="text-3xl font-semibold tabular-nums">—</div>
+      </div>
+    </button></div>
+    <div role="tablist" class="tabs tabs-box mb-4 overflow-x-auto flex-nowrap">
+    <button role="tab" data-filter="all" class="tab whitespace-nowrap tab-active">All</button>
+    <button role="tab" data-filter="booked" class="tab whitespace-nowrap ">Booked</button>
+    <button role="tab" data-filter="checked-in" class="tab whitespace-nowrap ">Checked in</button>
+    <button role="tab" data-filter="walking" class="tab whitespace-nowrap ">Walking</button>
+    <button role="tab" data-filter="checked-out" class="tab whitespace-nowrap ">Checked out</button></div>
+    <div class="card bg-base-100 border border-dashed border-base-300"><div class="card-body items-center text-center py-16">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="bone" aria-hidden="true" class="lucide lucide-bone size-10 text-base-content/40"><path d="M17 10c.7-.7 1.69 0 2.5 0a2.5 2.5 0 1 0 0-5 .5.5 0 0 1-.5-.5 2.5 2.5 0 1 0-5 0c0 .81.7 1.8 0 2.5l-7 7c-.7.7-1.69 0-2.5 0a2.5 2.5 0 0 0 0 5c.28 0 .5.22.5.5a2.5 2.5 0 1 0 5 0c0-.81-.7-1.8 0-2.5Z"></path></svg>
+      <h2 class="font-display text-3xl">No dogs booked today</h2>
+      <p class="text-base-content/70 max-w-sm">When a booking lands for today it shows up here, ready to check in.</p></div></div></main>
+
+<!-- ===== state=loading (http://localhost:8742/?state=loading#/board) ===== -->
+<main id="app" class="max-w-7xl mx-auto p-3 md:p-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"><div class="skeleton h-20 rounded-box"></div><div class="skeleton h-20 rounded-box"></div><div class="skeleton h-20 rounded-box"></div><div class="skeleton h-20 rounded-box"></div></div>
+    <div class="flex items-center gap-2 mb-4 text-base-content/70"><span class="loading loading-spinner loading-sm"></span>Loading today's dogs…</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div>
+  <div class="card bg-base-100 border border-base-300"><div class="card-body gap-3">
+    <div class="skeleton h-6 w-2/3"></div><div class="skeleton h-4 w-1/2"></div>
+    <div class="flex gap-2"><div class="skeleton h-5 w-20"></div><div class="skeleton h-5 w-14"></div></div>
+  </div></div></div></main>
+
+<!-- ===== state=error (http://localhost:8742/?state=error#/board) ===== -->
+<main id="app" class="max-w-7xl mx-auto p-3 md:p-6">
+    <div role="alert" class="alert alert-error alert-soft max-w-2xl mx-auto mt-10">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="wifi-off" aria-hidden="true" class="lucide lucide-wifi-off size-6 shrink-0"><path d="M12 20h.01"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path><path d="M5 12.859a10 10 0 0 1 5.17-2.69"></path><path d="M19 12.859a10 10 0 0 0-2.007-1.523"></path><path d="M2 8.82a15 15 0 0 1 4.177-2.643"></path><path d="M22 8.82a15 15 0 0 0-11.288-3.764"></path><path d="m2 2 20 20"></path></svg>
+      <div><h3 class="font-bold">Couldn't load today's board</h3>
+        <div class="text-sm">The kennel server didn't answer. Your last check-ins are safe — nothing was lost.</div></div>
+      <button class="btn btn-sm" onclick="setDemo('live')">Retry</button>
+    </div></main>

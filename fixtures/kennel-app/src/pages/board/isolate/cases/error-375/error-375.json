@@ -1,0 +1,9 @@
+{
+  "_name": "Load failed (load-error) @375",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/board-error@375.png",
+  "loadState": "error",
+  "status": "all"
+}

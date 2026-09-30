@@ -1,0 +1,9 @@
+<!-- App shell — the folder MUST be named `shell`; the renderer discovers it by name
+     under src/ and renders the matched page into the outlet.
+     top-bar is the mock's global header (outside main#app), so it mounts here once,
+     above the outlet; pages do not compose it. view="board" is the SSR default —
+     main-nav derives the active link from location.pathname on the client. -->
+<div class="app-root">
+  <top-bar view="board"></top-bar>
+  <router-outlet></router-outlet>
+</div>

@@ -1,0 +1,44 @@
+{
+  "trigger": "toast(msg, kind) appends .alert into #toasts (captured ~10ms after append, 1280x800). Removal: setTimeout(el.remove, 3500) — no exit animation.",
+  "animations": [
+    {
+      "kind": "CSSAnimation",
+      "name": "toast",
+      "target": "div.alert.alert-success.shadow-sm.max-w-xs",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "ease-out",
+          "composite": "auto",
+          "opacity": "0",
+          "scale": "0.9",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "ease-out",
+          "composite": "auto",
+          "opacity": "1",
+          "scale": "1",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 250,
+        "easing": "linear",
+        "endDelay": 0,
+        "fill": "none",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 250,
+        "currentIteration": 0,
+        "endTime": 250,
+        "localTime": 0,
+        "progress": 0
+      },
+      "playState": "running"
+    }
+  ]
+}

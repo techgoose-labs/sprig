@@ -69,10 +69,13 @@ Pass each one its input contract and summarize what it returns.
    wiring), delegate to **`sprig-build-scaffolder`** with the project root, the
    routes to register (from the breakdown `index.md` build order, or the user's
    ask), the base path, whether a `spec/ui/design-system/css-variables.json`
-   exists to copy in, and whether `spec/contract/openapi.json` exists at the git
+   exists to copy in, and whether `spec/contract/openapi.json` exists at the app
    root (→ it generates/refreshes the **typed client** in
    `spec/contract/client/`). It returns a **BUILD BRIEF** (app root, alias
    names, tokens path, isolate command, port base, contract + browser posture) —
+   its `app_root` is **`<app>` below: the directory holding the app's `deno.json`**
+   (and its `src/`), git-root-relative — `ui` in the `ui/src` layout, `.` when
+   `src/` sits at the git root (e.g. fixtures/eval-app); never assume `ui` —
    **inline those ≤8 fact lines into every component prompt** so no builder
    re-derives them; facts inline, bulk behind paths. **Then, for any multi-unit
    build (≥3 units): spawn `sprig-build-analyst` ONCE** (before the first wave,
@@ -91,7 +94,8 @@ Pass each one its input contract and summarize what it returns.
    the cheatsheet itself and the run hit the wall clock with two units never
    started). A builder-returned gotcha propagates by APPENDING one line to the
    cheatsheet — never by fattening later briefs. Before a page-composition wave,
-   optionally re-spawn the analyst to refresh the sheet against as-built props.
+   optionally re-spawn the analyst to refresh the sheet against as-built props
+   and the composition graph (`sprig map --compose`).
    **Cross-island state is wired, never stored.** Islands share state ONLY via
    the `sets:`/`reads:`/`edits:` template verbs (`references/wiring.md`); the
    cheatsheet MUST carry the **channel map** (channel → origin `sets:` → editors
@@ -108,7 +112,20 @@ Pass each one its input contract and summarize what it returns.
    delegate to **`sprig-build-component`** with its breakdown spec as **resolved
    ABSOLUTE paths you looked up in `index.md` / the breakdown tree ONCE**: the
    unit's breakdown folder, its `<name>.md`, `isolate/`, `screenshots/`, and the
-   target src dir. Never brief a specialist with just a name and "glob for it" —
+   target src dir (`<app>/src/<dir>`, `<dir>` the unit's `inventory.json`
+   `dir`). **`spec/contract/openapi.json` must exist before any island with a
+   server write is built** (tier `optimistic-write` or `confirmed-write`):
+   nothing in this toolchain derives it from the two seams —
+   `contract snapshot <prototype>` only copies `objects/` + `commands.json` to
+   `spec/contract/draft/`, the seed `rune:spec` ratifies, and `openapi.json` is
+   exported from the built keep backend — so without it the build stops those
+   units, reports `no contract` for each write island, and never invents a
+   state service (or any local store) to take the writes; static and
+   pure-client units still build. A unit is green when its rows of
+   `sprig isolate test <unit> --json --root <app>` pass — every `_reference`
+   pixel-diff row within tolerance included; an exit 1 "nothing was checked"
+   means the filter or `--root` matched no case, not green — AND
+   `sprig check <app>` reports no finding against its folder (the interactive workbench does not yet apply `_viewport`/`_theme`; the runner, `sprig isolate test`, is authoritative). Never brief a specialist with just a name and "glob for it" —
    a measured fleet did that 652 times and every agent re-searched the tree the
    orchestrator already held. Each unit must be green in `sprig isolate`
    **before** the units that compose it — and start each composition the moment
@@ -172,11 +189,33 @@ Pass each one its input contract and summarize what it returns.
      trail** — two diagnoses and a hypothesis history is a well-documented bug
      report for the human, not silent churn.
 3. **Verify the whole app.** After units are green: first the whole-suite
-   receipt — one `SPRIG_WB_ROOT=/tmp/wb-final isolate test --json` at the app
-   root, every case in a single run (units were only ever proven one at a time;
+   receipt — one `SPRIG_WB_ROOT=/tmp/wb-final sprig isolate test --json --root <app>`
+   (no filter), every case in a single run (units were only ever proven one at a time;
    a composition can break a sibling's case and per-unit verdicts won't show it)
-   — then have the scaffolder run the prod-build smoke (`deno task build` →
-   `deno task start`, hit a real URL). Deeper QA of the running app — hunting
+   — then, from the directory holding `spec/` (the git root; add `--root .` to
+   both commands when it is not), `sprig spec-check spec/ui/breakdown --ui-src <app>/src --app <app>`
+   (every inventory unit built, the usage matrix equal to the composition
+   graph, no double assignment) and `sprig check <app>` — in the `ui/src`
+   layout `sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` and
+   `sprig check ui`; with `src/` at that root
+   `sprig spec-check spec/ui/breakdown --ui-src src --app .` and `sprig check .`
+   (`sprig check` runs typecheck, wiring, and the
+   `contract-calls` / `logic-placement` / `tokens` / `duplicate-templates` /
+   `optimistic-writes` lints). The build is red on any finding from either;
+   route each finding to the owning unit's builder — a suppression comment is
+   the builder's call only with a reason (the cheatsheet lists them). A DRY
+   finding is fixed by composing the shared unit's tag, never by a
+   `sprig-duplicate:` marker unless the reason is a real design difference,
+   stated (`duplicate-templates` names the tag; spec-check's census / same-job
+   / reuse findings go back to the breakdown — merge the units, or the
+   inventory carries `distinct`). Then have
+   the scaffolder run the prod-build smoke (`deno task build` →
+   `deno serve -A --unstable-kv --port <PORT> serve.ts`, then GET every route
+   in `src/mod.ts` at least once, one with a real id from the fixture data;
+   each passes on HTTP 200, the page's own template rendered — not the
+   load-error or not-found state — and, for an island page, the island's root
+   element (`<sprig-island data-sel="<island>">`) present; an app where every
+   page renders an error state FAILS the smoke). Deeper QA of the running app — hunting
    bugs, perf, regressions — is the **`sprig:audit`** stage downstream, not this
    skill.
 
@@ -203,9 +242,11 @@ state — don't re-run their checks inline or re-walk their file trees; a
 mid-build fix re-routes through the owning specialist. For fleets ≤ ~15 units,
 track the queue in your plan text — don't burn an API turn per task-ledger
 update (measured: 20 bookkeeping turns on a 10-agent build). And never search
-the filesystem yourself — every skill reference lives at
-`~/.claude/skills/<skill>/references/<file>`; read exact paths (an orchestrator
-was measured running `find /` for a reference file whose path it knew).
+the filesystem yourself — every skill reference lives in the absolute path of
+the `references/` dir next to this SKILL.md (installed or repo copy; its
+sibling skills sit beside this skill's dir) — pass that path in every brief
+and read exact paths (an orchestrator was measured running `find /` for a
+reference file whose path it knew).
 
 **Briefing rule (root cause of fleet waste):** a specialist that has to SEARCH
 was under-briefed. Before delegating, YOU resolve — absolute, copied verbatim
@@ -267,10 +308,22 @@ as behavior/scoped-styles and strips them from output.)
 
 ## Top gotchas (enforce across specialists)
 
-- **Server writes are optimistic by default** (mandatory): update the UI now,
-  call in the background, roll back on failure — never
-  spinner-and-`location.reload()`. Spinner-and-wait only when the result is
-  unknowable client-side or a `data-note` says so.
+- **Server writes are optimistic** (mandatory): every write is
+  `optimistic(sig, next, call)` from `@techgoose-labs/sprig` — the UI updates
+  now, rolls back on failure — never spinner-and-`location.reload()`. Waiting
+  is for a command whose prototype `feedback` is `confirmed` (or whose result
+  is unknowable client-side): a wait needs `// sprig-wait: <reason>` and is
+  reported by `sprig check`; the `optimistic-writes` lint fails any other
+  await-then-write.
+- **No business logic in the client:** filter/sort/search/totals/prices and
+  every rule beyond required/type come from the backend (a query or a
+  command); `logic.ts` holds UI state only — the `logic-placement` lint
+  enforces it.
+- **DRY:** compose the shared component the breakdown names — by its tag,
+  never by re-creating its markup; the `duplicate-templates` lint fails
+  near-identical templates and any template that re-creates a shared unit's
+  markup inline, naming the tag to compose, and the compiler refuses a
+  page-local component shadowing a shared selector.
 - **Data crosses the waist through the generated typed client** when one exists
   (`spec/contract/client/`, generated from the rune OpenAPI):
   `resolve.ts`/services and islands import its DTO types and endpoint wrappers —

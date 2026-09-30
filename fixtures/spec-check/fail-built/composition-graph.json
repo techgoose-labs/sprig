@@ -1,0 +1,59 @@
+{
+  "pages": {
+    "dashboard": {
+      "dir": "pages/dashboard",
+      "composes": [
+        "dashboard/stat-card",
+        "task-row"
+      ]
+    },
+    "archive": {
+      "dir": "pages/archive",
+      "composes": [
+        "task-row",
+        "app-badge",
+        "archive/filter-bar"
+      ]
+    }
+  },
+  "components": {
+    "task-row": {
+      "dir": "shared-components/task-row",
+      "scope": "shared",
+      "composes": [],
+      "composedBy": [
+        "dashboard",
+        "archive"
+      ]
+    },
+    "app-badge": {
+      "dir": "components/app-badge",
+      "scope": "shared",
+      "composes": [],
+      "composedBy": [
+        "archive",
+        "stat-card"
+      ]
+    },
+    "dashboard/stat-card": {
+      "dir": "pages/dashboard/components/stat-card",
+      "scope": "page-local",
+      "page": "dashboard",
+      "composes": [
+        "app-badge"
+      ],
+      "composedBy": [
+        "dashboard"
+      ]
+    },
+    "archive/filter-bar": {
+      "dir": "pages/archive/components/filter-bar",
+      "scope": "page-local",
+      "page": "archive",
+      "composes": [],
+      "composedBy": [
+        "archive"
+      ]
+    }
+  }
+}

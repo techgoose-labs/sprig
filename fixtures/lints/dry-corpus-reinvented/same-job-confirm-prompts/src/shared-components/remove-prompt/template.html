@@ -1,0 +1,10 @@
+<dialog class="modal" open>
+  <form class="modal-box flex flex-col gap-3" (submit)="confirm()">
+    <strong class="text-lg">{{ title }}</strong>
+    <span>{{ message }}</span>
+    <footer class="flex justify-end gap-2">
+      <a class="link" (click)="cancel()">Keep it</a>
+      <button class="btn btn-warning btn-sm" type="submit">{{ confirmLabel }}</button>
+    </footer>
+  </form>
+</dialog>

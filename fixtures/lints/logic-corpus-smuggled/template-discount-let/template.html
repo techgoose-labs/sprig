@@ -1,0 +1,6 @@
+<!-- Corpus (smuggled): a promo discount applied in a static template's @let. -->
+@let discounted = item.price * (1 - item.promoPct / 100);
+<div class="price">
+  <s>{{ item.price | currency }}</s>
+  <strong>{{ discounted | currency }}</strong>
+</div>

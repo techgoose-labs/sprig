@@ -25,7 +25,9 @@ import { parseTemplate } from "./parse.ts";
 import { templateHasEventBindings } from "./node.ts";
 import { serialize } from "./serialize.ts";
 import { componentScopeId, scopeCss } from "./scope.ts";
-import { assertStaticPage, pageLocalOf, splitShellHtml } from "./mod.ts";
+import { assertStaticPage, splitShellHtml } from "./mod.ts";
+import { isPageRoot, pageLocalOf } from "./composition-registry.ts";
+import { assertComposition } from "./composition.ts";
 import { shortHash } from "./hash.ts";
 
 export interface BuildResult {
@@ -91,6 +93,11 @@ export async function buildClient(
   const hydratePath = new URL("./hydrate.ts", import.meta.url).href;
   const hmrPath = new URL("./hmr.ts", import.meta.url).href;
   const genDir = join(outDir, ".gen");
+
+  // 0. COMPOSITION (REQ-024/025): every tag resolves to an HTML/SVG element, a component in
+  //    scope, or an allow-listed custom element; a page-local that shadows a shared selector
+  //    says why. Prints what it checked; throws naming each offender file:line.
+  await assertComposition(srcDir);
 
   // 1. discover islands + serialize their templates. Islands register/hydrate by
   //    SELECTOR (the client matches <sprig-island data-sel="…">), so two islands
@@ -948,10 +955,6 @@ async function fileExists(p: string): Promise<boolean> {
 /** A routed page root (pages/<page>/ or pages/_preview/<id>/) — NOT a page-local
  *  component (pages/<page>/components/<x>/). Page roots aren't embedded as children
  *  of islands, so their templates aren't shipped to the client registry. */
-function isPageRoot(relDir: string): boolean {
-  const parts = relDir.split("/");
-  return parts[0] === "pages" && parts[parts.length - 2] !== "components";
-}
 function q(s: string): string {
   return JSON.stringify(s);
 }

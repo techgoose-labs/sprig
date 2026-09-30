@@ -1,0 +1,72 @@
+<!-- region: main#app — live DOM at #/summary, open day, seed data, 1280px, theme brand; captured with Lucide stubbed so icons stay <i data-lucide> as authored -->
+<main id="app" class="max-w-7xl mx-auto p-3 md:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+      <div><h1 class="font-display text-4xl">Day summary</h1>
+        <p class="text-base-content/70">Tuesday, September 29</p></div>
+      <button id="close-day" class="btn btn-primary">
+             <i data-lucide="lock" class="size-[1.2em]"></i>Close the day
+           </button>
+    </div>
+    
+    <div class="stats stats-vertical md:stats-horizontal w-full bg-base-100 border border-base-300 mb-5">
+      <div class="stat">
+        <div class="stat-figure text-secondary"><i data-lucide="warehouse" class="size-8"></i></div>
+        <div class="stat-title">Occupancy</div>
+        <div class="stat-value tabular-nums">19<span class="text-base font-normal text-base-content/60"> of 40 kennels</span></div>
+        <div class="stat-desc"><progress class="progress progress-secondary w-40" value="48" max="100"></progress> 48%</div>
+      </div>
+      <div class="stat">
+        <div class="stat-figure text-success"><i data-lucide="banknote" class="size-8"></i></div>
+        <div class="stat-title">Revenue today</div>
+        <div class="stat-value tabular-nums">$1,225.00</div>
+        <div class="stat-desc">Settles when the day closes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-figure text-error"><i data-lucide="alarm-clock" class="size-8"></i></div>
+        <div class="stat-title">Overdue pickups</div>
+        <div class="stat-value tabular-nums">2</div>
+        <div class="stat-desc">Past their planned check-out</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section class="card bg-base-100 border border-base-300"><div class="card-body">
+        <h2 class="card-title text-2xl"><i data-lucide="dog" class="size-5"></i>Dogs by status</h2>
+        <ul>
+    <li class="flex items-center gap-3 py-2">
+      <span class="w-32 shrink-0"><span class="badge badge-info badge-soft badge-sm whitespace-nowrap"><i data-lucide="calendar-clock" class="size-[1em]"></i>Booked</span></span>
+      <progress class="progress progress-info flex-1" value="7" max="40"></progress>
+      <span class="w-8 text-right tabular-nums font-semibold">7</span>
+    </li>
+    <li class="flex items-center gap-3 py-2">
+      <span class="w-32 shrink-0"><span class="badge badge-success badge-soft badge-sm whitespace-nowrap"><i data-lucide="house" class="size-[1em]"></i>Checked in</span></span>
+      <progress class="progress progress-success flex-1" value="14" max="40"></progress>
+      <span class="w-8 text-right tabular-nums font-semibold">14</span>
+    </li>
+    <li class="flex items-center gap-3 py-2">
+      <span class="w-32 shrink-0"><span class="badge badge-accent badge-sm whitespace-nowrap"><i data-lucide="footprints" class="size-[1em]"></i>Walking</span></span>
+      <progress class="progress progress-accent flex-1" value="5" max="40"></progress>
+      <span class="w-8 text-right tabular-nums font-semibold">5</span>
+    </li>
+    <li class="flex items-center gap-3 py-2">
+      <span class="w-32 shrink-0"><span class="badge badge-outline badge-sm whitespace-nowrap"><i data-lucide="log-out" class="size-[1em]"></i>Checked out</span></span>
+      <progress class="progress  flex-1" value="6" max="40"></progress>
+      <span class="w-8 text-right tabular-nums font-semibold">6</span>
+    </li></ul>
+      </div></section>
+      <section class="card bg-base-100 border border-base-300"><div class="card-body">
+        <h2 class="card-title text-2xl"><i data-lucide="alarm-clock" class="size-5"></i>Overdue pickups</h2>
+        <ul class="divide-y divide-base-content/10">
+        <li class="py-3 flex flex-wrap items-center gap-2">
+          <a href="#/dog/d14" class="font-semibold link link-hover min-w-0 break-words">Rocco</a>
+          <span class="badge badge-outline font-mono">K14</span>
+          <span class="text-sm text-base-content/70 min-w-0">Oliver Brandt · <span class="tabular-nums">(555) 0113-4481</span></span>
+          <span class="ml-auto"><span class="badge badge-error whitespace-nowrap"><i data-lucide="alarm-clock" class="size-[1em]"></i>Overdue · 2h 15m</span></span>
+        </li>
+        <li class="py-3 flex flex-wrap items-center gap-2">
+          <a href="#/dog/d18" class="font-semibold link link-hover min-w-0 break-words">Olive</a>
+          <span class="badge badge-outline font-mono">K18</span>
+          <span class="text-sm text-base-content/70 min-w-0">Elena Popescu · <span class="tabular-nums">(555) 0117-4629</span></span>
+          <span class="ml-auto"><span class="badge badge-error whitespace-nowrap"><i data-lucide="alarm-clock" class="size-[1em]"></i>Overdue · 45m</span></span>
+        </li></ul>
+      </div></section>
+    </div></main>

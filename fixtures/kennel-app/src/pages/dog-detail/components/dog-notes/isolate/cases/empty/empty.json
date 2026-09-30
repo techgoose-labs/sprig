@@ -1,0 +1,13 @@
+{
+  "_name": "Empty — d02, no notes (honest-empty)",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d02",
+  "_signals": {
+    "notes": [],
+    "author": "Front desk",
+    "draft": ""
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/dog-notes-empty@1280.png"
+}

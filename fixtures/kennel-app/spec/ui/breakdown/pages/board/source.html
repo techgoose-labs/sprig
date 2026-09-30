@@ -1,0 +1,487 @@
+<!-- board — runtime DOM of region `main#app` at http://localhost:8742/#/board (1280px, theme brand, state live), captured after lucide.createIcons() replaced <i data-lucide> with <svg>. Verbatim outerHTML. 32 dog cards. -->
+<main id="app" class="max-w-7xl mx-auto p-3 md:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-2 mb-4">
+      <div><h1 class="font-display text-4xl">Today's dogs</h1>
+        <p class="text-base-content/70">Tuesday, September 29</p></div>
+      
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <button data-filter="booked" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-info badge-soft badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span></div>
+        <div class="text-3xl font-semibold tabular-nums">7</div>
+      </div>
+    </button>
+    <button data-filter="checked-in" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-success badge-soft badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span></div>
+        <div class="text-3xl font-semibold tabular-nums">14</div>
+      </div>
+    </button>
+    <button data-filter="walking" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-accent badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span></div>
+        <div class="text-3xl font-semibold tabular-nums">5</div>
+      </div>
+    </button>
+    <button data-filter="checked-out" class="card bg-base-100 border border-base-300 text-left hover:bg-base-200 transition-colors">
+      <div class="card-body p-4 gap-1">
+        <div class="flex items-center justify-between gap-2"><span class="badge badge-outline badge-sm whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span></div>
+        <div class="text-3xl font-semibold tabular-nums">6</div>
+      </div>
+    </button></div>
+    <div role="tablist" class="tabs tabs-box mb-4 overflow-x-auto flex-nowrap">
+    <button role="tab" data-filter="all" class="tab whitespace-nowrap tab-active">All</button>
+    <button role="tab" data-filter="booked" class="tab whitespace-nowrap ">Booked</button>
+    <button role="tab" data-filter="checked-in" class="tab whitespace-nowrap ">Checked in</button>
+    <button role="tab" data-filter="walking" class="tab whitespace-nowrap ">Walking</button>
+    <button role="tab" data-filter="checked-out" class="tab whitespace-nowrap ">Checked out</button></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  <a href="#/dog/d01" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Biscuit</h2>
+        <span class="badge badge-outline font-mono shrink-0">K01</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Golden Retriever</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Priya Raman</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d02" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Juniper</h2>
+        <span class="badge badge-outline font-mono shrink-0">K02</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Border Collie</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Tomás Ortega</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d03" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Sir Reginald Barksworth-Fluffington III</h2>
+        <span class="badge badge-outline font-mono shrink-0">K03</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Cavalier King Charles Spaniel</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Hannah Lindqvist</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-accent  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d04" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Mochi</h2>
+        <span class="badge badge-outline font-mono shrink-0">K04</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Shiba Inu</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Kwame Mensah</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d05" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Pepper</h2>
+        <span class="badge badge-outline font-mono shrink-0">K05</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Dachshund</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Aiko Watanabe</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d06" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Otis</h2>
+        <span class="badge badge-outline font-mono shrink-0">K06</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Labrador</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Declan Byrne</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d07" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Luna</h2>
+        <span class="badge badge-outline font-mono shrink-0">K07</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Greyhound</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Sofia Moretti</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-accent  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d08" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Waffles</h2>
+        <span class="badge badge-outline font-mono shrink-0">K08</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Corgi</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Jonah Feldman</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d09" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Clementine</h2>
+        <span class="badge badge-outline font-mono shrink-0">K09</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Poodle (Standard)</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Amara Nwosu</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d10" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Bruno</h2>
+        <span class="badge badge-outline font-mono shrink-0">K10</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Boxer</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Lucas Petit</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d11" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Nala</h2>
+        <span class="badge badge-outline font-mono shrink-0">K11</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Beagle</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Ingrid Holm</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-accent  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d12" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Ziggy</h2>
+        <span class="badge badge-outline font-mono shrink-0">K12</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Jack Russell Terrier</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Mateo Silva</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d13" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Hazel</h2>
+        <span class="badge badge-outline font-mono shrink-0">K13</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Bernese Mountain Dog</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Grace Kim</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d14" class="card bg-base-100 border border-error hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Rocco</h2>
+        <span class="badge badge-outline font-mono shrink-0">K14</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">French Bulldog</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Oliver Brandt</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> <span class="badge badge-error whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="alarm-clock" aria-hidden="true" class="lucide lucide-alarm-clock size-[1em]"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>Overdue · 2h 15m</span>
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d15" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Pickles</h2>
+        <span class="badge badge-outline font-mono shrink-0">K15</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Whippet</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Leila Haddad</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-accent  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d16" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Maple</h2>
+        <span class="badge badge-outline font-mono shrink-0">K16</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Australian Shepherd</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Noah Carter</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d17" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Gus</h2>
+        <span class="badge badge-outline font-mono shrink-0">K17</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Golden Retriever</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Yuki Sato</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d18" class="card bg-base-100 border border-error hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Olive</h2>
+        <span class="badge badge-outline font-mono shrink-0">K18</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Border Collie</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Elena Popescu</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> <span class="badge badge-error whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="alarm-clock" aria-hidden="true" class="lucide lucide-alarm-clock size-[1em]"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>Overdue · 45m</span>
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d19" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Tofu</h2>
+        <span class="badge badge-outline font-mono shrink-0">K19</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Cavalier King Charles Spaniel</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Sam Okafor</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-accent  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="footprints" aria-hidden="true" class="lucide lucide-footprints size-[1em]"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"></path><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"></path><path d="M16 17h4"></path><path d="M4 13h4"></path></svg>Walking</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d20" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Bear</h2>
+        <span class="badge badge-outline font-mono shrink-0">K20</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Shiba Inu</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Maya Thompson</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d21" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Poppy</h2>
+        <span class="badge badge-outline font-mono shrink-0">K21</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Dachshund</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Priya Raman</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d22" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Ranger</h2>
+        <span class="badge badge-outline font-mono shrink-0">K26</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Labrador</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Tomás Ortega</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d23" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Willow</h2>
+        <span class="badge badge-outline font-mono shrink-0">K27</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Greyhound</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Hannah Lindqvist</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-outline  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="log-out" aria-hidden="true" class="lucide lucide-log-out size-[1em]"><path d="m16 17 5-5-5-5"></path><path d="M21 12H9"></path><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path></svg>Checked out</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d24" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Kobe</h2>
+        <span class="badge badge-outline font-mono shrink-0">K28</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Corgi</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Kwame Mensah</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-info badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar-clock" aria-hidden="true" class="lucide lucide-calendar-clock size-[1em]"><path d="M16 14v2.2l1.6 1"></path><path d="M16 2v3"></path><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"></path><path d="M3 9h5.859"></path><path d="M8 2v3"></path><circle cx="16" cy="16" r="6"></circle></svg>Booked</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d25" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Daisy</h2>
+        <span class="badge badge-outline font-mono shrink-0">K29</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Poodle (Standard)</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Aiko Watanabe</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d26" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Moose</h2>
+        <span class="badge badge-outline font-mono shrink-0">K30</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Boxer</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Declan Byrne</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d27" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Scout</h2>
+        <span class="badge badge-outline font-mono shrink-0">K31</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Beagle</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Sofia Moretti</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d28" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Pretzel</h2>
+        <span class="badge badge-outline font-mono shrink-0">K32</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Jack Russell Terrier</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Jonah Feldman</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>09:45</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d29" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Ruby</h2>
+        <span class="badge badge-outline font-mono shrink-0">K33</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Bernese Mountain Dog</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Amara Nwosu</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>10:00</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d30" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Finn</h2>
+        <span class="badge badge-outline font-mono shrink-0">K34</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">French Bulldog</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Lucas Petit</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>11:15</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d31" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Nori</h2>
+        <span class="badge badge-outline font-mono shrink-0">K35</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Whippet</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Ingrid Holm</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>07:30</span>
+      </div>
+    </div>
+  </a>
+  <a href="#/dog/d32" class="card bg-base-100 border border-base-300 hover:shadow-sm transition-shadow min-w-0">
+    <div class="card-body p-4 gap-2">
+      <div class="flex items-start justify-between gap-2 min-w-0">
+        <h2 class="card-title text-2xl leading-tight min-w-0 break-words">Chewie</h2>
+        <span class="badge badge-outline font-mono shrink-0">K36</span>
+      </div>
+      <p class="text-sm text-base-content/70 truncate">Australian Shepherd</p>
+      <p class="text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="user" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">Mateo Silva</span></p>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        <span class="badge badge-success badge-soft  whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="house" aria-hidden="true" class="lucide lucide-house size-[1em]"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Checked in</span> 
+        <span class="ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="clock" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>08:45</span>
+      </div>
+    </div>
+  </a></div></main>

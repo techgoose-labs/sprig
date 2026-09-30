@@ -1,0 +1,32 @@
+{
+  "category": "dog-detail",
+  "folder": "dog-heading",
+  "controls": {
+    "name": {
+      "type": "text",
+      "value": "Biscuit",
+      "signal": true
+    },
+    "status": {
+      "type": "select",
+      "options": [
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "booked",
+      "signal": true
+    },
+    "overdue": {
+      "type": "boolean",
+      "value": false,
+      "signal": true
+    },
+    "overdueBy": {
+      "type": "text",
+      "value": "",
+      "signal": true
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "$doc": "The WRITE half of the seam. Every write the UI performs is a COMMAND — an intent verb, never an in-place record edit. The UI fires `window.commands.run(name, input)`; the host applies it generically by `kind` and appends it to the append-only `events.json`. This file IS the write contract: each entry maps 1:1 to a rune command verb + input DTO, and its `kind` seeds rune:data's immutability strategy (below the waist — the UI never knows or cares which the backend picks). Every entry declares `feedback`: `instant` = the UI shows the intent before the reply and reverts on failure; `confirmed` = the UI waits for the reply (reason in `does`).",
+  "$kinds": {
+    "create": "append a brand-new object to its type's collection (auto-id) → rune: already-immutable (fresh ids)",
+    "set": "record a new value for fields of an existing object → rune:data decides append-child vs aggregate vs overwrite-justified, BELOW the contract",
+    "append": "push a child onto a collection field (needs `field`) → rune: append-child (history matters)",
+    "adjust": "atomically move a numeric field by `input.by` (needs `field`) → rune: aggregate (a derived counter)",
+    "remove": "tombstone an object by id → rune: a remove command + retention policy"
+  },
+  "dog.checkIn": {
+    "type": "dog",
+    "kind": "set",
+    "input": {
+      "id": "string",
+      "status": "checked-in"
+    },
+    "feedback": "instant",
+    "does": "Check a booked dog in to its kennel. Before the reply the card and detail badge flip to 'checked-in' and the Check in button disables; the reply's dog reconciles the badge. On rejection the badge reverts to 'booked', the button re-enables and an error toast names the dog. The server recomputes the day's per-status counts and occupancy (the UI never tallies them)."
+  },
+  "dog.startWalk": {
+    "type": "dog",
+    "kind": "set",
+    "input": {
+      "id": "string",
+      "status": "walking"
+    },
+    "feedback": "instant",
+    "does": "Take a checked-in dog out for a walk. Before the reply the badge flips to 'walking' and the action swaps to End walk; on rejection the badge reverts to 'checked-in', Start walk returns, and an error toast shows."
+  },
+  "dog.endWalk": {
+    "type": "dog",
+    "kind": "set",
+    "input": {
+      "id": "string",
+      "status": "checked-in"
+    },
+    "feedback": "instant",
+    "does": "Bring a walking dog back to its kennel. Before the reply the badge flips back to 'checked-in' and the action swaps to Start walk; on rejection the badge reverts to 'walking' and an error toast shows."
+  },
+  "dog.checkOut": {
+    "type": "dog",
+    "kind": "set",
+    "input": {
+      "id": "string",
+      "status": "checked-out"
+    },
+    "feedback": "instant",
+    "does": "Hand a dog back to its owner. Before the reply the badge flips to 'checked-out' and all stay actions disable; the total due shown stays the stay object's server figure and the overdue marker stays whatever the server's `overdue` flag says (the UI never decides overdue). The reply's dog reconciles the badge and the flag. On rejection the badge and actions revert to their prior state and an error toast shows. The server clears `overdue` and moves the stay's total into today's revenue."
+  },
+  "dog.addNote": {
+    "type": "dog",
+    "kind": "append",
+    "field": "notes",
+    "input": {
+      "id": "string",
+      "text": "string",
+      "author": "string"
+    },
+    "feedback": "instant",
+    "does": "Append a handling note to a dog's stay. Before the reply the note appears at the bottom of the list, dimmed with a 'saving…' label, and the form clears; the reply's note (server id + timestamp) replaces it. On rejection the dimmed note is removed, the typed text is restored into the form, and an error toast shows."
+  },
+  "day.close": {
+    "type": "day",
+    "kind": "set",
+    "input": {
+      "id": "string",
+      "closed": "boolean"
+    },
+    "feedback": "confirmed",
+    "does": "Close the day: the server locks today's ledger, settles revenue against every checked-out stay and issues the closing report. CONFIRMED because the UI cannot know the result before the reply — the final revenue figure and the lock are decided server-side and the close can be refused (e.g. dogs still walking). The button shows a spinner and stays disabled until the reply, then the summary renders the server's closed day."
+  }
+}

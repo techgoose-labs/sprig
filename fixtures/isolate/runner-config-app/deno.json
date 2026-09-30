@@ -1,0 +1,11 @@
+{
+  "name": "@fixtures/runner-config-app",
+  "version": "0.0.0",
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns", "esnext"]
+  },
+  "imports": {
+    "@techgoose-labs/sprig": "../../../framework/.sprig/core.ts",
+    "@preact/signals-core": "npm:@preact/signals-core@^1.8.0"
+  }
+}

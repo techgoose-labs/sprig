@@ -1,0 +1,1 @@
+{ "_name": "Default — all, 1024", "_tier": "static", "_theme": "brand", "_viewport": 1024, "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/status-strip/screenshots/status-strip@1024.png", "booked": 7, "checkedIn": 14, "walking": 5, "checkedOut": 6, "empty": false, "active": "all" }

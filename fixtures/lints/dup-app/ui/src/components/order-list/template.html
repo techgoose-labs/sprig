@@ -1,0 +1,10 @@
+<section class="orders">
+  <h2>Orders</h2>
+  <ul class="rows">
+    @for (o of orders; track o.id) {
+      <li class="row"><span>{{ o.number }}</span><em [title]="o.status">{{ o.total }}</em></li>
+    } @empty {
+      <li class="row row--empty">No orders</li>
+    }
+  </ul>
+</section>

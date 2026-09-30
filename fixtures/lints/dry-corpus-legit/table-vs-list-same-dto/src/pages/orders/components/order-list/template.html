@@ -1,0 +1,8 @@
+<ul class="list bg-base-100 rounded-box">
+  @for (o of orders; track o.id) {
+  <li class="list-row" (click)="pick(o.id)">
+    <div><div class="font-medium">{{ o.customer }}</div><div class="text-xs opacity-60">{{ o.number }}</div></div>
+    <div class="tabular-nums">{{ o.total }}</div>
+  </li>
+  }
+</ul>

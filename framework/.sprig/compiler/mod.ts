@@ -13,7 +13,7 @@ import {
   type RouteCtx,
 } from "./render.ts";
 import { snapshotOf } from "./lifecycle.ts";
-import { named, type Node, templateHasEventBindings } from "./node.ts";
+import { named, templateHasEventBindings } from "./node.ts";
 import {
   fromSerialized,
   serialize,
@@ -29,6 +29,9 @@ import { tagSelf } from "./expr.ts";
 import type { Scope } from "./expr.ts";
 import { makeServerCtx, withServerInjector } from "./island.ts";
 import { versionOf } from "./hash.ts";
+import { ScopedRegistry } from "./composition-registry.ts";
+// the client BUILD classifies components by the EXACT rule the server registry uses
+export { pageLocalOf } from "./composition-registry.ts";
 import { componentScopeId } from "./scope.ts";
 import { type PerfConfig, perfConfig, perfHeadSnippet } from "./perf.ts";
 import type {
@@ -105,6 +108,13 @@ export async function createRenderer(
     shellDir?: string;
     reserved?: string[];
     favicon?: string;
+    /** the served assets dir to hash for ?v= and to read templates.json from —
+     *  else SPRIG_ASSETS_DIR, else <cwd>/static. A test passes it instead of
+     *  chdir-ing (REQ-021 AMENDMENT: the lanes share one process cwd). */
+    assetsDir?: string;
+    /** the env the INFRA perf gate reads — else Deno.env; a test passes its own
+     *  reader instead of mutating the process env (REQ-021 AMENDMENT). */
+    env?: { get(key: string): string | undefined };
   } = {},
 ): Promise<SsrRenderer> {
   const shellSelector = opts.shell ?? "shell";
@@ -116,15 +126,17 @@ export async function createRenderer(
   // hidden INFRA perf reporting (env-gated, read once at boot — see ./perf.ts): when
   // enabled, every document ships the head beacon snippet and __sprig_config carries
   // the endpoint so the client runtime can report soft navigations the same way.
-  const perf = perfConfig();
+  const perf = perfConfig(opts.env);
   // A component's IDENTITY is its folder path relative to srcDir (unique), not its
   // bare basename. Two registries: `global` for shared/shell/page components (keyed
   // by basename, must be unique → collision throws), and `pageLocal` for components
   // under pages/<page>/components/<name>/ (keyed by page → basename), which SHADOW a
-  // same-named global component within that page only. This kills the old silent
-  // last-write-wins Map clobber and gives each folder a distinct scope id.
-  const global = new Map<string, ComponentDef>();
-  const pageLocal = new Map<string, Map<string, ComponentDef>>(); // page → (selector → def)
+  // same-named global component within that page only (the build refuses such a shadow
+  // unless the page-local template opens with `<!-- sprig-shadows: <reason> -->`, REQ-025).
+  // The scoping rule lives in composition-registry.ts, shared with the build and the
+  // composition graph, so all three resolve a tag identically.
+  const scoped = new ScopedRegistry<ComponentDef>();
+  const global = scoped.global;
   const srcPath = new Map<string, string>(); // relDir id → template.html path (for reparse)
   const byRelDir = new Map<string, ComponentDef>(); // relDir id → def (the component's unique identity; what the dev/HMR path keys by)
   const lastSource = new Map<string, string>(); // relDir id → last parsed template source (HMR no-op detection)
@@ -139,7 +151,7 @@ export async function createRenderer(
     prebuilt = JSON.parse(
       await Deno.readTextFile(
         join(
-          Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static"),
+          opts.assetsDir ?? (Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static")),
           "templates.json",
         ),
       ),
@@ -247,21 +259,7 @@ export async function createRenderer(
       island,
       scope: componentScopeId(relDir),
     };
-    const local = pageLocalOf(relDir);
-    if (local) {
-      let m = pageLocal.get(local.page);
-      if (!m) pageLocal.set(local.page, m = new Map());
-      if (m.has(selector)) {
-        throw collision(selector, `page "${local.page}"`);
-      }
-      m.set(selector, def);
-    } else {
-      // shared / shell / page component — globally unique by basename
-      if (global.has(selector)) {
-        throw collision(selector, "the global (shared) scope");
-      }
-      global.set(selector, def);
-    }
+    scoped.add(relDir, selector, def); // page-local or global; a duplicate within one scope throws
     srcPath.set(relDir, entry.path);
     byRelDir.set(relDir, def);
     lastSource.set(relDir, source);
@@ -299,12 +297,10 @@ export async function createRenderer(
     });
   }
   // the default (page-less) registry: global only.
-  const registry: Registry = { get: (s) => global.get(s) };
+  const registry: Registry = scoped.forPage(null);
   /** a per-page registry: page-local components shadow global ones within the page. */
-  const registryForPage = (page: string | null): Registry => {
-    const locals = page ? pageLocal.get(page) : undefined;
-    return { get: (s) => (locals?.get(s)) ?? global.get(s) };
-  };
+  const registryForPage = (page: string | null): Registry =>
+    scoped.forPage(page);
   /** The matched page's identity (its folder basename) for the client, iff it is a real
    *  registered page — emitted into __sprig_config so the client resolves an island's child
    *  components against the SAME page-local registry the server used. Matches the page key
@@ -322,8 +318,8 @@ export async function createRenderer(
   // the bundle actually served. Without this, a dev render run from a dir whose own `static/`
   // never changes (e.g. the repo root) yields a frozen ?v=, so a returning browser keeps a
   // stale cached client.js even after a rebuild.
-  const staticDir = Deno.env.get("SPRIG_ASSETS_DIR") ||
-    join(Deno.cwd(), "static");
+  const staticDir = opts.assetsDir ??
+    (Deno.env.get("SPRIG_ASSETS_DIR") || join(Deno.cwd(), "static"));
   // hash the SERVED assets only (.js + app.css) — same set the build hashes, so
   // templates.json / source maps don't perturb ?v=. A missing/empty dir degrades to
   // the constant "dev" — NOT content-addressed, so the asset server must never send
@@ -651,28 +647,6 @@ export async function createRenderer(
       return def ? serialize(def.template) : null;
     },
   };
-}
-
-/** Classify a component by its relative dir: page-local (under
- *  pages/<page>/components/<name>/) or global. Exported so the client BUILD classifies
- *  static components by the EXACT same rule the server uses for its page-local registry. */
-export function pageLocalOf(
-  relDir: string,
-): { page: string; selector: string } | null {
-  const parts = relDir.split("/");
-  if (parts[0] === "pages" && parts.length >= 4 && parts[2] === "components") {
-    return { page: parts[1], selector: parts[parts.length - 1] };
-  }
-  return null;
-}
-
-function collision(selector: string, where: string): Error {
-  return new Error(
-    `sprig: duplicate component selector "${selector}" in ${where}. Two distinct ` +
-      `component folders share the basename "${selector}". Rename one folder, or make ` +
-      `it a page-local component (pages/<page>/components/${selector}/) to shadow the ` +
-      `shared one within a single page.`,
-  );
 }
 
 async function exists(path: string): Promise<boolean> {

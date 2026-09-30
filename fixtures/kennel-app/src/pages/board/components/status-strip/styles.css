@@ -1,0 +1,12 @@
+.status-strip-grid {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+.status-strip-card {
+  border-color: var(--color-base-300);
+}
+
+.status-strip-card--active {
+  border-color: var(--color-primary);
+}

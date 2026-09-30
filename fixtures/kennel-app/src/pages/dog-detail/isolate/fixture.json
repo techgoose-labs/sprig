@@ -1,0 +1,10 @@
+{
+  "category": "dog-detail",
+  "folder": "page",
+  "controls": {
+    "closed": {
+      "type": "boolean",
+      "value": false
+    }
+  }
+}

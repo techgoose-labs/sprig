@@ -3,7 +3,9 @@
 > **Producer:** breakdown · **Consumer:** build · Pipeline: design → prototype →
 > breakdown → build → audit
 
-A **`spec/ui/breakdown/`** directory detailed enough that `build` can rebuild
+A **`spec/ui/breakdown/`** directory (under the app root — the dir holding the
+app's `deno.json` and the prototype's `spec/`; the git root is the fallback)
+detailed enough that `build` can rebuild
 each page and component **mechanically, without opening the source.** This is
 the **translation boundary**: whatever the source used (daisyUI, inline styles,
 bespoke CSS), what crosses into `build` here is framework-neutral **tokens +
@@ -14,14 +16,15 @@ specs**.
 ```
 spec/ui/breakdown/
 ├── index.md              # page inventory, usage matrix, build order, interaction tiers, Unassigned list
+├── inventory.json        # the machine-read inventory `sprig spec-check` parses (see Shape)
 ├── design-tokens.md      # palette, type, spacing, radii, shadows, easing → Tailwind 4 @theme
-├── data-model.md         # LEGACY fallback only (no ratified contract) — the implied backend schema;
+├── data-model.md         # pre-contract fallback only (no ratified contract) — the implied backend schema;
 │                         #   with a contract, the data seam is spec/contract/binding.md instead (see Shape)
 ├── assets/               # images/fonts/svgs lifted from source
 ├── shared-components/<name>/   # used on >1 page
 │   ├── <name>.md         # the component spec (see "Each component spec carries")
 │   ├── isolate/          # real fixture.json + cases/<state>/<state>.json
-│   ├── screenshots/      # the diff target (+ filmstrip.png/jank.md if animated)
+│   ├── screenshots/      # <name>@<width>[-<theme>].png — the cases' `_reference` targets (+ filmstrip.png/motion.json/jank.md if animated)
 │   └── source.html       # the unit's extracted markup region (+ js//css/) — breakdown-internal
 │                         #   reference ground truth; build diffs against screenshots, not this
 └── pages/<page>/
@@ -33,14 +36,43 @@ spec/ui/breakdown/
 
 - **The data seam is a BINDING, not a re-derived schema** (bridge 2 of the
   cross-repo [`contract.md`](../../../contract.md)): when a ratified contract
-  exists at the git root (`spec/contract/openapi.json`, or `spec/runes/*.rune` /
+  exists at the app root (`spec/contract/openapi.json`, or `spec/runes/*.rune` /
   a running keep's `/docs/<m>/json`), breakdown writes
   **`spec/contract/binding.md`** — every component/page data-need bound to a
-  real endpoint + DTO (reads → **query** endpoints, writes → **command** verbs).
-  A data-need with **no matching endpoint/DTO is a drift error**, listed in the
-  binding and surfaced in `index.md` — checkable at breakdown time, not a
-  runtime surprise. `data-model.md` is the **legacy fallback**, written only
-  when no contract exists (standalone mock breakdowns).
+  real endpoint + DTO (reads → **query** endpoints, writes → **command** verbs)
+  in one table with the exact header `| unit | need | kind | endpoint | dto |`
+  (`kind` `query`|`command`; `endpoint` as `GET /api/items`; `dto` from the
+  client's `dtos.ts`). Filter/sort/search/paging are query params, never client
+  logic. A data-need with **no matching endpoint/DTO is a drift error**, listed
+  under the binding's `## Drift` section (`none` when empty) and surfaced in
+  `index.md` — checkable at breakdown time, not a runtime surprise.
+  `data-model.md` is the **pre-contract fallback**, written only when no
+  contract exists (standalone mock breakdowns).
+- **`inventory.json`** —
+  `{ "units": [ { "name", "dir", "classification", "scope", "page"?, "usedOn", "tier", "evidence", "dataNeeds", "distinct"? } ], "unassigned": [] }`,
+  `dir` relative to `spec/ui/breakdown/`, `scope` `shared`|`page-local`|`page`,
+  `tier` `static`|`pure-client`|`optimistic-write`|`confirmed-write`|`realtime` (a write's tier
+  from the prototype's `commands.json` `feedback`; every unit fits one — a
+  read-only data region is `static`, a page takes its own `logic.ts`'s tier —
+  defined in the breakdown analyst). Pre-contract, `dataNeeds` use the
+  `data-model.md` names and `spec-check` skips binding-drift until
+  `spec/contract/openapi.json` exists. `evidence` names the
+  design-system primitive a unit binds to when one exists. It is the source
+  `index.md`'s usage matrix is written from. `distinct` — this unit is
+  deliberately separate from <unit> because <reason> — is optional and written
+  only to answer a DRY finding (below); an empty reason is an error.
+- **DRY — one repeated region is one unit.** A region that repeats across
+  pages (same DOM shape, same classes) is ONE unit with a `usedOn` list, never
+  one unit per page. The closing pass runs three DRY checks over the
+  inventory: **census** — two units whose extracted `source.html` match above a
+  threshold; **same-job** — two units binding the same `dataNeeds` with the
+  same classification; **reuse** — a shared unit composed by one page only, or
+  page-local twins across pages. `sprig spec-check` reports them; the analyst
+  resolves each finding by merging the units or writing `distinct`.
+  A pair is excused only when both units carry a non-empty `distinct`; a
+  shared unit only one page composes needs `distinct` on itself. same-job
+  fires only when two units bind the same set of at least two needs, or a
+  command, with the same classification.
 - **Tokens are Tailwind v4 `@theme` custom properties** — NOT a
   `tailwind.config.js`, NOT daisyUI _themes_. Build puts them in a
   `:global(...)` `@theme` block (usually `shell/styles.css`) and styles with
@@ -51,42 +83,53 @@ spec/ui/breakdown/
   document-global, so a spec must not propose a class name daisyUI owns (`stat`,
   `badge`, `list`, `status`, `card-body`, …) for an element of its own — prefix
   own classes (`cm-dot`) or name the daisyUI component deliberately. The list:
-  `docs/sprig/styling.md` → "Reserved class names".
+  `sprig:build/references/component-model.md` → "Scoped
+  styles".
 - **Each component spec carries:** classification (`static` | `island` |
   `page-composition`) + the interaction tier (static / island; server writes are
-  **optimistic UI**, realtime where needed); anatomy; a props table (1:1 with
-  `fixture.json` controls, `signal: true` for island state); states→cases;
-  **Events** as `capture(page)` predicate sketches; **Motion extracted** (real
-  keyframes/easing + jank fixes — reproduce, don't reinvent); responsive; a11y;
-  and an **Isolate build plan** — the build-in-isolation recipe (folder +
-  selector, the preview route(s), per case the screenshot to diff against, the
-  Events→`tests/` mapping, and the `sprig isolate` → diff → test → iterate loop)
-  so the build session can stand the thing up alone from the spec.
+  **optimistic UI**, realtime where needed; every case carries `_tier`);
+  anatomy; a props table (1:1 with `fixture.json` controls, `signal: true` for
+  island state); states→cases; **Events** as `capture(page)` predicate sketches;
+  **Motion extracted** (real keyframes/easing + jank fixes — reproduce, don't
+  reinvent); responsive; a11y; and an **Isolate build plan** — the
+  build-in-isolation recipe (folder + selector, the preview route(s), per case
+  its `_reference` still, the Events→`tests/` mapping, and the
+  `sprig isolate test` → test → iterate loop) so the build session can stand the
+  thing up alone from the spec.
 - **`isolate/` proposals are real and runnable** (`fixture.json` +
   `cases/<state>/<state>.json`), discoverable by `sprig isolate`, for **every
   component AND every page** (pages isolate too); a component is a **folder**
   (`template.html` + optional `logic.ts`), its **basename the selector** — no
-  `.tsx`. Case JSON carries the **real captured values** the screenshot shows.
+  `.tsx`. Case JSON carries the **real captured values** the screenshot shows;
+  each breakpoint/theme still is a case with `_viewport`/`_theme` and a
+  `_reference` to it; an optimistic-write unit has `pending` + `rolled-back`
+  cases, a confirmed-write unit a `pending` case.
 - **`index.md` carries the build order** (tokens → shared components →
-  page-local → page compositions), the interaction-tier summary, and an
-  **Unassigned list that ships even empty**.
+  page-local → page compositions), the interaction-tier summary, and the
+  Unassigned list — which must be empty (`sprig spec-check` fails otherwise).
 
 ## Invariants
 
 - **Location:** `spec/ui/breakdown/` (sibling to `spec/ui/design-system/` and
-  the `spec/ui/<app>-prototype/` folder — or the legacy
+  the `spec/ui/<app>-prototype/` folder — or a pre-contract single file
   `spec/ui/<app>-prototype.html`).
 - A reader could rebuild from the spec alone, without the source.
-- Schema only in the binding (`spec/contract/binding.md`) or legacy
+- Schema only in the binding (`spec/contract/binding.md`) or the pre-contract
   `data-model.md` / prose; real data rows live **only** in case JSON.
 - The full `fixture.json` / `capture(page)` format is the `breakdown` skill's
   own `references/isolate-format.md`.
 
 ## Validation
 
-`sprig isolate` discovers every proposal; each component **and page** diffs
-clean vs its `screenshots/` and its `isolate/` cases are green before anything
-builds on it; every component/page carries an **Isolate build plan** the builder
-can follow without the source; `index.md` Unassigned is empty; with a ratified
-contract, the binding exists and its **Drift list is empty** (or every entry is
-a deliberate, user-acknowledged gap).
+Breakdown: `sprig spec-check spec/ui/breakdown` exits 0 — Unassigned empty,
+every `dataNeeds` entry bound, every bound endpoint/DTO present in
+`openapi.json`, no unit assigned twice, every optimistic-write unit carrying
+`pending` + `rolled-back` cases and every confirmed-write unit a `pending` case,
+every census / same-job / reuse finding merged or carrying `distinct`. Build: `sprig isolate test --json` is green for
+every component **and page**, including each case's `_reference` pixel-diff row
+within tolerance; then
+`sprig spec-check spec/ui/breakdown --ui-src ui/src --app ui` (every inventory
+unit built; the usage matrix matches the composition graph) and `sprig check ui`
+(typecheck, wiring, `contract-calls`, `logic-placement`, `tokens`,
+`duplicate-templates`, `optimistic-writes`) exit 0. A binding `## Drift` entry
+is either empty or a deliberate, user-acknowledged gap.

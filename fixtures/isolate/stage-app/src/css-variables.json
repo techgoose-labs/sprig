@@ -1,0 +1,17 @@
+{
+  "default": "brand",
+  "themes": {
+    "brand": {
+      "color-scheme": "light",
+      "--color-base-100": "#FBF7F0",
+      "--color-base-200": "#F3EADB",
+      "--color-base-content": "#3B2A1E"
+    },
+    "brand-dark": {
+      "color-scheme": "dark",
+      "--color-base-100": "#1E1712",
+      "--color-base-200": "#29201A",
+      "--color-base-content": "#F3EADB"
+    }
+  }
+}

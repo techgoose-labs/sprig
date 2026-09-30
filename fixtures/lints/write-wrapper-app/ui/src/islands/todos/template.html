@@ -1,0 +1,2 @@
+<button (click)="load()">Load</button>
+<ul>@for (t of items(); track t.id) {<li>{{ t.title }} <button (click)="remove(t.id)">x</button></li>}</ul>

@@ -1,0 +1,8 @@
+{
+  "_name": "Error toast — rolled-back check-in (375)",
+  "_tier": "pure-client",
+  "_theme": "brand",
+  "_viewport": 375,
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/toast-stack/screenshots/toast-stack-error@375.png",
+  "_signals": { "toasts": [ { "kind": "error", "msg": "Biscuit: checked in didn't go through — reverted." } ] }
+}

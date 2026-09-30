@@ -1,0 +1,43 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the unit names
+   its own face and colour rather than relying on the app body. */
+.dog-profile-card {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+/* h2 in the mock: Caveat 700, display tracking, tight leading, text-2xl. */
+.dog-profile-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}
+
+.dog-profile-card-icon {
+  width: calc(var(--spacing) * 5);
+  height: calc(var(--spacing) * 5);
+}
+
+/* grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm; dt sits at the row top
+   (no align-items: center — "Kennel" reads higher than the badge). */
+.dog-profile-card-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: calc(var(--spacing) * 4);
+  row-gap: calc(var(--spacing) * 2);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+.dog-profile-card-term {
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}
+
+.dog-profile-card-kennel {
+  font-family: var(--font-mono);
+}
+
+.dog-profile-card-num {
+  font-variant-numeric: tabular-nums;
+}

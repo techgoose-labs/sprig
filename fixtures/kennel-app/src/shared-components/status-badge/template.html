@@ -1,0 +1,12 @@
+@if (!status || status === 'booked') {
+<icon-badge icon="calendar-clock" tone="info" [soft]="true" [size]="size" label="Booked"></icon-badge>
+}
+@if (status === 'checked-in') {
+<icon-badge icon="house" tone="success" [soft]="true" [size]="size" label="Checked in"></icon-badge>
+}
+@if (status === 'walking') {
+<icon-badge icon="footprints" tone="accent" [soft]="false" [size]="size" label="Walking"></icon-badge>
+}
+@if (status === 'checked-out') {
+<icon-badge icon="log-out" tone="outline" [soft]="false" [size]="size" label="Checked out"></icon-badge>
+}

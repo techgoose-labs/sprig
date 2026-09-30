@@ -1,0 +1,12 @@
+{
+  "_name": "d01 at md 768",
+  "_tier": "static",
+  "_viewport": 768,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-profile-card/screenshots/dog-profile-card@768.png",
+  "breed": "Golden Retriever",
+  "kennel": "K01",
+  "arrival": "07:00",
+  "ownerName": "Priya Raman",
+  "ownerPhone": ""
+}

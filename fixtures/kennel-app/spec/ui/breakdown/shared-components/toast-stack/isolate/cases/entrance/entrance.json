@@ -1,0 +1,8 @@
+{
+  "_name": "Entrance motion — success toast pops in",
+  "_tier": "pure-client",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_motion": { "spec": "fixtures/kennel-app/spec/ui/breakdown/shared-components/toast-stack/screenshots/motion.json" },
+  "_signals": { "toasts": [ { "kind": "success", "msg": "Day closed — ledger locked." } ] }
+}

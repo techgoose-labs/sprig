@@ -1,0 +1,7 @@
+<!-- Corpus (legit): classes and aria that follow state and server values. -->
+<li class="row" [class.low-stock]="item.stock < 5" [class.active]="item.id === selectedId"
+    [attr.aria-expanded]="open" [style.opacity]="item.stock > 0 ? 1 : 0.5">
+  <span>{{ item.name }}</span>
+  <span class="price">{{ item.priceCents / 100 | currency }}</span>
+  <button (click)="toggle()">{{ open ? 'Hide' : 'Show' }}</button>
+</li>

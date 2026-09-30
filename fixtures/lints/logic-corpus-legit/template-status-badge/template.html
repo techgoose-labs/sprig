@@ -1,0 +1,9 @@
+<!-- Corpus (legit): a status rendered as a badge — no actions depend on it. -->
+@switch (order.status) {
+  @case ('paid') { <span class="badge badge-success">Paid</span> }
+  @case ('overdue') { <span class="badge badge-error">Overdue</span> }
+  @default { <span class="badge">Draft</span> }
+}
+@if (order.status === 'paid') {
+  <a href="/orders/{{ order.id }}/receipt">Receipt</a>
+}

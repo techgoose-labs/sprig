@@ -1,0 +1,10 @@
+<button class="btn btn-error" (click)="ask()">Delete</button>
+<dialog class="modal" [attr.open]="asking() ? '' : null">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold">Delete {{ name }}?</h3>
+    <p class="py-4">This cannot be undone.</p>
+    <div class="modal-action">
+      <form method="dialog"><button class="btn">Cancel</button></form>
+    </div>
+  </div>
+</dialog>

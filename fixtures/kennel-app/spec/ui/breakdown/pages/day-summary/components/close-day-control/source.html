@@ -1,0 +1,13 @@
+<!-- close-day-control — rendered DOM region (selector: #app > div:first-child > :last-child) captured from http://localhost:8744/#/summary @1280, theme brand, after Lucide replaced <i data-lucide> with <svg>. Reference only. -->
+<!-- state: default -->
+<button id="close-day" class="btn btn-primary">
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="lock" aria-hidden="true" class="lucide lucide-lock size-[1.2em]"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Close the day
+           </button>
+
+<!-- state: pending (day.close sent, reply held — confirmed wait) -->
+<button id="close-day" class="btn btn-primary" disabled="">
+             <span class="loading loading-spinner loading-sm"></span>Closing the day…
+           </button>
+
+<!-- state: closed (after the server's reply) -->
+<span class="badge badge-neutral badge-lg"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="lock" aria-hidden="true" class="lucide lucide-lock size-[1em]"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Day closed</span>

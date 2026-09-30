@@ -45,6 +45,7 @@ Deno.test("REQ-002: every command the CLI dispatches has a help block", () => {
       "clean",
       "check",
       "map",
+      "spec-check",
       "isolate",
       "serve",
       "stop",

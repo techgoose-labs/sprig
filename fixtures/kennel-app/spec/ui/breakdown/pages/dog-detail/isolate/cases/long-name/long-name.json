@@ -1,0 +1,44 @@
+{
+  "_name": "Sir Reginald (d03), walking, long name wraps — 375",
+  "_tier": "static",
+  "dog": {
+    "id": "d03",
+    "name": "Sir Reginald Barksworth-Fluffington III",
+    "breed": "Cavalier King Charles Spaniel",
+    "kennel": "K03",
+    "status": "walking",
+    "arrival": "09:30",
+    "overdue": false,
+    "owner": {
+      "name": "Hannah Lindqvist",
+      "phone": "(555) 0102-4074"
+    },
+    "stay": {
+      "checkIn": "2026-09-27T09:30",
+      "plannedCheckOut": "2026-09-30T11:00",
+      "nightlyRate": 65,
+      "nights": 3,
+      "totalDue": 195
+    },
+    "notes": [
+      {
+        "text": "Needs eye drops at 8am and 8pm.",
+        "author": "Vet tech",
+        "at": "2026-09-28T08:00"
+      }
+    ],
+    "allowedActions": [
+      "dog.endWalk"
+    ],
+    "allowedAfter": {
+      "dog.endWalk": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "closed": false,
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/screenshots/dog-detail-long-name@375.png"
+}

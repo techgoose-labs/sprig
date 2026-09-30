@@ -1,0 +1,17 @@
+{
+  "category": "board",
+  "folder": "dog-grid",
+  "controls": {
+    "status": {
+      "type": "select",
+      "options": [
+        "all",
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "all"
+    }
+  }
+}

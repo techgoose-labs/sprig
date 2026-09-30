@@ -1,0 +1,9 @@
+[
+  {
+    "selector": "span.dot",
+    "name": "pulse",
+    "duration": 800,
+    "easing": "ease-out",
+    "keyframeCount": 3
+  }
+]

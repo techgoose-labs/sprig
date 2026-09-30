@@ -1,0 +1,15 @@
+{
+  "category": "kennel",
+  "folder": "day-summary",
+  "controls": {
+    "state": {
+      "type": "select",
+      "options": [
+        "live",
+        "loading",
+        "error"
+      ],
+      "value": "live"
+    }
+  }
+}

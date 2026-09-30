@@ -1,0 +1,13 @@
+<span class="close-day-control" aria-live="polite">
+  @if (closed()) {
+  <icon-badge icon="lock" tone="neutral" [soft]="false" size="lg" label="Day closed" focusId="day-closed-badge"></icon-badge>
+  } @else {
+  <button type="button" id="close-day" class="btn btn-primary close-day-control-button" [disabled]="pending()" [attr.aria-busy]="pending() ? 'true' : null" (click)="close()">
+    @if (pending()) {
+    <span class="loading loading-spinner loading-sm"></span>Closing the day…
+    } @else {
+    <svg class="close-day-control-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Close the day
+    }
+  </button>
+  }
+</span>

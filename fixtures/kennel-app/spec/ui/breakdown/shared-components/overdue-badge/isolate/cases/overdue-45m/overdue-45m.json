@@ -1,0 +1,9 @@
+{
+  "_name": "Overdue · 45m (Olive, d18)",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_reference": { "image": "fixtures/kennel-app/spec/ui/breakdown/shared-components/overdue-badge/screenshots/overdue-badge-45m@1280.png", "tolerance": 0.005 },
+  "overdue": true,
+  "overdueBy": "45m"
+}

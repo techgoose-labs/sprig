@@ -1,0 +1,8 @@
+{
+  "_name": "1024, brand (md layout, wider)",
+  "_tier": "static",
+  "_viewport": 1024,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/top-bar/screenshots/top-bar@1024.png",
+  "active": "board"
+}

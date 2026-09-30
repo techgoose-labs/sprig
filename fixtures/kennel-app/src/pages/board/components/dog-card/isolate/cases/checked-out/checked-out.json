@@ -1,0 +1,16 @@
+{
+  "_name": "Checked out @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "id": "d04",
+  "name": "Mochi",
+  "kennel": "K04",
+  "breed": "Shiba Inu",
+  "ownerName": "Kwame Mensah",
+  "status": "checked-out",
+  "arrival": "10:45",
+  "overdue": false,
+  "overdueBy": "",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/dog-card-checked-out@1280.png"
+}

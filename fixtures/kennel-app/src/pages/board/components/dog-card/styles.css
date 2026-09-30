@@ -1,0 +1,33 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the card names
+   its own face and colour rather than relying on the app body. */
+.dog-card-root {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+  border-color: var(--color-base-300);
+}
+
+.dog-card-root--overdue {
+  border-color: var(--color-error);
+}
+
+/* h2 in the mock: Caveat 700, display tracking, tight leading. */
+.dog-card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}
+
+/* Hover shadow, as the mock does it: `transition-shadow` + `hover:shadow-sm`
+   — a 150ms box-shadow transition to the --shadow-sm token (motion.json). */
+.dog-card-root {
+  transition-property: box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (hover: hover) {
+  .dog-card-root:hover {
+    box-shadow: var(--shadow-sm);
+  }
+}

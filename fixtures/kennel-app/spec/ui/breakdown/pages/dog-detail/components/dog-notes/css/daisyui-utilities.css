@@ -1,0 +1,2 @@
+/* daisyUI CDN colour utilities used in this unit (Tailwind browser does NOT generate *-base-content/* — daisyUI ships these). */
+.text-base-content\/60{color:var(--color-base-content);@supports (color:color-mix(in lab, red, red)){color:color-mix(in oklab,var(--color-base-content)60%,#0000)}

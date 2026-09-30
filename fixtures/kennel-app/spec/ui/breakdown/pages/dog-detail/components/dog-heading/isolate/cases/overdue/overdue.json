@@ -1,0 +1,9 @@
+{
+  "_name": "Rocco, checked in + overdue 2h 15m (1280)",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading-overdue@1280.png",
+  "name": "Rocco",
+  "_signals": { "status": "checked-in", "overdue": true, "overdueBy": "2h 15m" }
+}

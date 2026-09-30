@@ -1,0 +1,17 @@
+{
+  "default": "light",
+  "themes": {
+    "light": {
+      "color-scheme": "light",
+      "--color-primary": "#3366ff",
+      "--color-surface": "#ffffff",
+      "--space-2": "8px",
+      "--radius-box": "0.5rem",
+      "--font-body": "\"Inter\", sans-serif"
+    },
+    "dark": {
+      "color-scheme": "dark",
+      "--color-surface": "#0a0a0a"
+    }
+  }
+}

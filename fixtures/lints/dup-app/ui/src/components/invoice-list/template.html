@@ -1,0 +1,11 @@
+<!-- sprig-duplicate: invoices gain per-row payment actions in the billing milestone; orders never will -->
+<section class="invoices">
+  <h2>Invoices</h2>
+  <ul class="rows">
+    @for (inv of invoices; track inv.id) {
+      <li class="row"><span>{{ inv.ref }}</span><em [title]="inv.due">{{ inv.amount }}</em></li>
+    } @empty {
+      <li class="row row--empty">No invoices</li>
+    }
+  </ul>
+</section>

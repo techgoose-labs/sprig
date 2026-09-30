@@ -1,0 +1,16 @@
+{
+  "category": "board",
+  "folder": "status-strip",
+  "controls": {
+    "booked": { "type": "number", "value": 7 },
+    "checkedIn": { "type": "number", "value": 14 },
+    "walking": { "type": "number", "value": 5 },
+    "checkedOut": { "type": "number", "value": 6 },
+    "empty": { "type": "boolean", "value": false },
+    "active": {
+      "type": "select",
+      "options": ["all", "booked", "checked-in", "walking", "checked-out"],
+      "value": "all"
+    }
+  }
+}

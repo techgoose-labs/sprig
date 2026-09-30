@@ -15,12 +15,12 @@ design ──► prototype ──► breakdown ──► build ──► audit
 Strictly **linear** — each stage consumes **only** its immediate predecessor's
 output.
 
-| Contract                            | Producer  | Consumer  | The artifact                                                                                |
-| ----------------------------------- | --------- | --------- | ------------------------------------------------------------------------------------------- |
-| [`design-system`](design-system.md) | design    | prototype | `spec/ui/design-system/` — a brand-themed design-system folder                              |
-| [`prototype`](prototype.md)         | prototype | breakdown | `spec/ui/<app>-prototype/` — the two-seam prototype folder (legacy: one `*-prototype.html`) |
-| [`ui-breakdown`](ui-breakdown.md)   | breakdown | build     | `spec/ui/breakdown/` — the build spec                                                       |
-| [`sprig-app`](sprig-app.md)         | build     | audit     | a running sprig app                                                                         |
+| Contract                            | Producer  | Consumer  | The artifact                                                                                      |
+| ----------------------------------- | --------- | --------- | ------------------------------------------------------------------------------------------------- |
+| [`design-system`](design-system.md) | design    | prototype | `spec/ui/design-system/` — a brand-themed design-system folder                                    |
+| [`prototype`](prototype.md)         | prototype | breakdown | `spec/ui/<app>-prototype/` — the two-seam prototype folder (pre-contract: one `*-prototype.html`) |
+| [`ui-breakdown`](ui-breakdown.md)   | breakdown | build     | `spec/ui/breakdown/` — the build spec                                                             |
+| [`sprig-app`](sprig-app.md)         | build     | audit     | a running sprig app                                                                               |
 
 The first three artifacts share one home — **`spec/ui/`** at the **git root**
 (the dir containing `.git`; falls back to the project dir outside a git repo) —

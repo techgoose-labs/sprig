@@ -1,0 +1,89 @@
+{
+  "units": [
+    {
+      "name": "dashboard",
+      "dir": "pages/dashboard",
+      "classification": "page-composition",
+      "scope": "page",
+      "usedOn": [
+        "dashboard"
+      ],
+      "tier": "static",
+      "evidence": "route #/ in the mock",
+      "dataNeeds": [
+        "list open tasks"
+      ]
+    },
+    {
+      "name": "archive",
+      "dir": "pages/archive",
+      "classification": "page-composition",
+      "scope": "page",
+      "usedOn": [
+        "archive"
+      ],
+      "tier": "static",
+      "evidence": "route #/archive",
+      "dataNeeds": [
+        "list archived tasks"
+      ]
+    },
+    {
+      "name": "task-row",
+      "dir": "shared-components/task-row",
+      "classification": "island",
+      "scope": "shared",
+      "usedOn": [
+        "dashboard",
+        "archive"
+      ],
+      "tier": "optimistic-write",
+      "evidence": "the done checkbox writes markDone",
+      "dataNeeds": [
+        "mark a task done"
+      ]
+    },
+    {
+      "name": "app-badge",
+      "dir": "shared-components/app-badge",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": [
+        "dashboard",
+        "archive"
+      ],
+      "tier": "static",
+      "evidence": "shared CSS section /* badge */",
+      "dataNeeds": []
+    },
+    {
+      "name": "stat-card",
+      "dir": "pages/dashboard/components/stat-card",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "dashboard",
+      "usedOn": [
+        "dashboard"
+      ],
+      "tier": "static",
+      "evidence": "dashboard header only",
+      "dataNeeds": [
+        "task counts"
+      ]
+    },
+    {
+      "name": "save-note",
+      "dir": "shared-components/save-note",
+      "classification": "island",
+      "scope": "shared",
+      "usedOn": [
+        "dashboard",
+        "archive"
+      ],
+      "tier": "confirmed-write",
+      "evidence": "the save button disables until the server confirms",
+      "dataNeeds": []
+    }
+  ],
+  "unassigned": []
+}

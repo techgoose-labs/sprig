@@ -55,6 +55,15 @@ export function computed<T>(fn: () => T): Accessor<T> {
   return acc;
 }
 
+// optimistic(sig, next, call): the local write lands now, the server call runs
+// behind it, a failure rolls back (last-write-wins per signal) — ./optimistic.ts.
+export {
+  optimistic,
+  type OptimisticOptions,
+  type OptimisticWrite,
+  type SignalLike,
+} from "./optimistic.ts";
+
 /** True if `v` is a writable signal accessor (callable + .set + .signal). Lets a
  *  harness pick the editable signals out of an island's setup() scope. A computed
  *  is read-only (no .set) so it is excluded. */

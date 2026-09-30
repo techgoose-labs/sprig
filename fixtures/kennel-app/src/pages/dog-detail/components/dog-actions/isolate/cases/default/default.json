@@ -1,0 +1,25 @@
+{
+  "_name": "Booked (d01 Biscuit) — Check in primary, rest disabled @1280",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": {
+    "status": "booked",
+    "dogId": "d01",
+    "dogName": "Biscuit",
+    "closed": false,
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions@1280.png",
+  "_motion": {
+    "spec": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/motion.json"
+  }
+}

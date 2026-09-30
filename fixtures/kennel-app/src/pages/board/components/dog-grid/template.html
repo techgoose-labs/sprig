@@ -1,0 +1,25 @@
+@if (dogs && dogs.length > 0) {
+<div class="dog-grid-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  @for (d of dogs; track d.id) {
+  <dog-card [id]="d.id" [name]="d.name" [kennel]="d.kennel" [breed]="d.breed" [ownerName]="d.ownerName" [status]="d.status" [arrival]="d.arrival" [overdue]="d.overdue" [overdueBy]="d.overdueBy ? d.overdueBy : ''"></dog-card>
+  }
+</div>
+} @else {
+@if (!status || status === 'all') {
+<div class="dog-grid-empty card bg-base-100 border border-dashed border-base-300">
+  <div class="card-body items-center text-center py-16">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-bone size-10 text-base-content/40"><path d="M17 10c.7-.7 1.69 0 2.5 0a2.5 2.5 0 1 0 0-5 .5.5 0 0 1-.5-.5 2.5 2.5 0 1 0-5 0c0 .81.7 1.8 0 2.5l-7 7c-.7.7-1.69 0-2.5 0a2.5 2.5 0 0 0 0 5c.28 0 .5.22.5.5a2.5 2.5 0 1 0 5 0c0-.81-.7-1.8 0-2.5Z"></path></svg>
+    <h2 class="dog-grid-empty-title text-3xl">No dogs booked today</h2>
+    <p class="text-base-content/70 max-w-sm">When a booking lands for today it shows up here, ready to check in.</p>
+  </div>
+</div>
+} @else {
+<div class="dog-grid-empty card bg-base-100 border border-dashed border-base-300">
+  <div class="card-body items-center text-center py-12">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-search-x size-8 text-base-content/40"><path d="m13.5 8.5-5 5"></path><path d="m8.5 8.5 5 5"></path><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+    <p class="text-base-content/70">No dogs are <b>{{ status === 'checked-in' ? 'checked in' : status === 'checked-out' ? 'checked out' : status }}</b> right now.</p>
+    <a class="btn btn-sm btn-ghost" href="?status=all">Show all dogs</a>
+  </div>
+</div>
+}
+}

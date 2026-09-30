@@ -1,0 +1,5 @@
+<div class="join">
+  <button class="join-item btn btn-sm" [disabled]="page <= 1" (click)="prev()">«</button>
+  <button class="join-item btn btn-sm btn-active">{{ page }}</button>
+  <button class="join-item btn btn-sm" [disabled]="page >= pages" (click)="next()">»</button>
+</div>

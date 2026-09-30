@@ -7,7 +7,14 @@ directory:
 
 ```sh
 sprig isolate          # → http://127.0.0.1:8000/   (PORT env to change; picks the next free port)
+sprig isolate test [<unit>/<case>] [--root <app>] --json   # headless run, one row per case
+sprig isolate list [--root <app>]                          # components, cases, routes
 ```
+
+`test` and `list` are subcommands; any other argument must be an existing app
+directory (a dir literally named `test`: pass `./test`). An argument that is
+neither — a typo like `sprig isolate tset` — exits 1 naming it; it is never read
+as an app dir with "nothing to isolate" (REQ-056).
 
 ## A component shows only if it has an `isolate/` folder
 
@@ -40,7 +47,9 @@ src/shared-components/ui-button/
   cases. `⌘K` / "Jump to a case…" to fuzzy-find.
 - **Stage** — the selected case rendered in an iframe (it hydrates exactly as in
   a page: `(event)` bindings, `onBrowserInit`, signals all work). Viewport
-  presets (fit/360/768/1024/ full), zoom, and a stage-background picker.
+  presets (fit/360/768/1024/ full), zoom, and a stage-background picker. The
+  stage does not apply a case's `_viewport`/`_theme` — pick the preset by hand;
+  `sprig isolate test` applies both and is the authority.
 - **Controls** — edit the case's inputs/signals live (declared in
   `fixture.json`).
 - **Console** — the component's console output.
@@ -49,11 +58,17 @@ src/shared-components/ui-button/
 - **HMR** — edit the component's `template.html`/`styles.css`/`logic.ts` (or a
   case's JSON) and the stage hot-swaps **without a restart**.
 
-## Case tests under `isolate test` (headless)
+## Case tests under `sprig isolate test` (headless)
 
-`isolate test <unit> --json` (also `sprig isolate`'s "Run all tests") executes
-each case's `tests/*.spec.ts` with a **Node** Playwright runner, not Deno. Two
-consequences, both measured fleet-killers:
+`sprig isolate test <unit> --json` (also `sprig isolate`'s "Run all tests")
+executes each case's `tests/*.spec.ts` with a **Node** Playwright runner, not
+Deno, plus its `_reference`/`_motion` checks. **Every selected case gets a
+row**: a case with no tests and no `_reference`/`_motion` is a row with
+`"skipped": true` and `skipped — no tests, no _reference`. The report carries
+`passed`/`failed`/`skipped`; a run where **nothing was checked** (every selected
+case skipped, or none selected) is `ok: false` and exits 1 — a fidelity run that
+measures nothing is not green (REQ-056). Two consequences of the Node runner,
+both measured fleet-killers:
 
 1. **The only dialect that loads** is plain Playwright. Every runnable spec
    starts:
@@ -101,7 +116,7 @@ consequences, both measured fleet-killers:
    does not). Route nuance: a component folder under
    `pages/<page>/components/<name>` previews under `/pages/...` (isolate treats
    the subtree as page-scoped), not `/components/...` — always take the route
-   from `isolate list`.
+   from `sprig isolate list`.
 
 2. **Timed behaviors: assert the durable END-STATE, never a transient window.**
    A spec that waits a fixed delay and then expects an ephemeral intermediate
@@ -119,6 +134,74 @@ consequences, both measured fleet-killers:
    is NOT a server/port/process problem: do not restart servers, kill processes,
    or debug the runner install over this verdict.
 
+4. **Case keys the runner applies — faithful to the mock, measured.** A case
+   JSON's `_` keys are a closed list (full reference: `isolate-format.md`); an
+   unknown one is a config error naming the key and the file, and the run stops
+   before anything starts. Each of the case's own specs runs inside a generated
+   wrapper that applies the case's keys, and some keys add their own rows:
+
+   ```jsonc
+   { "_viewport": 375 }                     // or { "width": 1024, "height": 600 }
+   { "_theme": "dark" }                     // <html data-theme="dark"> from first paint
+   { "_reference": "reference.png" }        // → row "reference: <unit>/<case>"
+   { "_reference": { "image": "r.png", "tolerance": 0.03, "reason": "photo vs monogram" } }
+   { "_network": { "POST /api/todos": "fail", "createTodo": "delay:3000",
+                   "GET /api/todos": { "status": 200, "body": [] } } }
+   { "_tier": "optimistic-write" }          // on every row of the case
+   { "_motion": { "spec": "motion.json" } } // → row "motion: <unit>/<case>"
+   { "_motion": { "spec": "motion.json", "trigger": "hover" } } // hover|focus|click|load
+   { "_reference": { "image": "r.png", "background": "#ffffff" } } // explicit stage colour
+   ```
+
+   - `reference:` screenshots the rendered unit at the case's viewport/theme —
+     device scale 1, the app's own fonts loaded (its `bootstrap/template.html`
+     head and global stylesheets), laid out in a slot the still's pixel width —
+     and reports the fraction of differing pixels (a channel moved more than
+     4/255): `measured 0.002 ≤ tolerance 0.010` (pass) or
+     `measured 0.034 > tolerance 0.010` + a diff PNG path (fail). Default
+     tolerance `0.01` (measured, REQ-051/059: noise ≤ 0.002, a 1px padding drift
+     ≥ 0.089, a one-step token swap 0.093; a radius step at 0.004 slips under —
+     lower the tolerance for such a case); above it needs a `reason`. The
+     **stage behind the unit** is the colour it sits on in the app (REQ-063):
+     the case's `_reference.background`, else the fixture's `background`, else
+     the app's page background under the case's `_theme` — the `body` (else
+     `html`) background its shell declares (`src/shell/styles.css`,
+     `bootstrap/styles.css`, the shell head), else the design system's
+     `--color-base-100`, else white — never the workbench's own paper. The row
+     names it: `stage background rgb(243, 234, 219) — the app's page background
+     (src/shell/styles.css body) under theme brand`. Fix the
+     build until the number is under the tolerance — do not raise the tolerance
+     to pass, and never judge fidelity by eye when a reference exists. A row
+     that starts `size mismatch: reference W×H vs render w×h` is a wrong still
+     (breakpoint, crop or device scale), not a tolerance problem; a fallback
+     font in the render means the app's head never loads the design-system font
+     — fix the app, not the case.
+   - `_network` fakes run as `page.route` in every test of the case: write the
+     story that proves the optimistic write — the UI moves before the server
+     answers (`delay:<ms>`), and rolls back on `"fail"`. Rows record
+     `network <key> → <action>: fired N×`; `fired 0×` means the fake never
+     matched (wrong path or method). Command names map through
+     `spec/contract/openapi.json` at the `--root` app, else at the git root;
+     the row says which (`network <key> (the app root's contract) → …`).
+   - `motion:` compares `document.getAnimations()` of the rendered case (paused
+     at start, after hydration) with the captured spec — duration, easing,
+     keyframe count — and fails naming each difference. An animation that only
+     starts on interaction needs `"trigger": "hover" | "focus" | "click"`
+     (default `"load"`: nothing performed): the runner performs it on the
+     unit's root before reading the animations, and the row says
+     `after trigger hover`. An unknown trigger is a discovery error.
+
+   `_reference` / `_motion.spec` paths resolve from the case folder, then from
+   the app root (the `--root` app — the breakdown's
+   `spec/ui/breakdown/…/screenshots/`), then from the git root (REQ-063); the
+   row says which (`resolved from the app root`); a missing file is a discovery
+   error naming every path tried.
+
+   Captures, diff PNGs and the generated specs go to the run's **evidence dir**,
+   never the project: `--evidence <dir>`, else
+   `$SPRIG_WB_ROOT/evidence/<stamp>`, else a temp dir. A dir inside the project
+   is refused.
+
 The preview route is `/<components|pages>/<category>/<folder>/<case>` from
 `fixture.json` — never derived from the source path.
 
@@ -135,9 +218,16 @@ execute under the pre-provisioned Node Playwright install; each spawn has a
 **hard ~120s timeout** (a hung suite comes back as `error: "timeout"`, not a
 hang); `ISOLATE_BASE_URL` is the only wiring a spec needs — no
 `playwright.config.*` is required (one at the app root is auto-detected IF
-present, otherwise defaults apply); the JSON report shape is
-`{ ok, ran, total, passed, failed, testResults[], error? }` and
-`--failures-only` trims `testResults` to red rows while keeping the counts.
+present and lends its settings; the tests always come from the generated case
+wrappers); the JSON report shape is
+`{ ok, ran, total, passed, failed, testResults[], error?, evidenceDir }`, each
+row
+`{ title, caseName, unit, route, tier?, file, line?, ok, error?, detail?,
+measured?, tolerance?, evidence? }`
+(`detail` = what the row applied or measured, printed for passing rows too;
+`evidence` = the diff PNG / captured motion JSON), and `--failures-only` trims
+`testResults` to red rows while keeping the counts. `--port <n>` pins the
+spawned preview server's port.
 
 ## How it works (internals)
 

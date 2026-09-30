@@ -4,7 +4,7 @@
 // first request then stamps the SECOND request's version. renderStream already guards this
 // by snapshotting `const v = version;` BEFORE the body await; renderDocument must do the same.
 //
-// Deterministic race: chdir to a temp cwd whose static/ hash we mutate between two
+// Deterministic race: a temp assets dir whose hash we mutate between two
 // concurrent renderDocument calls, gated by a barrier in the page's async onServerInit.
 import { assert } from "jsr:@std/assert";
 import { dirname, join as joinPath } from "@std/path";
@@ -25,7 +25,6 @@ function deferred<T>() {
 }
 
 Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing request's", async () => {
-  const cwd = Deno.cwd();
   const tmp = await Deno.makeTempDir({ prefix: "sprig-version-race-" });
   // Each page instance, on construction, fires a global "started" hook with its index and
   // awaits a global "release" promise — so the test can interleave the two requests exactly.
@@ -68,8 +67,7 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
         `  }\n` +
         `}`,
     });
-    Deno.chdir(tmp);
-    const r = await createRenderer(tmp, "/ui", { dev: true });
+    const r = await createRenderer(tmp, "/ui", { dev: true, assetsDir: joinPath(tmp, "static") });
 
     // Kick off request A. It will: version = readVersion() (= hashA), then await renderBody
     // → the class island resolve() awaits onServerInit → barrier 0 (started[0] fires, blocks).
@@ -106,7 +104,6 @@ Deno.test("BUG M: renderDocument stamps the version it resolved, not a racing re
         `(A=${va}, B=${vb}); the module-level version was overwritten during A's body await`,
     );
   } finally {
-    Deno.chdir(cwd);
     delete (globalThis as Record<string, unknown>).__bugM;
     await Deno.remove(tmp, { recursive: true });
   }
