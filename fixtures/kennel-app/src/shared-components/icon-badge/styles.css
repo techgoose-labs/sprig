@@ -1,0 +1,5 @@
+/* A badge given a focusId is a programmatic focus target (tabindex -1): a state change
+   moves focus onto it for screen readers, so it draws no focus ring. */
+.badge[tabindex="-1"]:focus {
+  outline: none;
+}

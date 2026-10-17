@@ -1,0 +1,7 @@
+{
+  "category": "shared-components",
+  "folder": "toast-stack",
+  "controls": {
+    "lifetime": { "type": "number", "value": 3500 }
+  }
+}

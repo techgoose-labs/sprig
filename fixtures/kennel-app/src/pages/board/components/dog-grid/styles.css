@@ -1,0 +1,19 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the empty
+   cards name their own face and colour rather than relying on the app body. */
+.dog-grid-empty {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+.dog-grid-empty-title {
+  /* the mock's h2/.font-display rule: 700, display tracking, tight leading
+     (overrides text-3xl's 1.2 line-height, which rendered the card 3px taller) */
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}
+
+/* No host-stretch rule: static <dog-card> renders without its host tag, so its
+   <a class="card"> IS the grid item and stretches to the row height by the
+   grid default (align-items: stretch). */

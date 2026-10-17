@@ -1,0 +1,32 @@
+<main class="dog-detail w-full max-w-7xl mx-auto p-3 md:p-6">
+  @if (state === 'error') {
+  <div class="dog-detail-error mt-10">
+    <load-error title="Couldn't load today's board" message="The kennel server didn't answer. Your last check-ins are safe — nothing was lost." retryLabel="Retry"></load-error>
+  </div>
+  } @else {
+  @if (dog) {
+    <a href="/ui" class="btn btn-ghost btn-sm mb-3 -ml-2 dog-detail-back"><svg class="lucide lucide-arrow-left dog-detail-back-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Board</a>
+    <div class="dog-detail-heading mb-5">
+      <dog-heading reads:dog [name]="dog.name" [status]="dog.status" [overdue]="dog.overdue" [overdueBy]="dog.overdue ? dog.overdueBy : ''"></dog-heading>
+    </div>
+    <div class="dog-detail-grid grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <dog-profile-card [breed]="dog.breed" [kennel]="dog.kennel" [arrival]="dog.arrival" [ownerName]="dog.owner.name" [ownerPhone]="dog.owner.phone"></dog-profile-card>
+      <stay-card [hasStay]="dog.stay ? true : false" [checkIn]="dog.stay ? dog.stay.checkIn : ''" [plannedCheckOut]="dog.stay ? dog.stay.plannedCheckOut : ''" [nightlyRate]="dog.stay ? dog.stay.nightlyRate : ''" [nights]="dog.stay ? dog.stay.nights : 0" [totalDue]="dog.stay ? dog.stay.totalDue : ''"></stay-card>
+      <dog-actions sets:dog edits:toasts [dogId]="dog.id" [dogName]="dog.name" [status]="dog.status" [overdue]="dog.overdue" [overdueBy]="dog.overdue ? dog.overdueBy : ''" [allowedActions]="dog.allowedActions" [allowedAfter]="dog.allowedAfter" [closed]="closed"></dog-actions>
+      <div class="dog-detail-notes-slot lg:col-span-3">
+        <dog-notes edits:toasts [dogId]="dog.id" [dogName]="dog.name" [notes]="dog.notes"></dog-notes>
+      </div>
+    </div>
+  } @else {
+    <section class="card bg-base-100 border border-base-300 max-w-xl mx-auto mt-10 dog-detail-missing">
+      <div class="card-body items-center text-center">
+        <svg class="lucide lucide-dog dog-detail-missing-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.25 16.25h1.5L12 17z"></path><path d="M16 14v.5"></path><path d="M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309"></path><path d="M8 14v.5"></path><path d="M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5"></path></svg>
+        <h1 class="dog-detail-missing-title">We can't find that dog</h1>
+        <p class="dog-detail-missing-text">It may have been removed from today's board.</p>
+        <a href="/ui" class="btn btn-sm dog-detail-missing-link">Back to the board</a>
+      </div>
+    </section>
+  }
+  }
+  <toast-stack sets:toasts></toast-stack>
+</main>

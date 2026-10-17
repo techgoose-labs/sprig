@@ -1,0 +1,16 @@
+{
+  "category": "shared-components",
+  "folder": "theme-toggle",
+  "background": "var(--color-base-100)",
+  "controls": {
+    "theme": {
+      "type": "select",
+      "options": [
+        "brand",
+        "brand-dark"
+      ],
+      "value": "brand",
+      "signal": true
+    }
+  }
+}

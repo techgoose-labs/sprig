@@ -1,0 +1,12 @@
+{
+  "_name": "Checked out \u00b7 sm",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/shared-components/status-badge/screenshots/status-badge-checked-out-sm@1280.png",
+    "tolerance": 0.005
+  },
+  "status": "checked-out",
+  "size": "sm"
+}

@@ -383,6 +383,13 @@ const NATIVE = new Set([
   "use",
 ]);
 
+/** Is `tag` one of the native HTML/SVG element names the renderer never resolves to a
+ *  component? (The composition check uses the SAME set, so what it calls native is exactly
+ *  what renders as native.) */
+export function isNativeTag(tag: string): boolean {
+  return NATIVE.has(tag);
+}
+
 // Content-projection slot. Sprig accepts `<content>` (preferred — may self-close as `<content/>`)
 // and the Angular-flavoured `<ng-content>` as aliases. A `select` attr scopes which projected
 // nodes land here; the slot's own children are the fallback shown when nothing is projected.

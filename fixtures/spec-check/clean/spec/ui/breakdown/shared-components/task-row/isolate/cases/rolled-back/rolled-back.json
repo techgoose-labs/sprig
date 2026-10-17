@@ -1,0 +1,8 @@
+{
+  "title": "Water the plants",
+  "done": false,
+  "_tier": "optimistic-write",
+  "_network": {
+    "markDone": { "status": 500, "body": { "error": "store unavailable" } }
+  }
+}

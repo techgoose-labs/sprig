@@ -1,0 +1,24 @@
+{
+  "category": "dog-detail",
+  "folder": "dog-notes",
+  "controls": {
+    "dogId": {
+      "type": "text",
+      "value": "d01"
+    },
+    "dogName": {
+      "type": "text",
+      "value": "Biscuit"
+    },
+    "author": {
+      "type": "text",
+      "value": "Front desk",
+      "signal": true
+    },
+    "draft": {
+      "type": "text",
+      "value": "",
+      "signal": true
+    }
+  }
+}

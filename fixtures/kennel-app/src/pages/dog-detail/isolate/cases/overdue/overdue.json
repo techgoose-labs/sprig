@@ -1,0 +1,40 @@
+{
+  "_name": "Rocco (d14), checked in + overdue 2h 15m, no notes — 1280",
+  "_tier": "static",
+  "dog": {
+    "id": "d14",
+    "name": "Rocco",
+    "breed": "French Bulldog",
+    "kennel": "K14",
+    "status": "checked-in",
+    "arrival": "10:15",
+    "overdue": true,
+    "overdueBy": "2h 15m",
+    "owner": {
+      "name": "Oliver Brandt",
+      "phone": "(555) 0113-4481"
+    },
+    "stay": {
+      "checkIn": "Sep 28, 10:15 AM",
+      "plannedCheckOut": "Sep 30, 11:00 AM",
+      "nightlyRate": "$55.00",
+      "nights": 2,
+      "totalDue": "$110.00"
+    },
+    "notes": [],
+    "allowedActions": [
+      "dog.startWalk",
+      "dog.checkOut"
+    ],
+    "allowedAfter": {
+      "dog.startWalk": [
+        "dog.endWalk"
+      ],
+      "dog.checkOut": []
+    }
+  },
+  "closed": false,
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/screenshots/dog-detail-overdue@1280.png"
+}

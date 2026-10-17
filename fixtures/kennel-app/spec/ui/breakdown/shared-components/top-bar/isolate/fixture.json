@@ -1,0 +1,7 @@
+{
+  "category": "shared-components",
+  "folder": "top-bar",
+  "controls": {
+    "active": { "type": "select", "options": ["board", "summary"], "value": "board" }
+  }
+}

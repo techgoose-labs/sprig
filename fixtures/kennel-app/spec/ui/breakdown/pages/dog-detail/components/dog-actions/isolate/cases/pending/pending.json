@@ -1,0 +1,24 @@
+{
+  "_name": "Check in sent, reply held 3s — intent (checked-in layout) shown at once",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d01",
+  "dogName": "Biscuit",
+  "closed": false,
+  "_signals": {
+    "status": "booked",
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_network": {
+    "dogCheckIn": "delay:3000"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "_name": "Auto-dismiss — gone after 3500 ms",
+  "_tier": "pure-client",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": { "toasts": [ { "kind": "error", "msg": "Biscuit: checked in didn't go through — reverted." } ] }
+}

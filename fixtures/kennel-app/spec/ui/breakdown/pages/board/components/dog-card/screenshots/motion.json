@@ -1,0 +1,44 @@
+{
+  "unit": "dog-card",
+  "trigger": "pointer hover on a.card (CSS :hover → hover:shadow-sm, transition-shadow)",
+  "capturedAt": "1280, theme brand, card d01, playbackRate slowed via CDP then paused+scrubbed",
+  "animations": [
+    {
+      "kind": "CSSTransition",
+      "name": "box-shadow",
+      "target": "a.card.bg-base-100.border.border-base-300.hover:shadow-sm.transition-shadow.min-w-0",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "none",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 150,
+        "currentIteration": 0,
+        "endTime": 150,
+        "localTime": 0.9980000000000544,
+        "progress": 0.0000934317054972625
+      },
+      "playState": "running"
+    }
+  ]
+}

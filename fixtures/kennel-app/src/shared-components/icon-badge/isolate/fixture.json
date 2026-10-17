@@ -1,0 +1,12 @@
+{
+  "category": "shared-components",
+  "folder": "icon-badge",
+  "controls": {
+    "icon": { "type": "select", "options": ["calendar-clock", "house", "footprints", "log-out", "alarm-clock", "lock"], "value": "calendar-clock" },
+    "tone": { "type": "select", "options": ["info", "success", "accent", "outline", "error", "neutral"], "value": "info" },
+    "soft": { "type": "boolean", "value": false },
+    "size": { "type": "select", "options": ["md", "sm", "lg"], "value": "md" },
+    "label": { "type": "text", "value": "Booked" },
+    "focusId": { "type": "text", "value": "" }
+  }
+}

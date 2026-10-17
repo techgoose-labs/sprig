@@ -1,0 +1,16 @@
+.main-nav-row {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+.main-nav-icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+.main-nav-label {
+  display: none;
+}
+@media (width >= 40rem) {
+  .main-nav-label {
+    display: inline;
+  }
+}

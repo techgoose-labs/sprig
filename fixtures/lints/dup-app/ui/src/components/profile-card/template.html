@@ -1,0 +1,10 @@
+<article class="profile">
+  <header class="profile__head">
+    <h3>{{ name }}</h3>
+    <span class="badge">{{ role }}</span>
+  </header>
+  <p class="profile__bio">{{ bio }}</p>
+  @if (canMessage) {
+    <button class="btn" (click)="message()">Message</button>
+  }
+</article>

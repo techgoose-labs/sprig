@@ -56,7 +56,9 @@ undeclared signal → error (router-outlet exempt); channel with no `sets:` →
 error; exactly one participant → warning; multiple `sets:` → warning.
 `sprig map` prints every channel
 (`org: set by side-nav → edited by org-quick-rename → read by org-detail, app-detail`)
-— run it after wiring to prove the dataflow.
+— run it after wiring to prove the dataflow. `sprig map --compose [--json]`
+prints the composition graph instead (who composes whom) — the build
+cheatsheet's "composes" lines and `sprig spec-check … --app ui` read it.
 
 **Migration**: nested live islands are no longer the coordination pattern —
 restructure to siblings under a static frame + wiring (owner `sets:`, editors

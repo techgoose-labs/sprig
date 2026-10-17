@@ -1,0 +1,14 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the unit names
+   its own face and colour rather than relying on the app body. */
+.dog-heading-row {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+/* .font-display in the mock: Caveat 700, display tracking, tight leading. */
+.dog-heading-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}

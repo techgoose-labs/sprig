@@ -1,0 +1,13 @@
+{
+  "_name": "d01 stay @1280 (brand)",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/stay-card/screenshots/stay-card@1280.png",
+  "hasStay": true,
+  "checkIn": "Sep 29, 7:00 AM",
+  "plannedCheckOut": "Sep 30, 11:00 AM",
+  "nightlyRate": "$45.00",
+  "nights": 1,
+  "totalDue": "$45.00"
+}

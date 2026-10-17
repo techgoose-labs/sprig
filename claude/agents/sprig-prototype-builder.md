@@ -6,7 +6,7 @@ description: >-
   model) and commands.json (intent verbs), served by a generic copied host —
   CDN scripts only, every screen plus the unglamorous states
   (empty/loading/error/overflow) — applying a brand design-system if present
-  and any click-feedback (feedback/feedback.json; legacy .feedback.json +
+  and any click-feedback (feedback/feedback.json; a sibling .feedback.json +
   inline data-notes). Use this agent for the build/iterate work of a
   sprig:prototype run (create, improve, or apply-feedback). NOT for a
   serve-only launch (no file change) and NOT for production code.
@@ -33,9 +33,10 @@ just serves it; you are not invoked).
 
 - **REQUEST** — the app description, or the change to make.
 - **SOURCE** — a path (spec/notes/draft), a **Figma URL**, an existing
-  `*-prototype/` folder (or legacy `*-prototype.html`) to improve, or blank.
+  `*-prototype/` folder (or a single-file `*-prototype.html`) to improve, or
+  blank.
 - **FEEDBACK** — whether the folder's `feedback/feedback.json` (the host's
-  annotate sink) and/or legacy `<basename>.feedback.json` / inline
+  annotate sink) and/or a sibling `<basename>.feedback.json` / inline
   `data-note`/`data-note-css` attributes exist to apply.
 - **OUTPUT PATH** — `spec/ui/<app>-prototype/` (at the git root; create
   `spec/ui/` if absent).
@@ -67,19 +68,24 @@ spec — `rune:spec` ratifies them), so keep them honest.
    - `_test-prototype.html` — presentation ONLY (the fixed name; the host serves
      it). It holds no data: reads go through
      `window.objects.types()/all(type)/get(type,id)`; writes fire
-     `window.commands.run(name, input)`, update the UI optimistically, and
-     reconcile/revert on the reply. The host injects both globals — don't write
-     them, and no other `fetch`/backend.
+     `window.commands.run(name, input)` and honour the command's `feedback`:
+     `instant` → render the intent BEFORE `await`ing `run`, reconcile on the
+     reply, revert + toast on rejection; `confirmed` → show a pending state
+     (disabled control/spinner) until the reply, then render it. The host
+     injects both globals — don't write them, and no other `fetch`/backend.
    - `objects/<type>.json` — one file per object type; the file is that type's
      collection (an array of records with `id`s, related by id — the UI joins
      client-side). This is the seed read model; make it deterministic (no random
      generation) so breakdown's screenshots reproduce.
    - `commands.json` — every write as an intent verb:
-     `"<noun>.<verb>": { "type", "kind", "input": {field: "type"}, "does" }`
+     `"<noun>.<verb>": { "type", "kind", "input": {field: "type"}, "feedback", "does" }`
      with `kind ∈ create|set|append|adjust|remove` (+ `"field"` for
-     append/adjust, `"by"` for adjust). **Never an "edit this record" command**
-     — that's the waist rule. Keep the `$doc`/`$kinds` documentation keys (copy
-     them from the host home) so the file stays self-documenting.
+     append/adjust, `"by"` for adjust) and `"feedback": "instant"` by default —
+     `"confirmed"` only when the UI truly cannot show the result before the
+     reply, the reason stated in `does`. (This `feedback` is UI timing, not
+     click-feedback.) **Never an "edit this record" command** — that's the waist
+     rule. Keep the `$doc`/`$kinds` documentation keys (copy them from the host
+     home) so the file stays self-documenting.
    - `_start.ts` + `deno.json` — copy VERBATIM from
      `~/.claude/skills/sprig:prototype/assets/proto-host/` (never edit; it's
      generic). It seeds an in-memory projection from `objects/` at boot, applies
@@ -107,21 +113,22 @@ stack/theme/naming/structure; make the change **surgically**; keep the seams
 honest — new data goes in `objects/` (never hardcoded in the HTML), new writes
 are new `commands.json` intent verbs; keep the flow + unglamorous states whole
 (a new screen gets its empty/loading/error/overflow variants); write back to the
-**same files**. Don't reformat code you weren't asked to touch. A legacy
+**same files**. Don't reformat code you weren't asked to touch. A pre-contract
 single-file `*-prototype.html` with no folder: improve it in place under its own
-legacy rules (hardcoded data, no fetch) — don't convert to the folder format
-unless asked.
+rules (hardcoded data, no fetch) — don't convert to the folder format unless
+asked.
 
 **Apply click-feedback** (do this first when feedback exists): host notes in
 `feedback/feedback.json` are `{note, selector, text, url, ts}` — **grep the
 `text` field first** (the visible text is guaranteed to be in source; a
-positional selector usually isn't), then apply each `note`. Legacy:
-`<basename>.feedback.json` element entries keyed by CSS selector (a `css` field
-→ apply those declarations; `kind:"drawing"` → open the `image` PNG and apply
-what it indicates); inline `data-note`/`data-note-css` → `grep -n 'data-note'`,
-apply each, and **strip the attributes** afterward. When done, **clear the
-applied feedback** (write `[]` to `feedback/feedback.json`; `{}`/delete legacy
-files; remove `*.png` shots) so stale notes aren't re-applied.
+positional selector usually isn't), then apply each `note`. A sibling
+`<basename>.feedback.json` holds element entries keyed by CSS selector (a `css`
+field → apply those declarations; `kind:"drawing"` → open the `image` PNG and
+apply what it indicates); inline `data-note`/`data-note-css` →
+`grep -n 'data-note'`, apply each, and **strip the attributes** afterward. When
+done, **clear the applied feedback** (write `[]` to `feedback/feedback.json`;
+`{}`/delete sibling `.feedback.json` files; remove `*.png` shots) so stale notes
+aren't re-applied.
 
 **Optional gut-check (design-lint):**
 `node ~/.claude/skills/sprig:prototype/scripts/detect.mjs --json <html-file>`
@@ -147,39 +154,35 @@ command verbs (name + `kind`) — and, only if you ran the gut-check, one line o
 what it flagged. **Don't explain the code.** Return ONLY this.
 
 <!-- BEGIN sprig-agent-guardrail: scripts/agent-guardrail.md -->
-
 ## Never crawl the filesystem for framework source
 
-Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at
-`/` (`find / …`, or a whole-disk `grep -r … /`) fans out across the entire
-volume and pegs several cores for minutes — and it is **never** the right way to
-locate sprig internals or build artifacts. **Do not run `find /` or any
-whole-disk search.** Everything agents have historically crawled the disk for is
-already at hand:
+Your `find` is Claude Code's bundled **bfs** (multithreaded). A search rooted at `/`
+(`find / …`, or a whole-disk `grep -r … /`) fans out across the entire volume and pegs
+several cores for minutes — and it is **never** the right way to locate sprig internals or
+build artifacts. **Do not run `find /` or any whole-disk search.** Everything agents have
+historically crawled the disk for is already at hand:
 
-- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`),
-  the component model, routing, serving/SSR, templates — are documented in the
-  skill references installed alongside you. Read them directly instead of
-  hunting the runtime source:
-  - `~/.claude/skills/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
-  - `~/.claude/skills/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
-  - `~/.claude/skills/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
-- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read
-  the PROJECT's `deno.json` `imports` map — the alias is defined there and
-  nowhere else. Never search for it.
-- **To find the sprig runtime's real `.ts` in the cache:** run
-  `deno info jsr:@techgoose-labs/sprig` (or `deno info <specifier>`) — it prints
-  the exact cached path in milliseconds. If you must grep vendored source, scope
-  it to that path or to `~/Library/Caches/deno`, never `/`.
-- **Playwright screenshots / console logs** land in the PROJECT's own
-  `.playwright-mcp/` (at the app root) and `~/Library/Caches/ms-playwright-mcp/`
-  — look there, never crawl the disk for the `.png` or `.log`.
-- **Build output** (compiled islands, previews) lives under the app's own
-  `dist/` / `.sprig/` — check the project tree, not the whole volume.
+- **Sprig internals** — islands & `isolate` (`isolate-events`, `sprig isolate`), the
+  component model, routing, serving/SSR, templates — are documented in the skill references
+  next to the SKILL.md that spawned you (`<skills>` = that skill tree: the installed
+  `~/.claude/skills/` or the repo's `claude/skills/` — never a hardcoded home path). Read
+  them directly instead of hunting the runtime source:
+  - `<skills>/sprig:build/references/{isolate,component-model,wiring,routing,serving,templates}.md`
+  - `<skills>/sprig:audit/references/{playwright-mcp-recipes,sprig-bug-catalog}.md`
+  - `<skills>/sprig:breakdown/references/{capture-recipes,isolate-format}.md`
+- **To resolve an import alias** (e.g. `@techgoose-labs/sprig`, `#assert`): read the PROJECT's
+  `deno.json` `imports` map — the alias is defined there and nowhere else. Never search for it.
+- **To find the sprig runtime's real `.ts` in the cache:** run `deno info jsr:@techgoose-labs/sprig`
+  (or `deno info <specifier>`) — it prints the exact cached path in milliseconds. If you must
+  grep vendored source, scope it to that path or to `~/Library/Caches/deno`, never `/`.
+- **Playwright screenshots / console logs** land in the PROJECT's own `.playwright-mcp/`
+  (at the app root) and `~/Library/Caches/ms-playwright-mcp/` — look there, never crawl the
+  disk for the `.png` or `.log`.
+- **Build output** (compiled islands, previews) lives under the app's own `dist/` /
+  `.sprig/` — check the project tree, not the whole volume.
 
-If something genuinely isn't in the project or the caches above, say so and ask
-— do not escalate to a root-wide `find`.
-
+If something genuinely isn't in the project or the caches above, say so and ask — do not
+escalate to a root-wide `find`.
 <!-- END sprig-agent-guardrail -->
 
 ## Never

@@ -1,0 +1,6 @@
+<table class="table table-zebra">
+  <thead><tr><th>#</th><th>Customer</th><th>Total</th></tr></thead>
+  <tbody>
+    @for (o of orders; track o.id) {<tr (click)="pick(o.id)"><td>{{ o.number }}</td><td>{{ o.customer }}</td><td>{{ o.total }}</td></tr>}
+  </tbody>
+</table>

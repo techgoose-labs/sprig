@@ -1,0 +1,8 @@
+{
+  "_name": "Walking active (1280)",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/status-filter-tabs/screenshots/status-filter-tabs-walking@1280.png",
+  "status": "walking"
+}

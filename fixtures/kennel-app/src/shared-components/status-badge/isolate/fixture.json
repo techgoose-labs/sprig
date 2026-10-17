@@ -1,0 +1,25 @@
+{
+  "category": "shared-components",
+  "folder": "status-badge",
+  "background": "var(--color-base-100)",
+  "controls": {
+    "status": {
+      "type": "select",
+      "options": [
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "booked"
+    },
+    "size": {
+      "type": "select",
+      "options": [
+        "md",
+        "sm"
+      ],
+      "value": "md"
+    }
+  }
+}

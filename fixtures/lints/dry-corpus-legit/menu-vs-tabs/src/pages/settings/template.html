@@ -1,0 +1,6 @@
+<main class="p-6">
+  <div role="tablist" class="tabs tabs-border">
+    @for (t of tabs; track t.id) {<a role="tab" class="tab" [class.tab-active]="t.id === tab" [attr.href]="'?tab=' + t.id">{{ t.label }}</a>}
+  </div>
+  <side-menu heading="Account" [items]="links" [current]="path"></side-menu>
+</main>

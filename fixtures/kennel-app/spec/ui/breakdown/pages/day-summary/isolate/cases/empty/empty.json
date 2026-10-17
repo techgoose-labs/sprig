@@ -1,0 +1,28 @@
+{
+  "_name": "No overdue pickups (1280)",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": {
+    "width": 1280,
+    "height": 1400
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/screenshots/day-summary-empty@1280.png",
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": false,
+    "kennelsTotal": 40,
+    "kennelsUsed": 19,
+    "occupancyPct": 48,
+    "revenueToday": 1225,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    },
+    "overdueCount": 2
+  },
+  "overduePickups": [],
+  "state": "live"
+}

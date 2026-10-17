@@ -1,0 +1,22 @@
+{
+  "_name": "Checked in (d02) @640",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 640,
+  "_signals": {
+    "status": "checked-in",
+    "dogId": "d02",
+    "closed": false,
+    "allowedActions": [
+      "dog.startWalk",
+      "dog.checkOut"
+    ],
+    "allowedAfter": {
+      "dog.startWalk": [
+        "dog.endWalk"
+      ],
+      "dog.checkOut": []
+    }
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions-checked-in@640.png"
+}

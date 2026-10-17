@@ -1,0 +1,12 @@
+<article class="card bg-base-100 border border-base-300">
+  <div class="card-body gap-3">
+    <h2 class="card-title text-base">{{ title }}</h2>
+    <ul class="flex flex-col gap-1">
+      @for (s of steps; track s.id) {<li class="flex items-center gap-2"><input type="checkbox" class="checkbox checkbox-sm" [checked]="s.done" /><span>{{ s.label }}</span></li>}
+    </ul>
+    <div class="card-actions justify-end">
+      <button class="btn btn-sm btn-ghost" (click)="snooze()">Snooze</button>
+      <button class="btn btn-sm btn-primary" (click)="complete()">Done</button>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,31 @@
+{
+  "_name": "Saved — d02, reply reconciled (no `at` → 'just now')",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d02",
+  "_signals": {
+    "notes": [
+      {
+        "text": "Extra blanket at night — he runs cold.",
+        "author": "Front desk"
+      }
+    ],
+    "author": "Front desk",
+    "draft": ""
+  },
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/dog-notes-saved@1280.png",
+    "tolerance": 0.03,
+    "reason": "the still was shot with the pointer still over 'Add note' right after the accepted submit (hover fill, ~118x40 px ≈ 0.019 of the frame); the reference row renders unhovered"
+  },
+  "_network": {
+    "dogAddNote": {
+      "status": 200,
+      "body": {
+        "text": "Extra blanket at night — he runs cold.",
+        "author": "Front desk"
+      }
+    }
+  }
+}

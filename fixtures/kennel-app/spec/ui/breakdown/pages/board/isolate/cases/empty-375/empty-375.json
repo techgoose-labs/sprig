@@ -1,0 +1,21 @@
+{
+  "_name": "No dogs booked today @375",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/board-empty@375.png",
+  "loadState": "ready",
+  "status": "all",
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": false,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    }
+  },
+  "dogList": []
+}

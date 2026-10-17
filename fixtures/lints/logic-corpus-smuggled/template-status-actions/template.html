@@ -1,0 +1,15 @@
+<!-- Corpus (smuggled): which buttons an order offers, switched on its status. -->
+<div class="order-actions">
+  @switch (order.status) {
+    @case ('draft') {
+      <button (click)="edit(order.id)">Edit</button>
+      <button (click)="cancel(order.id)">Cancel</button>
+    }
+    @case ('paid') {
+      <button (click)="refund(order.id)">Refund</button>
+    }
+    @default {
+      <span>No actions</span>
+    }
+  }
+</div>

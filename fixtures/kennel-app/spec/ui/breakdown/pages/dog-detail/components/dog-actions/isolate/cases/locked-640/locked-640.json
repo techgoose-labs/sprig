@@ -1,0 +1,20 @@
+{
+  "_name": "Day closed @640",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 640,
+  "closed": true,
+  "_signals": {
+    "status": "booked",
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions-locked@640.png"
+}

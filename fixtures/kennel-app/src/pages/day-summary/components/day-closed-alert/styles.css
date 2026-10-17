@@ -1,0 +1,37 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the unit names
+   its own face rather than relying on the app body. The alert's colours are
+   daisyUI's alert-soft alert-success, untouched. */
+.day-closed-alert-reveal {
+  font-family: var(--font-body);
+}
+
+/* Entrance only after a client-side close (see logic.ts entering()). */
+.day-closed-alert-reveal--enter {
+  animation: day-closed-alert-rise var(--dur-base) var(--ease-bounce) both;
+}
+
+@keyframes day-closed-alert-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-closed-alert-reveal--enter {
+    animation: none;
+  }
+}
+
+/* The mock's mb-5 (20px gap to the stats) belongs to the alert, but a margin
+   inside the island box would make the unit 66px where the still is the 46px
+   alert. So the gap sits on the island host — outside the measured box — and
+   only while the alert shows (an open day reserves no space). */
+sprig-island[data-sel="day-closed-alert"]:has(.day-closed-alert-box) {
+  display: block;
+  margin-bottom: calc(var(--spacing) * 5);
+}

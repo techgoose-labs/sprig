@@ -1,0 +1,22 @@
+<section class="stay-card card bg-base-100 border border-base-300" aria-labelledby="stay-card-title">
+  <div class="card-body">
+    <h2 id="stay-card-title" class="stay-card-title card-title">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="stay-card-icon"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"></path><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"></path><path d="M12 4v6"></path><path d="M2 18h20"></path></svg>The stay
+    </h2>
+    @if (hasStay) {
+      <dl class="stay-card-facts">
+        <dt class="stay-card-term">Check-in</dt><dd>{{ checkIn }}</dd>
+        <dt class="stay-card-term">Planned check-out</dt><dd>{{ plannedCheckOut }}</dd>
+        <dt class="stay-card-term">Nightly rate</dt><dd class="stay-card-num">{{ nightlyRate }}</dd>
+        <dt class="stay-card-term">Nights</dt><dd class="stay-card-num">{{ nights }}</dd>
+      </dl>
+      <div class="stay-card-divider divider"></div>
+      <div class="stay-card-total">
+        <span class="stay-card-total-label">Total due</span>
+        <span data-total-due class="stay-card-total-amount">{{ totalDue }}</span>
+      </div>
+    } @else {
+      <p class="stay-card-empty">No stay on file for this dog.</p>
+    }
+  </div>
+</section>

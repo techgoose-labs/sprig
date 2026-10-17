@@ -1,0 +1,9 @@
+<!-- Verbatim from _test-prototype.html lines 199-205 (region: header.navbar nav > a[data-nav] — the two links; their parent <nav> also holds theme-toggle and the harness dropdown). btn-active is added at runtime by render() (see js/main-nav.js). -->
+    <nav class="flex items-center gap-1">
+      <a href="#/board" data-nav="board" class="btn btn-ghost btn-sm">
+        <i data-lucide="layout-grid" class="size-[1.2em]"></i><span class="hidden sm:inline">Board</span>
+      </a>
+      <a href="#/summary" data-nav="summary" class="btn btn-ghost btn-sm">
+        <i data-lucide="chart-no-axes-column" class="size-[1.2em]"></i><span class="hidden sm:inline">Day summary</span>
+      </a>
+    <!-- ... label.swap (theme-toggle) and .dropdown (harness) follow inside <nav> -->

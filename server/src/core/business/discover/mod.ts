@@ -31,7 +31,47 @@
 // A control may carry a default `value`. Undeclared props fall back to a widget
 // inferred from the case value's type.
 //
-// Case special keys: _name (label), _innerHtml (-> innerHTML), _signals (-> signals).
+// Case special keys (the whole list — any other `_` key is a "case-key" problem,
+// reported naming the key and the case file, never ignored):
+//   _name       label                      _innerHtml  projected children
+//   _signals    island signals             _mocks      sub-component stubs/props
+//   _viewport   px width | {width,height}  _theme      data-theme on <html>
+//   _reference  reference PNG (+tolerance) _network    page.route fakes
+//   _tier       interaction tier           _motion     captured getAnimations() spec
+//                                          (+ trigger: hover/focus/click/load)
+// The runner (../runner/mod.ts) applies _viewport/_theme/_network to every test of
+// the case and turns _reference/_motion into `reference: …` / `motion: …` rows.
+
+import { isNativeTag } from "../../../../../framework/.sprig/compiler/render.ts";
+import {
+  type Tier,
+  TIERS,
+} from "../../../../../framework/.sprig/spec-check/types.ts";
+
+/** Tags the renderer handles itself — never resolved to a component either. */
+const RESERVED_TAGS = [
+  "router-outlet",
+  "content",
+  "ng-content",
+  "ng-container",
+];
+
+/** REQ-061: why a folder's name can never be a component selector (null = it can).
+ *  The renderer emits a native element for a native tag whatever is registered
+ *  (the SAME set the composition check uses), so such a unit never renders. */
+export function selectorRefusal(name: string): string | null {
+  const tag = name.toLowerCase();
+  if (RESERVED_TAGS.includes(tag)) {
+    return `<${tag}> is a tag the renderer handles itself (outlet / content projection), ` +
+      `so a component named "${name}" is never rendered — rename the folder (e.g. "ui-${tag}")`;
+  }
+  if (isNativeTag(tag)) {
+    return `<${tag}> is a native HTML element: the renderer always emits the native element ` +
+      `for that tag, never the component, so "${name}" renders nothing and every check of it ` +
+      `would wait out its timeout — rename the folder (e.g. "ui-${tag}")`;
+  }
+  return null;
+}
 
 export type Kind = "static" | "island";
 /** The top-level folder under src/ a component lives in (e.g. "shared-components", "pages"). */
@@ -65,6 +105,89 @@ export type MockSpec =
   | true
   | { stub?: boolean; props?: Record<string, unknown> };
 
+/** The interaction tier a case exercises (REQ-044) — recorded, consumed by spec-check.
+ *  ONE list (REQ-063 AMENDMENT): spec-check's, re-exported, so a tier it accepts
+ *  (e.g. `confirmed-write`, REQ-064) is never refused here at discovery. */
+export { type Tier, TIERS };
+
+/** Default reference tolerance: the fraction of pixels allowed to differ (REQ-042).
+ *  Measured (REQ-051/059): noise ≤ 0.002 (re-renders byte-identical; the mock's
+ *  own card vs its isolate render, fonts loaded, DPR 1: 0.002), the smallest
+ *  drift worth catching (a border-colour step) 0.020, a 1px padding shift
+ *  ≥ 0.089 — 0.01 sits between; a corner-radius step (0.004) slips under it, so
+ *  a case that pins radii sets a lower tolerance (no reason needed). */
+export const DEFAULT_TOLERANCE = 0.01;
+/** Height used when `_viewport` is a bare width — Playwright's own default height. */
+export const DEFAULT_VIEWPORT_HEIGHT = 720;
+
+export interface Viewport {
+  width: number;
+  height: number;
+}
+
+/** Where a case-relative file was found: beside the case, from the app root
+ *  (`--root`), or from the git root above it (REQ-063). */
+export type ResolvedVia = "case dir" | "app root" | "git root";
+
+/** The roots a case path falls back to, in order (REQ-063): the app `--root`
+ *  names, then the git root above it. Either may be absent. */
+export interface CaseRoots {
+  app: string | null;
+  git: string | null;
+}
+
+export interface ReferenceSpec {
+  /** Absolute path of the reference PNG. */
+  image: string;
+  tolerance: number;
+  reason?: string;
+  /** REQ-063: an explicit stage colour behind the capture (`_reference.background`). */
+  background?: string;
+  via?: ResolvedVia;
+}
+
+export type NetworkAction =
+  | { kind: "fail" }
+  | { kind: "delay"; ms: number }
+  | { kind: "respond"; status: number; body?: unknown };
+
+/** One `_network` entry, resolved to a method + path the runner routes on. */
+export interface NetworkRule {
+  /** The key as written in the case (`"POST /api/todos"` or a command name). */
+  key: string;
+  method: string;
+  path: string;
+  /** Regex source matched against the request URL's pathname. */
+  pattern: string;
+  action: NetworkAction;
+  /** A command-name key: whose spec/contract/openapi.json mapped it (REQ-063). */
+  via?: "app root" | "git root";
+}
+
+/** What starts a `_motion` case's animations (REQ-063): performed on the unit's
+ *  root before the animations are read; `load` = nothing, just open the case. */
+const MOTION_TRIGGERS = ["hover", "focus", "click", "load"] as const;
+export type MotionTrigger = typeof MOTION_TRIGGERS[number];
+
+export interface MotionRef {
+  /** Absolute path of the captured motion JSON. */
+  spec: string;
+  via?: ResolvedVia;
+  /** Absent = "load" (the parser always sets it). */
+  trigger?: MotionTrigger;
+}
+
+/** Contract operations by operationId → the method + path the typed client calls.
+ *  `via` (REQ-063): which root's spec/contract/openapi.json they came from. */
+export type Operations =
+  & Map<string, { method: string; path: string }>
+  & {
+    via?: "app root" | "git root";
+    /** REQ-068: each operation's `x-sprig-command` (the seam verb, e.g.
+     *  `dog.checkIn`) → the same method + path its operationId maps to. */
+    commands?: Map<string, { method: string; path: string }>;
+  };
+
 export interface CaseDef {
   name: string;
   label: string;
@@ -73,6 +196,12 @@ export interface CaseDef {
   innerHtml?: string;
   signals?: Record<string, unknown>;
   mocks?: Record<string, MockSpec>;
+  viewport?: Viewport;
+  theme?: string;
+  reference?: ReferenceSpec;
+  network?: NetworkRule[];
+  tier?: Tier;
+  motion?: MotionRef;
   route: string;
   tests: TestRef[];
 }
@@ -109,6 +238,8 @@ export interface Problem {
     | "case-json"
     | "component-file"
     | "component-export"
+    | "component-name"
+    | "case-key"
     | "unsupported";
   /** The offending file (fixture/case JSON) or component directory. */
   path: string;
@@ -128,11 +259,6 @@ async function exists(p: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-function pascal(s: string): string {
-  return s.split(/[-_\s]+/).filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("");
 }
 
 async function* walkDirs(root: string): AsyncGenerator<string> {
@@ -199,22 +325,344 @@ export function controlDefault(def: ControlDef): unknown {
   }
 }
 
-/** Split a case JSON: bare keys -> props, _name/_innerHtml/_signals -> special. */
-export function parseCaseValues(obj: Record<string, unknown>) {
-  const props: Record<string, unknown> = {};
-  let innerHtml: string | undefined;
-  let signals: Record<string, unknown> | undefined;
-  let mocks: Record<string, MockSpec> | undefined;
-  let label: string | undefined;
-  for (const [k, v] of Object.entries(obj ?? {})) {
-    if (k === "_name") label = String(v);
-    else if (k === "_innerHtml") innerHtml = String(v);
-    else if (k === "_signals") signals = v as Record<string, unknown>;
-    else if (k === "_mocks") mocks = v as Record<string, MockSpec>;
-    else if (k.startsWith("_")) { /* unknown special — ignore */ }
-    else props[k] = v;
+const KNOWN_KEYS = [
+  "_name",
+  "_innerHtml",
+  "_signals",
+  "_mocks",
+  "_viewport",
+  "_theme",
+  "_reference",
+  "_network",
+  "_tier",
+  "_motion",
+];
+const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v);
+const isPos = (v: unknown): v is number =>
+  typeof v === "number" && Number.isFinite(v) && v > 0;
+
+/** Join a case-relative path onto the case dir (pure; `..` segments collapse). */
+function caseRelative(caseDir: string, p: string): string {
+  if (p.startsWith("/")) return p;
+  const parts = caseDir.split("/");
+  for (const seg of p.split("/")) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === "..") parts.pop();
+    else parts.push(seg);
   }
-  return { props, innerHtml, signals, mocks, label };
+  return parts.join("/");
+}
+
+/** Resolve a case file path: relative to the case dir first, then to the app root
+ *  (`--root`), then to the git root above it (REQ-063) — the breakdown's stills live
+ *  under `<app>/spec/ui/breakdown/…`, which a case copied into the build can't reach
+ *  relatively, and an app need not sit at the git root (a fixture, a monorepo
+ *  package). An app AT the git root is tried once, as the app root. Absent every
+ *  one: every path tried. */
+export async function resolveCaseFile(
+  caseDir: string,
+  given: string,
+  roots: CaseRoots,
+  has: (p: string) => Promise<boolean> = exists,
+): Promise<{ path: string; via: ResolvedVia } | { tried: string[] }> {
+  const candidates: [string, ResolvedVia][] = [
+    [caseRelative(caseDir, given), "case dir"],
+  ];
+  if (!given.startsWith("/")) {
+    for (
+      const [root, via] of [[roots.app, "app root"], [
+        roots.git,
+        "git root",
+      ]] as const
+    ) {
+      if (!root) continue;
+      const p = caseRelative(root, given);
+      if (!candidates.some(([q]) => q === p)) candidates.push([p, via]);
+    }
+  }
+  for (const [p, via] of candidates) {
+    if (await has(p)) return { path: p, via };
+  }
+  return { tried: candidates.map(([p]) => p) };
+}
+
+/** A `_network` path → a regex source over the URL pathname: `{id}` and `:id` match
+ *  one segment, `*` matches anything, everything else is literal. */
+export function pathPattern(path: string): string {
+  let out = "";
+  for (const tok of path.split(/(\{[^}]+\}|:[A-Za-z_]\w*|\*)/)) {
+    if (!tok) continue;
+    if (tok === "*") out += ".*";
+    else if (/^\{[^}]+\}$/.test(tok) || /^:[A-Za-z_]\w*$/.test(tok)) {
+      out += "[^/]+";
+    } else out += tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+  return `^${out}$`;
+}
+
+/** Read a contract's operationIds → { method, path } (path prefixed by the first
+ *  server URL's pathname, the base the typed client calls). */
+export function operationsFromOpenApi(doc: unknown): Operations {
+  const ops = new Map() as Operations;
+  if (!isObj(doc)) return ops;
+  let base = "";
+  const servers = doc.servers;
+  if (Array.isArray(servers) && isObj(servers[0])) {
+    const url = String(servers[0].url ?? "");
+    try {
+      base = new URL(url, "http://x").pathname.replace(/\/$/, "");
+    } catch { /* not a URL — no base */ }
+  }
+  for (
+    const [path, item] of Object.entries(isObj(doc.paths) ? doc.paths : {})
+  ) {
+    if (!isObj(item)) continue;
+    for (const [method, op] of Object.entries(item)) {
+      if (!METHODS.includes(method.toUpperCase()) || !isObj(op)) continue;
+      const target = { method: method.toUpperCase(), path: base + path };
+      if (typeof op.operationId === "string") ops.set(op.operationId, target);
+      const cmd = op["x-sprig-command"];
+      if (typeof cmd === "string" && cmd) {
+        (ops.commands ??= new Map()).set(cmd, target);
+      }
+    }
+  }
+  return ops;
+}
+
+function parseNetworkAction(v: unknown): NetworkAction | string {
+  if (v === "fail") return { kind: "fail" };
+  if (typeof v === "string") {
+    const m = v.match(/^delay:(\d+)$/);
+    if (m) return { kind: "delay", ms: Number(m[1]) };
+    return `"${v}" is not an action — use "fail", "delay:<ms>" or { "status": n, "body": any }`;
+  }
+  if (isObj(v)) {
+    const status = v.status;
+    if (
+      typeof status === "number" && Number.isInteger(status) &&
+      status >= 100 && status <= 599
+    ) {
+      return "body" in v
+        ? { kind: "respond", status, body: v.body }
+        : { kind: "respond", status };
+    }
+    return `{ "status": ${
+      JSON.stringify(status)
+    } } needs an integer HTTP status 100-599`;
+  }
+  return `${
+    JSON.stringify(v)
+  } is not an action — use "fail", "delay:<ms>" or { "status": n, "body": any }`;
+}
+
+/** Where paths resolve from + the contract's operations (null: no openapi.json). */
+export interface CaseKeyContext {
+  caseDir: string;
+  operations?: Operations | null;
+}
+
+export interface CaseValues {
+  props: Record<string, unknown>;
+  innerHtml?: string;
+  signals?: Record<string, unknown>;
+  mocks?: Record<string, MockSpec>;
+  label?: string;
+  viewport?: Viewport;
+  theme?: string;
+  reference?: ReferenceSpec;
+  network?: NetworkRule[];
+  tier?: Tier;
+  motion?: MotionRef;
+  /** One message per invalid or unknown `_` key, each naming the key. */
+  errors: string[];
+}
+
+/** Split a case JSON: bare keys -> props, `_` keys -> the validated specials above. */
+export function parseCaseValues(
+  obj: Record<string, unknown>,
+  ctx: CaseKeyContext = { caseDir: "." },
+): CaseValues {
+  const out: CaseValues = { props: {}, errors: [] };
+  const err = (m: string) => out.errors.push(m);
+  for (const [k, v] of Object.entries(obj ?? {})) {
+    if (!k.startsWith("_")) out.props[k] = v;
+    else if (k === "_name") out.label = String(v);
+    else if (k === "_innerHtml") out.innerHtml = String(v);
+    else if (k === "_signals") out.signals = v as Record<string, unknown>;
+    else if (k === "_mocks") out.mocks = v as Record<string, MockSpec>;
+    else if (k === "_viewport") {
+      if (isPos(v)) {
+        out.viewport = { width: v, height: DEFAULT_VIEWPORT_HEIGHT };
+      } else if (isObj(v) && isPos(v.width) && isPos(v.height)) {
+        out.viewport = { width: v.width, height: v.height };
+      } else {
+        err(
+          `"_viewport" must be a px width (375) or { "width": n, "height": n } — got ${
+            JSON.stringify(v)
+          }`,
+        );
+      }
+    } else if (k === "_theme") {
+      if (typeof v === "string" && v.trim()) out.theme = v;
+      else {err(
+          `"_theme" must be a non-empty string (the data-theme value) — got ${
+            JSON.stringify(v)
+          }`,
+        );}
+    } else if (k === "_reference") {
+      const r = typeof v === "string" ? { image: v } : v;
+      const tol = isObj(r) && r.tolerance !== undefined
+        ? r.tolerance
+        : DEFAULT_TOLERANCE;
+      if (!isObj(r) || typeof r.image !== "string" || !r.image) {
+        err(
+          `"_reference" must be "<png path>" or { "image": "<png path>", "tolerance"?: n, "reason"?: "…" } — got ${
+            JSON.stringify(v)
+          }`,
+        );
+      } else if (typeof tol !== "number" || !(tol >= 0 && tol <= 1)) {
+        err(
+          `"_reference".tolerance must be a fraction of pixels between 0 and 1 — got ${
+            JSON.stringify(tol)
+          }`,
+        );
+      } else if (
+        tol > DEFAULT_TOLERANCE &&
+        !(typeof r.reason === "string" && r.reason.trim())
+      ) {
+        err(
+          `"_reference".tolerance ${tol} is above the default ${DEFAULT_TOLERANCE} — add a "reason" saying why`,
+        );
+      } else if (
+        r.background !== undefined &&
+        !(typeof r.background === "string" && r.background.trim())
+      ) {
+        err(
+          `"_reference".background must be a CSS colour (the stage behind the capture) — got ${
+            JSON.stringify(r.background)
+          }`,
+        );
+      } else {
+        out.reference = {
+          image: caseRelative(ctx.caseDir, r.image),
+          tolerance: tol,
+          ...(typeof r.reason === "string" && r.reason.trim()
+            ? { reason: r.reason }
+            : {}),
+          ...(typeof r.background === "string"
+            ? { background: r.background.trim() }
+            : {}),
+        };
+      }
+    } else if (k === "_network") {
+      if (!isObj(v)) {
+        err(
+          `"_network" must be an object of { "<METHOD /path>" | "<commandName>": action } — got ${
+            JSON.stringify(v)
+          }`,
+        );
+        continue;
+      }
+      const rules: NetworkRule[] = [];
+      let bad = false;
+      for (const [key, raw] of Object.entries(v)) {
+        let method: string | undefined;
+        let path: string | undefined;
+        const m = key.match(/^([A-Za-z]+)\s+(\S+)$/);
+        if (m) {
+          if (!METHODS.includes(m[1].toUpperCase())) {
+            err(
+              `"_network" key "${key}": ${m[1]} is not an HTTP method (${
+                METHODS.join(", ")
+              })`,
+            );
+          } else if (!m[2].startsWith("/")) {
+            err(`"_network" key "${key}": the path must start with "/"`);
+          } else [method, path] = [m[1].toUpperCase(), m[2]];
+        } else if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(key)) {
+          // REQ-068: an operationId (`dogCheckIn`) or an operation's
+          // x-sprig-command (`dog.checkIn`, the two-seam prototype's verb)
+          if (!ctx.operations) {
+            err(
+              `"_network" key "${key}" is a command name, but there is no spec/contract/openapi.json at the app root or the git root to map it — use "METHOD /path"`,
+            );
+          } else {
+            const op = ctx.operations.get(key) ??
+              ctx.operations.commands?.get(key);
+            if (op) [method, path] = [op.method, op.path];
+            else {
+              const cmds = [...(ctx.operations.commands?.keys() ?? [])];
+              err(
+                `"_network" key "${key}" is neither an operationId nor an x-sprig-command in spec/contract/openapi.json — operationIds: ${
+                  [...ctx.operations.keys()].slice(0, 20).join(", ") || "(none)"
+                }; x-sprig-command: ${
+                  cmds.slice(0, 20).join(", ") || "(none)"
+                }`,
+              );
+            }
+          }
+        } else {
+          err(
+            `"_network" key "${key}" must be "METHOD /path", an operationId or an x-sprig-command from the contract`,
+          );
+        }
+        const action = parseNetworkAction(raw);
+        if (typeof action === "string") {
+          err(`"_network" key "${key}": ${action}`);
+          bad = true;
+        }
+        if (!method || !path) bad = true;
+        if (method && path && typeof action !== "string") {
+          const via = !m && ctx.operations?.via;
+          rules.push({
+            key,
+            method,
+            path,
+            pattern: pathPattern(path),
+            action,
+            ...(via ? { via } : {}),
+          });
+        }
+      }
+      if (!bad) out.network = rules;
+    } else if (k === "_tier") {
+      if ((TIERS as readonly unknown[]).includes(v)) out.tier = v as Tier;
+      else {err(
+          `"_tier" must be one of ${TIERS.join(" | ")} — got ${
+            JSON.stringify(v)
+          }`,
+        );}
+    } else if (k === "_motion") {
+      const trigger = isObj(v) && v.trigger !== undefined ? v.trigger : "load";
+      if (!(isObj(v) && typeof v.spec === "string" && v.spec)) {
+        err(
+          `"_motion" must be { "spec": "<path to the captured motion JSON>", "trigger"?: "hover" | "focus" | "click" | "load" } — got ${
+            JSON.stringify(v)
+          }`,
+        );
+      } else if (!(MOTION_TRIGGERS as readonly unknown[]).includes(trigger)) {
+        err(
+          `"_motion".trigger must be one of ${
+            MOTION_TRIGGERS.join(" | ")
+          } (what starts the animation, performed on the unit's root; default load) — got ${
+            JSON.stringify(trigger)
+          }`,
+        );
+      } else {
+        out.motion = {
+          spec: caseRelative(ctx.caseDir, v.spec),
+          trigger: trigger as MotionTrigger,
+        };
+      }
+    } else {
+      err(`unknown case key "${k}" — known keys: ${KNOWN_KEYS.join(", ")}`);
+    }
+  }
+  return out;
 }
 
 /**
@@ -249,54 +697,6 @@ export function scanExports(
   return { names: [...names], hasDefault };
 }
 
-async function findComponentFile(
-  dir: string,
-  exportName: string,
-  problems: Problem[],
-): Promise<string> {
-  const tsx: string[] = [];
-  for await (const e of Deno.readDir(dir)) {
-    if (e.isFile && /\.tsx?$/.test(e.name)) tsx.push(e.name);
-  }
-  const exact = tsx.find((n) => n.replace(/\.tsx?$/, "") === exportName);
-  const ci = tsx.find((n) =>
-    n.replace(/\.tsx?$/, "").toLowerCase() === exportName.toLowerCase()
-  );
-  const pick = exact ?? ci ?? tsx[0];
-  // No exact or case-insensitive match: we either fall back to an arbitrary
-  // .tsx (Vite then imports the wrong component) or find none. Surface it now.
-  if (!exact && !ci) {
-    problems.push({
-      kind: "component-file",
-      path: dir,
-      detail: pick
-        ? `no file matching export "${exportName}" — falling back to ${pick}`
-        : `no .tsx file for export "${exportName}"`,
-    });
-  } else {
-    // The file matched by name — now verify it actually EXPORTS the component.
-    // The preview resolves `default` then the named export; anything else used to
-    // render the wrong export silently. Catch it here, before the preview builds.
-    try {
-      const { names, hasDefault } = scanExports(
-        await Deno.readTextFile(`${dir}/${pick}`),
-      );
-      if (!hasDefault && !names.includes(exportName)) {
-        problems.push({
-          kind: "component-export",
-          path: `${dir}/${pick}`,
-          detail: `no default export and no export named "${exportName}" — ` +
-            `exports seen: ${names.join(", ") || "none"}`,
-        });
-      }
-    } catch { /* unreadable — the preview's own error card will surface it */ }
-  }
-  // When nothing resolves, return "" rather than a misleading "${dir}/" — callers
-  // can treat the empty string as "no component file" instead of building a bogus
-  // path that fails cryptically (e.g. an attempt to import a directory) under --force.
-  return pick ? `${dir}/${pick}` : "";
-}
-
 async function collectTests(testsDir: string): Promise<TestRef[]> {
   const out: TestRef[] = [];
   if (!(await exists(testsDir))) return out;
@@ -319,6 +719,8 @@ async function collectCases(
   category: string,
   folder: string,
   problems: Problem[],
+  operations: Operations | null,
+  roots: CaseRoots,
 ): Promise<CaseDef[]> {
   const casesDir = `${isolateDir}/cases`;
   const cases: CaseDef[] = [];
@@ -340,16 +742,46 @@ async function collectCases(
         });
       }
     }
-    const v = parseCaseValues(raw);
-    // Sub-component mocking (_mocks) isn't supported in sprig previews yet — surface
-    // it as a problem so it's visible (the case still renders, just without mocking).
-    if (v.mocks && Object.keys(v.mocks).length) {
+    const v = parseCaseValues(raw, { caseDir, operations });
+    for (const detail of v.errors) {
       problems.push({
-        kind: "unsupported",
+        kind: "case-key",
         path: jsonPath,
-        detail:
-          "_mocks (sub-component stub / force-props) is not yet supported in sprig previews — the case renders without it.",
+        detail: `${detail} (in ${jsonPath})`,
       });
+    }
+    // The files a key points at must exist now — a missing reference or motion spec is
+    // a config error at discovery, not a mystery failure inside the run.
+    // The files a key points at must exist now — a missing reference or motion spec is
+    // a config error at discovery (naming every path tried), not a mystery in the run.
+    const given = (x: unknown) =>
+      typeof x === "string" ? x : isObj(x) ? String(x.image ?? x.spec) : "";
+    if (v.reference) {
+      const r = await resolveCaseFile(caseDir, given(raw._reference), roots);
+      if ("tried" in r) {
+        problems.push({
+          kind: "case-key",
+          path: jsonPath,
+          detail: `"_reference" image not found — tried ${
+            r.tried.join(" and ")
+          } (in ${jsonPath})`,
+        });
+        v.reference = undefined;
+      } else v.reference = { ...v.reference, image: r.path, via: r.via };
+    }
+    if (v.motion) {
+      const r = await resolveCaseFile(caseDir, given(raw._motion), roots);
+      const bad = "tried" in r
+        ? `not found — tried ${r.tried.join(" and ")}`
+        : await motionSpecProblem(r.path);
+      if (bad || "tried" in r) {
+        problems.push({
+          kind: "case-key",
+          path: jsonPath,
+          detail: `"_motion" spec ${bad} (in ${jsonPath})`,
+        });
+        v.motion = undefined;
+      } else v.motion = { ...v.motion, spec: r.path, via: r.via };
     }
     const props = { ...v.props };
     const signals = { ...(v.signals ?? {}) };
@@ -374,6 +806,12 @@ async function collectCases(
       signals,
       innerHtml,
       mocks: v.mocks,
+      ...(v.viewport ? { viewport: v.viewport } : {}),
+      ...(v.theme ? { theme: v.theme } : {}),
+      ...(v.reference ? { reference: v.reference } : {}),
+      ...(v.network ? { network: v.network } : {}),
+      ...(v.tier ? { tier: v.tier } : {}),
+      ...(v.motion ? { motion: v.motion } : {}),
       route: folder
         ? `/${prefix}/${category}/${folder}/${name}`
         : `/${prefix}/${category}/${name}`,
@@ -382,6 +820,78 @@ async function collectCases(
   }
   cases.sort((a, b) => a.name.localeCompare(b.name));
   return cases;
+}
+
+/** Why a motion spec can't be read (null = readable): it must be a JSON array of
+ *  animation records, or an object carrying one under `animations`. */
+async function motionSpecProblem(path: string): Promise<string | null> {
+  let doc: unknown;
+  try {
+    doc = JSON.parse(await Deno.readTextFile(path));
+  } catch (e) {
+    return (e as Error).message;
+  }
+  const list = Array.isArray(doc)
+    ? doc
+    : isObj(doc) && Array.isArray(doc.animations)
+    ? doc.animations
+    : null;
+  return list
+    ? null
+    : 'not an array of animations (nor { "animations": [...] })';
+}
+
+/** The git root above `dir` (a `.git` dir or file), or null. */
+async function gitRoot(dir: string): Promise<string | null> {
+  let d = dir.replace(/\/+$/, "") || "/";
+  while (true) {
+    if (await exists(`${d}/.git`)) return d;
+    const up = d.slice(0, d.lastIndexOf("/")) || "/";
+    if (up === d) return null;
+    d = up;
+  }
+}
+
+/** The contract's operations from `<app root>/spec/contract/openapi.json`, else
+ *  `<git root>/spec/contract/openapi.json` (REQ-063), tagged with the root they
+ *  came from; null when neither exists (then `_network` accepts only
+ *  "METHOD /path" keys). */
+async function readOperations(
+  roots: CaseRoots,
+  problems: Problem[],
+): Promise<Operations | null> {
+  for (
+    const [root, via] of [[roots.app, "app root"], [
+      roots.git,
+      "git root",
+    ]] as const
+  ) {
+    if (!root) continue;
+    const ops = await readContract(root, problems);
+    if (ops === undefined) continue;
+    if (ops) ops.via = via;
+    return ops;
+  }
+  return null;
+}
+
+/** undefined = no contract file there; null = one that can't be read (a problem). */
+async function readContract(
+  root: string,
+  problems: Problem[],
+): Promise<Operations | null | undefined> {
+  const file = `${root}/spec/contract/openapi.json`;
+  if (!(await exists(file))) return undefined;
+  try {
+    return operationsFromOpenApi(JSON.parse(await Deno.readTextFile(file)));
+  } catch (e) {
+    problems.push({
+      kind: "case-key",
+      path: file,
+      detail: `unreadable contract: ${(e as Error).message}`,
+    });
+    return null;
+  }
 }
 
 export async function discover(projectRoot: string): Promise<DiscoverResult> {
@@ -395,6 +905,13 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
   }
   const entries: ComponentEntry[] = [];
   const problems: Problem[] = [];
+  // REQ-063: case paths and contract command names resolve against the app
+  // `--root` names first, then the git root above it.
+  const caseRoots: CaseRoots = {
+    app: projectRoot,
+    git: await gitRoot(projectRoot),
+  };
+  const operations = await readOperations(caseRoots, problems);
 
   for (const { dir: root, target } of roots) {
     const prefix = target === "page" ? "pages" : "components";
@@ -413,6 +930,15 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
 
       const label = rel.split("/").pop() ?? rel;
       const exportName = label; // sprig selector = folder basename (no PascalCase)
+      const refused = selectorRefusal(label);
+      if (refused) {
+        problems.push({
+          kind: "component-name",
+          path: templatePath,
+          detail: refused,
+        });
+        continue;
+      }
 
       let fixture: Record<string, unknown> = {};
       const fixturePath = `${isolateDir}/fixture.json`;
@@ -475,6 +1001,8 @@ export async function discover(projectRoot: string): Promise<DiscoverResult> {
         category,
         folder,
         problems,
+        operations,
+        caseRoots,
       );
 
       entries.push({

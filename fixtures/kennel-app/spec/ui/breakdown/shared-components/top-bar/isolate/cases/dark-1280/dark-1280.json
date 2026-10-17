@@ -1,0 +1,8 @@
+{
+  "_name": "1280, brand-dark (moon shown)",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand-dark",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/top-bar/screenshots/top-bar@1280-brand-dark.png",
+  "active": "board"
+}

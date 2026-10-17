@@ -1,0 +1,13 @@
+<main class="p-6 grid grid-cols-3 gap-4">
+  @for (p of projects; track p.id) {
+  <section class="card bg-base-100 shadow-sm">
+    <section class="card-body gap-2">
+      <h3 class="card-title text-lg">{{ p.name }}</h3>
+      <span class="text-sm text-base-content/70">{{ p.blurb }}</span>
+      <footer class="card-actions justify-end">
+        <button class="btn btn-primary btn-sm" (click)="open(p.id)">Open</button>
+      </footer>
+    </section>
+  </section>
+  }
+</main>

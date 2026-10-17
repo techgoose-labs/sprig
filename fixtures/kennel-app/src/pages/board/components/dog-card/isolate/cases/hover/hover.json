@@ -1,0 +1,20 @@
+{
+  "_name": "Hovered (shadow-sm settled) @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "id": "d01",
+  "name": "Biscuit",
+  "kennel": "K01",
+  "breed": "Golden Retriever",
+  "ownerName": "Priya Raman",
+  "status": "booked",
+  "arrival": "07:00",
+  "overdue": false,
+  "overdueBy": "",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/dog-card-hover@1280.png",
+  "_motion": {
+    "spec": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/motion.json",
+    "trigger": "hover"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "_name": "d03 longest breed at 375 (no wrap)",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-profile-card/screenshots/dog-profile-card-long-breed@375.png",
+  "breed": "Cavalier King Charles Spaniel",
+  "kennel": "K03",
+  "arrival": "09:30",
+  "ownerName": "Hannah Lindqvist",
+  "ownerPhone": "(555) 0102-4074"
+}

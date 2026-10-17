@@ -1,0 +1,12 @@
+<a class="card bg-base-100 border" [attr.href]="'/dog/' + id">
+  <div class="card-body p-4 gap-2">
+    <h2 class="card-title">{{ name }}</h2>
+    <p class="text-sm">{{ breed }}</p>
+    <div class="flex items-center gap-2">
+      <span class="badge badge-soft badge-success gap-1 whitespace-nowrap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-4"><path d="M20 6 9 17l-5-5"></path></svg>
+        <span>Checked in</span>
+      </span>
+    </div>
+  </div>
+</a>

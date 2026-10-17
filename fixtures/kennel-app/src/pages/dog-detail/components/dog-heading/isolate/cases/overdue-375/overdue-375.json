@@ -1,0 +1,13 @@
+{
+  "_name": "Rocco, overdue, badges wrap (375)",
+  "_tier": "pure-client",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading-overdue@375.png",
+  "_signals": {
+    "name": "Rocco",
+    "status": "checked-in",
+    "overdue": true,
+    "overdueBy": "2h 15m"
+  }
+}

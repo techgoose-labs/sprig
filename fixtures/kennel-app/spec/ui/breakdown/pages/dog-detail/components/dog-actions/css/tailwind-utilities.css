@@ -1,0 +1,15 @@
+/* Tailwind v4 browser-generated utility rules for the classes used in dog-actions across every captured state (source.html). Reference only. */
+.flex { display: flex; }
+.size-5 { width: calc(var(--spacing) * 5); height: calc(var(--spacing) * 5); }
+.size-\[1\.2em\] { width: 1.2em; height: 1.2em; }
+.w-full { width: 100%; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: calc(var(--spacing) * 2); }
+.border { border-style: var(--tw-border-style); border-width: 1px; }
+.border-b { border-bottom-style: var(--tw-border-style); border-bottom-width: 1px; }
+.text-2xl { font-size: var(--text-2xl); line-height: var(--tw-leading, var(--text-2xl--line-height)); }
+@media (width >= 40rem){.sm\:w-auto { width: auto; }}
+@media (width >= 40rem){.sm\:flex-row { flex-direction: row; }}
+@media (width >= 64rem){.lg\:flex-col { flex-direction: column; }}

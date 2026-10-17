@@ -1,0 +1,20 @@
+.sft-list {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+.sft-tab {
+  white-space: nowrap;
+}
+
+/* The isolate workbench shell ships an UNLAYERED `a { color: inherit }`, which
+   beats daisyUI's layered inactive-tab color (base-content 50%) on these <a>
+   tabs. Restate daisyUI's own inactive rule (same selector exclusions, so hover
+   and the active tab keep daisyUI's full-strength color); in the app it is a
+   no-op. */
+.sft-tab:not(.tab-active, [aria-selected="true"], :hover) {
+  color: var(--color-base-content-50);
+}

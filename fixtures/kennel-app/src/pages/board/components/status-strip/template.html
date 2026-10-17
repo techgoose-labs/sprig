@@ -1,0 +1,54 @@
+<div class="status-strip-grid grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+  <a id="status-strip-booked" class="card bg-base-100 border text-left hover:bg-base-200 transition-colors status-strip-card"
+    [class.status-strip-card--active]="active === 'booked'"
+    [attr.href]="active === 'booked' ? '?status=all' : '?status=booked'"
+    [attr.aria-current]="active === 'booked' ? 'true' : null">
+    <div class="card-body p-4 gap-1">
+      <div class="status-strip-head flex items-center justify-between gap-2"><status-badge status="booked" size="sm"></status-badge></div>
+      @if (empty) {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums" aria-label="no dogs">—</div>
+      } @else {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums">{{ booked }}</div>
+      }
+    </div>
+  </a>
+  <a id="status-strip-checked-in" class="card bg-base-100 border text-left hover:bg-base-200 transition-colors status-strip-card"
+    [class.status-strip-card--active]="active === 'checked-in'"
+    [attr.href]="active === 'checked-in' ? '?status=all' : '?status=checked-in'"
+    [attr.aria-current]="active === 'checked-in' ? 'true' : null">
+    <div class="card-body p-4 gap-1">
+      <div class="status-strip-head flex items-center justify-between gap-2"><status-badge status="checked-in" size="sm"></status-badge></div>
+      @if (empty) {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums" aria-label="no dogs">—</div>
+      } @else {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums">{{ checkedIn }}</div>
+      }
+    </div>
+  </a>
+  <a id="status-strip-walking" class="card bg-base-100 border text-left hover:bg-base-200 transition-colors status-strip-card"
+    [class.status-strip-card--active]="active === 'walking'"
+    [attr.href]="active === 'walking' ? '?status=all' : '?status=walking'"
+    [attr.aria-current]="active === 'walking' ? 'true' : null">
+    <div class="card-body p-4 gap-1">
+      <div class="status-strip-head flex items-center justify-between gap-2"><status-badge status="walking" size="sm"></status-badge></div>
+      @if (empty) {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums" aria-label="no dogs">—</div>
+      } @else {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums">{{ walking }}</div>
+      }
+    </div>
+  </a>
+  <a id="status-strip-checked-out" class="card bg-base-100 border text-left hover:bg-base-200 transition-colors status-strip-card"
+    [class.status-strip-card--active]="active === 'checked-out'"
+    [attr.href]="active === 'checked-out' ? '?status=all' : '?status=checked-out'"
+    [attr.aria-current]="active === 'checked-out' ? 'true' : null">
+    <div class="card-body p-4 gap-1">
+      <div class="status-strip-head flex items-center justify-between gap-2"><status-badge status="checked-out" size="sm"></status-badge></div>
+      @if (empty) {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums" aria-label="no dogs">—</div>
+      } @else {
+      <div class="status-strip-count text-3xl font-semibold tabular-nums">{{ checkedOut }}</div>
+      }
+    </div>
+  </a>
+</div>

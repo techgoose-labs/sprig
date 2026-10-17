@@ -1,0 +1,7 @@
+/* Transparent: the page background shows through, as dog-heading's does. */
+.title-row {
+  margin: 0;
+  font: 700 32px/40px sans-serif;
+  letter-spacing: normal;
+  color: var(--color-base-content);
+}

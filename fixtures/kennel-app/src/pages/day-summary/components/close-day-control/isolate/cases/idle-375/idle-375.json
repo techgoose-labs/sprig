@@ -1,0 +1,12 @@
+{
+  "_name": "Idle — Close the day (375)",
+  "_tier": "confirmed-write",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control@375.png",
+  "_signals": {
+    "dayId": "today",
+    "closed": false,
+    "pending": false
+  }
+}

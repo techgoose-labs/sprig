@@ -191,6 +191,7 @@ export default defineComponent({
       if (!c.testFiles.length) return null;
       caseStatus.set({ ...caseStatus(), [c.route]: "running" });
       try {
+        // sprig-wait: a test run is the server's verdict — there is nothing to show before it answers
         const res = await fetch("/api/http/post-test-run", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -251,6 +252,7 @@ export default defineComponent({
       tests.set({ status: "running", results: [], error: null });
       caseStatus.set({ ...caseStatus(), [c.route]: "running" });
       try {
+        // sprig-wait: a test run is the server's verdict — there is nothing to show before it answers
         const res = await fetch("/api/http/post-test-run", {
           method: "POST",
           headers: { "content-type": "application/json" },

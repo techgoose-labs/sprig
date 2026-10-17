@@ -9,6 +9,7 @@
 // code-split) and serves under one composed origin — no Vite, no Fresh.
 import { basename, dirname, join, resolve, toFileUrl } from "#std/path";
 import { ensureDir, exists, walk } from "#std/fs";
+import { isNativeTag } from "../../framework/.sprig/compiler/render.ts";
 import type {
   CaseDef,
   ComponentEntry,
@@ -25,7 +26,9 @@ const RESERVED = new Set([
   "ng-container",
   "stage-bridge",
 ]);
-const DASH_TAG = /<([a-z][a-z0-9]*(?:-[a-z0-9]+)+)[\s/>]/g;
+// every opening tag name — selectors are folder basenames, hyphen-less ones (`sparkline`)
+// included; native elements are skipped via the renderer's own isNativeTag.
+const TAG = /<([a-z][a-z0-9]*(?:-[a-z0-9]+)*)[\s/>]/g;
 
 // import specifiers to rewrite: a relative path in `… from "x"`, a bare `import "x"`, or a
 // dynamic `import("x")`. Only `./` and `../` specifiers match; `$.*`/jsr/npm/bare are left alone.
@@ -89,17 +92,18 @@ async function findComponentDir(
   return null;
 }
 
-/** Copy every component a target's template references (custom dash-tags), recursively. */
-async function copyDeps(
+/** Copy every component a target's template references (any non-native tag naming a
+ *  component folder), recursively. */
+export async function copyDeps(
   compDir: string,
   projectSrc: string,
   targetsDir: string,
   done: Set<string>,
 ): Promise<void> {
   const src = await Deno.readTextFile(join(compDir, "template.html"));
-  for (const m of src.matchAll(DASH_TAG)) {
+  for (const m of src.matchAll(TAG)) {
     const tag = m[1];
-    if (RESERVED.has(tag) || done.has(tag)) continue;
+    if (RESERVED.has(tag) || isNativeTag(tag) || done.has(tag)) continue;
     const depDir = await findComponentDir(tag, projectSrc);
     if (!depDir) continue;
     done.add(tag);
@@ -147,6 +151,13 @@ export async function generatePreviews(
   const appTokens = join(appSrcDir, "css-variables.json");
   if (await exists(projTokens)) await Deno.copyFile(projTokens, appTokens);
   else await Deno.remove(appTokens).catch(() => {});
+  // The project's third-party custom-element allowlist rides along the same way: the
+  // workbench build runs the composition check (REQ-024), and a target using an allowed
+  // <x-foo> must pass it here exactly as it does in the project's own build.
+  const projCustom = join(projectSrc, "custom-elements.json");
+  const appCustom = join(appSrcDir, "custom-elements.json");
+  if (await exists(projCustom)) await Deno.copyFile(projCustom, appCustom);
+  else await Deno.remove(appCustom).catch(() => {});
 
   const routes: { path: string; load: string }[] = [];
   const moduleLines: string[] = [];

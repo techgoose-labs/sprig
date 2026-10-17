@@ -1,0 +1,6 @@
+<!-- Corpus (legit, REQ-065): a list's length SHOWN as a count, as-is — the
+     dog-notes card header in fixtures/kennel-app. A count displayed is
+     presentation; a count compared or computed with is (b)/(c). -->
+<h2 class="card-title">Notes <span class="badge badge-sm">{{ notes().length }}</span></h2>
+<p class="sr-only">{{ notes().length }} notes</p>
+<span [attr.aria-label]="notes().length + ' notes'">{{ notes().length }}</span>

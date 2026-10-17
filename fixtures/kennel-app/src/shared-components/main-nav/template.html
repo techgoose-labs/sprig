@@ -1,0 +1,8 @@
+<nav class="main-nav-row flex items-center gap-1" aria-label="Main">
+  <a href="/ui" data-nav="board" aria-label="Board" class="btn btn-ghost btn-sm main-nav-link" [class.btn-active]="active() === 'board'" [attr.aria-current]="active() === 'board' ? 'page' : null" (click)="go('board')">
+    <svg class="lucide lucide-layout-grid main-nav-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg><span class="main-nav-label">Board</span>
+  </a>
+  <a href="/ui/summary" data-nav="summary" aria-label="Day summary" class="btn btn-ghost btn-sm main-nav-link" [class.btn-active]="active() === 'summary'" [attr.aria-current]="active() === 'summary' ? 'page' : null" (click)="go('summary')">
+    <svg class="lucide lucide-chart-no-axes-column main-nav-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21v-6"></path><path d="M12 21V3"></path><path d="M19 21V9"></path></svg><span class="main-nav-label">Day summary</span>
+  </a>
+</nav>

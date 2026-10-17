@@ -1,0 +1,13 @@
+<main class="p-6 grid grid-cols-3 gap-4">
+  @if (loading) {
+  <div class="card bg-base-100 shadow-sm" aria-hidden="true">
+    <div class="card-body gap-2">
+      <div class="skeleton h-6 w-2/3"></div>
+      <div class="skeleton h-4 w-full"></div>
+      <div class="skeleton h-8 w-20 self-end"></div>
+    </div>
+  </div>
+  } @else {
+  @for (p of projects; track p.id) {<info-card [title]="p.name" [summary]="p.blurb" [href]="'/p/' + p.id"></info-card>}
+  }
+</main>

@@ -1,0 +1,10 @@
+{
+  "_name": "Refused — back to Close the day + error toast (HTTP 500)",
+  "_tier": "confirmed-write",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control-failed@1280.png",
+  "_network": { "dayClose": { "status": 500 } },
+  "dayId": "today",
+  "_signals": { "closed": false, "pending": false }
+}

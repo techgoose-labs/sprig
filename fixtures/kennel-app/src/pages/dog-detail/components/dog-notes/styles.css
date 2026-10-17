@@ -1,0 +1,80 @@
+.dog-notes-card {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+.dog-notes-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
+}
+
+.dog-notes-title-icon {
+  width: calc(var(--spacing) * 5);
+  height: calc(var(--spacing) * 5);
+}
+
+.dog-notes-item {
+  padding-block: calc(var(--spacing) * 3);
+}
+
+.dog-notes-item + .dog-notes-item {
+  border-top: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
+}
+
+.dog-notes-pending {
+  opacity: 0.5;
+}
+
+.dog-notes-text {
+  overflow-wrap: break-word;
+}
+
+.dog-notes-meta {
+  margin-top: calc(var(--spacing) * 1);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}
+
+.dog-notes-empty {
+  padding-block: calc(var(--spacing) * 3);
+  font-style: italic;
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}
+
+.dog-notes-form {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing) * 2);
+  margin-top: calc(var(--spacing) * 2);
+}
+
+.dog-notes-note {
+  width: 100%;
+}
+
+.dog-notes-add {
+  transition-property: color, background-color, border-color;
+}
+
+.dog-notes-add-icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+@media (min-width: 48rem) {
+  .dog-notes-form {
+    flex-direction: row;
+  }
+
+  .dog-notes-author {
+    width: calc(var(--spacing) * 48);
+  }
+
+  .dog-notes-note {
+    flex: 1;
+  }
+}

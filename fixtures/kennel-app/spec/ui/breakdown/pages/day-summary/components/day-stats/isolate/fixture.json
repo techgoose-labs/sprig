@@ -1,0 +1,12 @@
+{
+  "category": "day-summary",
+  "folder": "day-stats",
+  "controls": {
+    "kennelsUsed": { "type": "number", "value": 19, "signal": true },
+    "kennelsTotal": { "type": "number", "value": 40, "signal": true },
+    "occupancyPct": { "type": "range", "min": 0, "max": 100, "step": 1, "value": 48, "signal": true },
+    "revenueToday": { "type": "number", "value": 1225, "signal": true },
+    "overdueCount": { "type": "number", "value": 2, "signal": true },
+    "closed": { "type": "boolean", "value": false, "signal": true }
+  }
+}

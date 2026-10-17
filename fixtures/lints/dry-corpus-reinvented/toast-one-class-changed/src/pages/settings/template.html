@@ -1,0 +1,12 @@
+<main class="p-6">
+  <h1 class="text-3xl">Settings</h1>
+  <settings-form></settings-form>
+  @if (saved) {
+  <div class="toast toast-end toast-bottom">
+    <div role="status" class="alert alert-info shadow-sm max-w-xs">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-4"><path d="M20 6 9 17l-5-5"></path></svg>
+      <span>Settings saved</span>
+    </div>
+  </div>
+  }
+</main>

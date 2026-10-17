@@ -1,0 +1,20 @@
+<section class="card bg-base-100 border border-base-300 dog-notes-card">
+  <div class="card-body">
+    <h2 class="card-title dog-notes-title"><svg class="lucide lucide-notebook-pen dog-notes-title-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"></path><path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"></path></svg>Notes <span class="badge badge-sm">{{ notes().length }}</span></h2>
+    <ul class="dog-notes-list">
+      @for (note of notes(); track $index) {
+        <li class="dog-notes-item" [class.dog-notes-pending]="note.pending" [attr.aria-busy]="note.pending ? 'true' : null">
+          <p class="dog-notes-text">{{ note.text }}</p>
+          <p class="dog-notes-meta">{{ note.author }} · {{ stamp(note) }}</p>
+        </li>
+      } @empty {
+        <li class="dog-notes-empty">No notes yet — add the first one below.</li>
+      }
+    </ul>
+    <form class="dog-notes-form" (submit)="add()">
+      <input name="author" class="input dog-notes-author" aria-label="Author" required [value]="author()" (input)="author.set($event.target.value)">
+      <input name="text" class="input dog-notes-note" placeholder="Add a handling note…" aria-label="Note" required [value]="draft()" (input)="draft.set($event.target.value)">
+      <button type="submit" class="btn btn-soft btn-secondary dog-notes-add"><svg class="lucide lucide-plus dog-notes-add-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Add note</button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,12 @@
+{
+  "category": "shell",
+  "folder": "main-nav",
+  "controls": {
+    "view": {
+      "type": "select",
+      "options": ["board", "summary", "dog"],
+      "value": "board",
+      "signal": true
+    }
+  }
+}

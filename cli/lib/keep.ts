@@ -7,13 +7,15 @@ import { api } from "../../server/bootstrap/mod.ts";
 import type { DiscoverResult } from "../../server/src/core/business/discover/mod.ts";
 import type { TestReport } from "../../server/src/core/business/runner/mod.ts";
 
-// keep mounts each @EndpointController("http") method at /http/<path>; calls are
-// POST + JSON body — the same shape the preview app's /api/run route uses.
+// keep mounts each @EndpointController("http") method at /http/<path> in ROUTE space;
+// bedrock's one in-process client takes WIRE paths — the browser's, under the /api
+// namespace — so the call goes to /api/http/<path> (the same path the workbench UI
+// fetches). The route-space "/http/…" 404s (REQ-056). Calls are POST + JSON body.
 async function call<T>(
   path: string,
   body: Record<string, unknown>,
 ): Promise<T> {
-  const res = await api.backend.fetch(`/http/${path}`, {
+  const res = await api.backend.fetch(`/api/http/${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
@@ -21,7 +23,7 @@ async function call<T>(
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(
-      `keep /http/${path} → ${res.status} ${res.statusText}${
+      `keep /api/http/${path} → ${res.status} ${res.statusText}${
         detail ? `: ${detail}` : ""
       }`,
     );

@@ -1,0 +1,12 @@
+{
+  "_name": "Booked",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/shared-components/status-badge/screenshots/status-badge-booked@1280.png",
+    "tolerance": 0.005
+  },
+  "status": "booked",
+  "size": "md"
+}

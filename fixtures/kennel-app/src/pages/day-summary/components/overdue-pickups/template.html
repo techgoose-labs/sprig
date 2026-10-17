@@ -1,0 +1,19 @@
+<section class="card bg-base-100 border border-base-300 overdue-pickups-card" aria-labelledby="overdue-pickups-title">
+  <div class="card-body">
+    <h2 id="overdue-pickups-title" class="card-title text-2xl overdue-pickups-title"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-alarm-clock size-5"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>Overdue pickups</h2>
+    @if (pickups && pickups.length > 0) {
+    <ul class="overdue-pickups-list">
+      @for (p of pickups; track p.id) {
+      <li class="overdue-pickups-row py-3 flex flex-wrap items-center gap-2">
+        <a [href]="'/ui/dog/' + p.id" class="overdue-pickups-dog font-semibold link link-hover min-w-0 break-words">{{ p.name }}</a>
+        <span class="badge badge-outline font-mono">{{ p.kennel }}</span>
+        <span class="overdue-pickups-owner text-sm min-w-0">{{ p.owner && p.owner.name ? p.owner.name : 'Unknown owner' }} · <span class="tabular-nums">{{ p.owner && p.owner.phone ? p.owner.phone : '' }}</span></span>
+        <span class="overdue-pickups-flag ml-auto"><overdue-badge [overdue]="p.overdue" [overdueBy]="p.overdueBy ? p.overdueBy : ''"></overdue-badge></span>
+      </li>
+      }
+    </ul>
+    } @else {
+    <p class="overdue-pickups-empty italic py-3">No overdue pickups — every owner is on time.</p>
+    }
+  </div>
+</section>

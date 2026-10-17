@@ -1,0 +1,344 @@
+{
+  "_name": "Live board, 32 dogs @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/board@1280.png",
+  "loadState": "ready",
+  "status": "all",
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": false,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    }
+  },
+  "dogList": [
+    {
+      "id": "d01",
+      "name": "Biscuit",
+      "kennel": "K01",
+      "breed": "Golden Retriever",
+      "ownerName": "Priya Raman",
+      "status": "booked",
+      "arrival": "07:00",
+      "overdue": false
+    },
+    {
+      "id": "d02",
+      "name": "Juniper",
+      "kennel": "K02",
+      "breed": "Border Collie",
+      "ownerName": "Tomás Ortega",
+      "status": "checked-in",
+      "arrival": "08:15",
+      "overdue": false
+    },
+    {
+      "id": "d03",
+      "name": "Sir Reginald Barksworth-Fluffington III",
+      "kennel": "K03",
+      "breed": "Cavalier King Charles Spaniel",
+      "ownerName": "Hannah Lindqvist",
+      "status": "walking",
+      "arrival": "09:30",
+      "overdue": false
+    },
+    {
+      "id": "d04",
+      "name": "Mochi",
+      "kennel": "K04",
+      "breed": "Shiba Inu",
+      "ownerName": "Kwame Mensah",
+      "status": "checked-out",
+      "arrival": "10:45",
+      "overdue": false
+    },
+    {
+      "id": "d05",
+      "name": "Pepper",
+      "kennel": "K05",
+      "breed": "Dachshund",
+      "ownerName": "Aiko Watanabe",
+      "status": "booked",
+      "arrival": "11:00",
+      "overdue": false
+    },
+    {
+      "id": "d06",
+      "name": "Otis",
+      "kennel": "K06",
+      "breed": "Labrador",
+      "ownerName": "Declan Byrne",
+      "status": "checked-in",
+      "arrival": "07:15",
+      "overdue": false
+    },
+    {
+      "id": "d07",
+      "name": "Luna",
+      "kennel": "K07",
+      "breed": "Greyhound",
+      "ownerName": "Sofia Moretti",
+      "status": "walking",
+      "arrival": "08:30",
+      "overdue": false
+    },
+    {
+      "id": "d08",
+      "name": "Waffles",
+      "kennel": "K08",
+      "breed": "Corgi",
+      "ownerName": "Jonah Feldman",
+      "status": "checked-out",
+      "arrival": "09:45",
+      "overdue": false
+    },
+    {
+      "id": "d09",
+      "name": "Clementine",
+      "kennel": "K09",
+      "breed": "Poodle (Standard)",
+      "ownerName": "Amara Nwosu",
+      "status": "booked",
+      "arrival": "10:00",
+      "overdue": false
+    },
+    {
+      "id": "d10",
+      "name": "Bruno",
+      "kennel": "K10",
+      "breed": "Boxer",
+      "ownerName": "Lucas Petit",
+      "status": "checked-in",
+      "arrival": "11:15",
+      "overdue": false
+    },
+    {
+      "id": "d11",
+      "name": "Nala",
+      "kennel": "K11",
+      "breed": "Beagle",
+      "ownerName": "Ingrid Holm",
+      "status": "walking",
+      "arrival": "07:30",
+      "overdue": false
+    },
+    {
+      "id": "d12",
+      "name": "Ziggy",
+      "kennel": "K12",
+      "breed": "Jack Russell Terrier",
+      "ownerName": "Mateo Silva",
+      "status": "checked-out",
+      "arrival": "08:45",
+      "overdue": false
+    },
+    {
+      "id": "d13",
+      "name": "Hazel",
+      "kennel": "K13",
+      "breed": "Bernese Mountain Dog",
+      "ownerName": "Grace Kim",
+      "status": "booked",
+      "arrival": "09:00",
+      "overdue": false
+    },
+    {
+      "id": "d14",
+      "name": "Rocco",
+      "kennel": "K14",
+      "breed": "French Bulldog",
+      "ownerName": "Oliver Brandt",
+      "status": "checked-in",
+      "arrival": "10:15",
+      "overdue": true,
+      "overdueBy": "2h 15m"
+    },
+    {
+      "id": "d15",
+      "name": "Pickles",
+      "kennel": "K15",
+      "breed": "Whippet",
+      "ownerName": "Leila Haddad",
+      "status": "walking",
+      "arrival": "11:30",
+      "overdue": false
+    },
+    {
+      "id": "d16",
+      "name": "Maple",
+      "kennel": "K16",
+      "breed": "Australian Shepherd",
+      "ownerName": "Noah Carter",
+      "status": "checked-out",
+      "arrival": "07:45",
+      "overdue": false
+    },
+    {
+      "id": "d17",
+      "name": "Gus",
+      "kennel": "K17",
+      "breed": "Golden Retriever",
+      "ownerName": "Yuki Sato",
+      "status": "booked",
+      "arrival": "08:00",
+      "overdue": false
+    },
+    {
+      "id": "d18",
+      "name": "Olive",
+      "kennel": "K18",
+      "breed": "Border Collie",
+      "ownerName": "Elena Popescu",
+      "status": "checked-in",
+      "arrival": "09:15",
+      "overdue": true,
+      "overdueBy": "45m"
+    },
+    {
+      "id": "d19",
+      "name": "Tofu",
+      "kennel": "K19",
+      "breed": "Cavalier King Charles Spaniel",
+      "ownerName": "Sam Okafor",
+      "status": "walking",
+      "arrival": "10:30",
+      "overdue": false
+    },
+    {
+      "id": "d20",
+      "name": "Bear",
+      "kennel": "K20",
+      "breed": "Shiba Inu",
+      "ownerName": "Maya Thompson",
+      "status": "checked-out",
+      "arrival": "11:45",
+      "overdue": false
+    },
+    {
+      "id": "d21",
+      "name": "Poppy",
+      "kennel": "K21",
+      "breed": "Dachshund",
+      "ownerName": "Priya Raman",
+      "status": "booked",
+      "arrival": "07:00",
+      "overdue": false
+    },
+    {
+      "id": "d22",
+      "name": "Ranger",
+      "kennel": "K26",
+      "breed": "Labrador",
+      "ownerName": "Tomás Ortega",
+      "status": "checked-in",
+      "arrival": "08:15",
+      "overdue": false
+    },
+    {
+      "id": "d23",
+      "name": "Willow",
+      "kennel": "K27",
+      "breed": "Greyhound",
+      "ownerName": "Hannah Lindqvist",
+      "status": "checked-out",
+      "arrival": "09:30",
+      "overdue": false
+    },
+    {
+      "id": "d24",
+      "name": "Kobe",
+      "kennel": "K28",
+      "breed": "Corgi",
+      "ownerName": "Kwame Mensah",
+      "status": "booked",
+      "arrival": "10:45",
+      "overdue": false
+    },
+    {
+      "id": "d25",
+      "name": "Daisy",
+      "kennel": "K29",
+      "breed": "Poodle (Standard)",
+      "ownerName": "Aiko Watanabe",
+      "status": "checked-in",
+      "arrival": "11:00",
+      "overdue": false
+    },
+    {
+      "id": "d26",
+      "name": "Moose",
+      "kennel": "K30",
+      "breed": "Boxer",
+      "ownerName": "Declan Byrne",
+      "status": "checked-in",
+      "arrival": "07:15",
+      "overdue": false
+    },
+    {
+      "id": "d27",
+      "name": "Scout",
+      "kennel": "K31",
+      "breed": "Beagle",
+      "ownerName": "Sofia Moretti",
+      "status": "checked-in",
+      "arrival": "08:30",
+      "overdue": false
+    },
+    {
+      "id": "d28",
+      "name": "Pretzel",
+      "kennel": "K32",
+      "breed": "Jack Russell Terrier",
+      "ownerName": "Jonah Feldman",
+      "status": "checked-in",
+      "arrival": "09:45",
+      "overdue": false
+    },
+    {
+      "id": "d29",
+      "name": "Ruby",
+      "kennel": "K33",
+      "breed": "Bernese Mountain Dog",
+      "ownerName": "Amara Nwosu",
+      "status": "checked-in",
+      "arrival": "10:00",
+      "overdue": false
+    },
+    {
+      "id": "d30",
+      "name": "Finn",
+      "kennel": "K34",
+      "breed": "French Bulldog",
+      "ownerName": "Lucas Petit",
+      "status": "checked-in",
+      "arrival": "11:15",
+      "overdue": false
+    },
+    {
+      "id": "d31",
+      "name": "Nori",
+      "kennel": "K35",
+      "breed": "Whippet",
+      "ownerName": "Ingrid Holm",
+      "status": "checked-in",
+      "arrival": "07:30",
+      "overdue": false
+    },
+    {
+      "id": "d32",
+      "name": "Chewie",
+      "kennel": "K36",
+      "breed": "Australian Shepherd",
+      "ownerName": "Mateo Silva",
+      "status": "checked-in",
+      "arrival": "08:45",
+      "overdue": false
+    }
+  ]
+}

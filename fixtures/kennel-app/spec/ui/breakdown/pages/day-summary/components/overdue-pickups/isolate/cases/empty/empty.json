@@ -1,0 +1,8 @@
+{
+  "_name": "Honest empty @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/overdue-pickups/screenshots/overdue-pickups-empty@1280.png",
+  "pickups": []
+}

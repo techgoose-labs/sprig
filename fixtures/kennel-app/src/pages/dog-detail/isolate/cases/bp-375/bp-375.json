@@ -1,0 +1,55 @@
+{
+  "_name": "Biscuit (d01) — 375, one column, actions stacked",
+  "_tier": "static",
+  "dog": {
+    "id": "d01",
+    "name": "Biscuit",
+    "breed": "Golden Retriever",
+    "kennel": "K01",
+    "status": "booked",
+    "arrival": "07:00",
+    "overdue": false,
+    "owner": {
+      "name": "Priya Raman",
+      "phone": "(555) 0100-4000"
+    },
+    "stay": {
+      "checkIn": "Sep 29, 7:00 AM",
+      "plannedCheckOut": "Sep 30, 11:00 AM",
+      "nightlyRate": "$45.00",
+      "nights": 1,
+      "totalDue": "$45.00"
+    },
+    "notes": [
+      {
+        "text": "Allergic to chicken — kibble from home only.",
+        "author": "Front desk",
+        "at": "2026-09-27T14:05"
+      },
+      {
+        "text": "Pulls hard on the lead near the gate; use the harness.",
+        "author": "Walker: Dana",
+        "at": "2026-09-28T09:40"
+      },
+      {
+        "text": "Owner called: fine to extend a night if needed, will confirm by noon. Please also give the blue squeaky toy at bedtime — he won't settle without it and tends to bark at the kennel door for a good half hour otherwise.",
+        "author": "Front desk",
+        "at": "2026-09-29T08:12"
+      }
+    ],
+    "overdueBy": "",
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "closed": false,
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/screenshots/dog-detail@375.png"
+}

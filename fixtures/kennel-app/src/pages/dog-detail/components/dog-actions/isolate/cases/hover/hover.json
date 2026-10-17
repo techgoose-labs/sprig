@@ -1,0 +1,21 @@
+{
+  "_name": "Hover Check in — 200ms colour transition (spec-asserted; still dog-actions-hover@1280)",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": {
+    "status": "booked",
+    "dogId": "d01",
+    "dogName": "Biscuit",
+    "closed": false,
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  }
+}

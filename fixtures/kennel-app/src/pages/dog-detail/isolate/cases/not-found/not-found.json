@@ -1,0 +1,9 @@
+{
+  "_name": "Unknown id — 'We can't find that dog' (404)",
+  "_tier": "static",
+  "dog": null,
+  "closed": false,
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/screenshots/dog-detail-not-found@1280.png"
+}

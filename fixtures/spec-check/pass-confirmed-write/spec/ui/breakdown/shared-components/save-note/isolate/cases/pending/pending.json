@@ -1,0 +1,7 @@
+{
+  "note": "Walk at 4",
+  "_tier": "confirmed-write",
+  "_network": {
+    "POST /api/commands/markDone": "delay:2000"
+  }
+}

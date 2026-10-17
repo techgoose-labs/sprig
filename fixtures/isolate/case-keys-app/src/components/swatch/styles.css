@@ -1,0 +1,8 @@
+.swatch {
+  width: 120px;
+  height: 80px;
+  background: #3366cc;
+}
+:global([data-theme="dark"]) .swatch {
+  background: #111111;
+}

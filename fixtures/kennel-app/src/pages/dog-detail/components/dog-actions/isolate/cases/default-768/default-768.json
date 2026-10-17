@@ -1,0 +1,22 @@
+{
+  "_name": "Booked @768 — row",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 768,
+  "_signals": {
+    "status": "booked",
+    "dogId": "d01",
+    "dogName": "Biscuit",
+    "closed": false,
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions@768.png"
+}

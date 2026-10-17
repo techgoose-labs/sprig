@@ -1,0 +1,19 @@
+<div class="toast toast-stack-queue" aria-live="polite">
+  @for (t of toasts(); track $index) {
+    <div
+      class="alert shadow-sm max-w-xs"
+      [class.alert-error]="t.kind === 'error'"
+      [class.alert-success]="t.kind === 'success'"
+      [class.toast-stack-leaving]="leaving().includes(t)"
+      [attr.role]="t.kind === 'error' ? 'alert' : 'status'"
+      (animationend)="settle(t)"
+    >
+      @if (t.kind === 'success') {
+        <svg class="size-5 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m16 9-5.5 5.5L8 12"></path></svg>
+      } @else {
+        <svg class="size-5 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>
+      }
+      <span>{{ t.msg }}</span>
+    </div>
+  }
+</div>

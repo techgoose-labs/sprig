@@ -1,0 +1,31 @@
+{
+  "_name": "Single-line rows @640",
+  "_tier": "static",
+  "_viewport": 640,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/overdue-pickups/screenshots/overdue-pickups@640.png",
+  "pickups": [
+    {
+      "id": "d14",
+      "name": "Rocco",
+      "kennel": "K14",
+      "overdue": true,
+      "overdueBy": "2h 15m",
+      "owner": {
+        "name": "Oliver Brandt",
+        "phone": "(555) 0113-4481"
+      }
+    },
+    {
+      "id": "d18",
+      "name": "Olive",
+      "kennel": "K18",
+      "overdue": true,
+      "overdueBy": "45m",
+      "owner": {
+        "name": "Elena Popescu",
+        "phone": "(555) 0117-4629"
+      }
+    }
+  ]
+}

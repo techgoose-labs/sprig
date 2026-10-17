@@ -1,0 +1,53 @@
+{
+  "_name": "Closing the day \u2014 reply held (375)",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": {
+    "width": 375,
+    "height": 1400
+  },
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": false,
+    "kennelsTotal": 40,
+    "kennelsUsed": 19,
+    "occupancyPct": 48,
+    "revenueToday": 1225,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    },
+    "overdueCount": 2
+  },
+  "overduePickups": [
+    {
+      "id": "d14",
+      "name": "Rocco",
+      "kennel": "K14",
+      "overdue": true,
+      "overdueBy": "2h 15m",
+      "owner": {
+        "name": "Oliver Brandt",
+        "phone": "(555) 0113-4481"
+      }
+    },
+    {
+      "id": "d18",
+      "name": "Olive",
+      "kennel": "K18",
+      "overdue": true,
+      "overdueBy": "45m",
+      "owner": {
+        "name": "Elena Popescu",
+        "phone": "(555) 0117-4629"
+      }
+    }
+  ],
+  "_network": {
+    "dayClose": "delay:3000"
+  },
+  "state": "live"
+}

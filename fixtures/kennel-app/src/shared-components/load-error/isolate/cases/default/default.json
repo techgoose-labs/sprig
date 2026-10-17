@@ -1,0 +1,10 @@
+{
+  "_name": "Load failed — desktop 1280, brand",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/load-error/screenshots/load-error@1280.png",
+  "title": "Couldn't load today's board",
+  "message": "The kennel server didn't answer. Your last check-ins are safe — nothing was lost.",
+  "retryLabel": "Retry"
+}

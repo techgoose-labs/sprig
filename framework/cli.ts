@@ -26,13 +26,40 @@ import {
 // are unanalyzable + don't resolve once this is published to JSR).
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
 import { existingAuthSlot, existingUiSlot } from "./.sprig/serve-slots.ts";
-import { compositionRootOf, ROOT_ENV } from "./.sprig/composition-root.ts";
+import {
+  describeConfigEdits,
+  runsCompositionRoot,
+  taskCommand,
+} from "./.sprig/config-edits.ts";
+import {
+  compositionRootOf,
+  isCompositionRoot,
+  ROOT_ENV,
+} from "./.sprig/composition-root.ts";
 import {
   analyzeWiring,
   renderWiringMap,
   type WiringDiagnostic,
 } from "./.sprig/compiler/wiring-lint.ts";
 import { createDevServer } from "./.sprig/compiler/dev.ts";
+import {
+  assertComposition,
+  compositionGraph,
+  compositionGraphJson,
+  renderCompositionMap,
+} from "./.sprig/compiler/composition.ts";
+import {
+  formatLintResult,
+  type LintResult,
+} from "./.sprig/compiler/lints/lint-types.ts";
+import { lintContractCalls } from "./.sprig/compiler/lints/contract-calls.ts";
+import { appRootOf } from "./.sprig/compiler/lints/contract.ts";
+import { SKIP_DIRS } from "./.sprig/compiler/lints/ui-files.ts";
+import { lintLogicPlacement } from "./.sprig/compiler/lints/logic-placement.ts";
+import { lintTokens } from "./.sprig/compiler/lints/tokens.ts";
+import { lintDuplicateTemplates } from "./.sprig/compiler/lints/duplicate-templates.ts";
+import { lintOptimisticWrites } from "./.sprig/compiler/lints/optimistic-writes.ts";
+import { renderSpecCheck, specCheck } from "./.sprig/spec-check.ts";
 import { createRenderer, Frontend, loadRoutes } from "../packages/keep/mod.ts";
 import { Bedrock } from "@techgoose-labs/bedrock";
 // The runtime via the BARE specifier, not "./.sprig/core.ts": in the merged-config dev child the
@@ -66,7 +93,12 @@ import {
 // build task runs the CLI through the map rather than the `sprig` launcher,
 // which exists only on a developer's machine (REQ-020).
 import { ROOT_TASKS, rootImports } from "./.sprig/app-scaffold.ts";
-import { commandHelp, USAGE, wantsHelp } from "./.sprig/usage.ts";
+import {
+  commandHelp,
+  parseIsolateArgs,
+  USAGE,
+  wantsHelp,
+} from "./.sprig/usage.ts";
 import {
   findLive,
   IDLE_EXIT_ENV,
@@ -666,8 +698,18 @@ async function build(
   }
   // ONE build — `sprig dev` serves exactly these bytes (no dev variant). HMR rides on top as a
   // runtime flag (cfg.hmr) + the dormant receiver, never a different bundle.
-  const r = await buildClient(srcDir, outDir);
-  await writeBuildInfo(resolve(appDir), outDir);
+  let r: Awaited<ReturnType<typeof buildClient>>;
+  try {
+    r = await buildClient(srcDir, outDir);
+  } catch (e) {
+    // REQ-024/025: a composition error is one message naming every offender — never a stack.
+    if (e instanceof Error && e.message.includes("composition check failed")) {
+      console.error(e.message);
+      Deno.exit(1);
+    }
+    throw e;
+  }
+  await writeBuildInfo(projectRootOf(resolve(appDir)), outDir);
   console.log(
     `sprig build: ${r.islands.length} island chunk(s) ` +
       `[${
@@ -677,57 +719,101 @@ async function build(
   );
 }
 
-/** Bake the git provenance block into the served static dir as `build-info.json`. The deploy tooling
- *  (infra) stamps `{ repo, commit, branch, buildTime }` into **`.infra/git.json`** at the repo root
- *  BEFORE the build runs — a server-only sidecar file (it moved OUT of deno.json: a stamp inside the
- *  most-contended file in the repo conflicted every lagging branch at the merge). This copies it
- *  beside the built assets so the ui unit can emit it as `<meta>` in every SSR document head at
- *  runtime (the serving isolate has no git and no repo). Walks up from `appDir` for the nearest
- *  `.infra/git.json`, falling back to a legacy `git` block in `deno.json(c)`; absent (local dev, or
- *  infra didn't stamp) → writes nothing, and the head stays clean. */
-async function writeBuildInfo(appDir: string, outDir: string): Promise<void> {
-  let git: unknown;
-  let dir = resolve(appDir);
-  for (;;) {
-    // current stamp location: .infra/git.json (the whole file IS the block)
+/** The project an app belongs to — the root its provenance and composition root hang off
+ *  (REQ-067). The enclosing composition root (see findProjectRoot) when the app is one of its
+ *  packages — `<root>/ui`, `<root>/app`, or a member of `<root>/deno.json`'s workspace — else
+ *  the app dir itself: an app that merely LIVES inside a larger repo (fixtures/kennel-app in
+ *  this one) is its own project, and nothing above it is its business. */
+export function projectRootOf(appAbs: string): string {
+  const app = resolve(appAbs);
+  const gitRoot = gitRepoRoot(app);
+  const root = compositionRootOf(app, gitRoot) ?? gitRoot ??
+    (basename(app) === "ui" || basename(app) === "app" ? dirname(app) : app);
+  if (root === app) return app;
+  const rel = relative(root, app).replace(/\\/g, "/");
+  if (rel === "ui" || rel === "app") return root;
+  for (const name of ["deno.json", "deno.jsonc"]) {
     try {
-      const stamp = JSON.parse(
-        await Deno.readTextFile(join(dir, ".infra", "git.json")),
-      );
-      if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) {
-        git = stamp;
-      }
-    } catch { /* absent / unparseable → try the legacy location */ }
-    // legacy location: a `git` key inside deno.json(c)
-    if (!git) {
-      for (const name of ["deno.json", "deno.jsonc"]) {
-        try {
-          const cfg = JSON.parse(await Deno.readTextFile(join(dir, name))) as {
-            git?: unknown;
-          };
-          if (
-            cfg.git && typeof cfg.git === "object" && !Array.isArray(cfg.git)
-          ) {
-            git = cfg.git;
-            break;
-          }
-        } catch {
-          /* absent / JSONC-with-comments / unparseable → keep walking up */
-        }
-      }
-    }
-    if (git) break;
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+      const ws = (JSON.parse(Deno.readTextFileSync(join(root, name))) as {
+        workspace?: unknown;
+      }).workspace;
+      if (
+        Array.isArray(ws) &&
+        ws.some((m) =>
+          typeof m === "string" &&
+          m.replace(/^\.\//, "").replace(/\/+$/, "") === rel
+        )
+      ) return root;
+    } catch { /* absent / JSONC / unparseable → not a workspace */ }
   }
-  if (!git) return;
+  return app;
+}
+
+/** The git HEAD of `dir`'s repo — `{ repo?, commit, branch }`, or null outside a repo /
+ *  without git (a deploy tarball). `repo` is `origin`'s url when there is one. */
+async function gitHeadOf(
+  dir: string,
+): Promise<{ repo?: string; commit: string; branch: string } | null> {
+  const run = async (...args: string[]): Promise<string | null> => {
+    try {
+      const o = await new Deno.Command("git", {
+        args: ["-C", dir, ...args],
+        stdout: "piped",
+        stderr: "null",
+      }).output();
+      const s = new TextDecoder().decode(o.stdout).trim();
+      return o.code === 0 && s ? s : null;
+    } catch {
+      return null; // no git binary
+    }
+  };
+  const commit = await run("rev-parse", "HEAD");
+  if (!commit) return null;
+  const branch = await run("rev-parse", "--abbrev-ref", "HEAD") ?? "unknown";
+  const repo = await run("config", "--get", "remote.origin.url");
+  return { ...(repo ? { repo } : {}), commit, branch };
+}
+
+/** The provenance block for the app rooted at `root` (REQ-067) — from that root ONLY, first hit
+ *  wins: (1) `<root>/.infra/git.json`, which the deploy tooling (infra) stamps BEFORE the build;
+ *  (2) the git HEAD of `<root>`'s repo — the branch/commit actually being built, stamped now;
+ *  (3) `"unknown"`. It never walks above `root`: a parent project's stamp (the sprig repo's own
+ *  `.infra/git.json` under fixtures/kennel-app) describes a different build. */
+export async function resolveBuildInfo(
+  root: string,
+  readGit: (
+    dir: string,
+  ) => Promise<{ repo?: string; commit: string; branch: string } | null> =
+    gitHeadOf,
+  now: () => Date = () => new Date(),
+): Promise<Record<string, unknown>> {
+  try {
+    const stamp = JSON.parse(
+      await Deno.readTextFile(join(root, ".infra", "git.json")),
+    );
+    if (stamp && typeof stamp === "object" && !Array.isArray(stamp)) {
+      return stamp as Record<string, unknown>;
+    }
+  } catch { /* absent / unparseable → git */ }
+  const buildTime = now().toISOString();
+  const head = await readGit(root);
+  if (head) return { ...head, buildTime };
+  return { commit: "unknown", branch: "unknown", buildTime };
+}
+
+/** Bake the provenance block into the served static dir as `build-info.json`, so the ui unit can
+ *  emit it as `<meta>` in every SSR document head at runtime (the serving isolate has no git and
+ *  no repo). `root` is the app's PROJECT root (projectRootOf); the block is resolveBuildInfo's. */
+async function writeBuildInfo(root: string, outDir: string): Promise<void> {
+  const info = await resolveBuildInfo(root);
   await Deno.mkdir(outDir, { recursive: true }).catch(() => {});
   await Deno.writeTextFile(
     join(outDir, "build-info.json"),
-    JSON.stringify(git) + "\n",
+    JSON.stringify(info) + "\n",
   );
-  console.log(`sprig: baked build-info.json (git provenance) → ${outDir}`);
+  console.log(
+    `sprig: baked build-info.json (${info.commit} on ${info.branch}, from ${root}) → ${outDir}`,
+  );
 }
 
 /** Stamp the app's `@techgoose-labs/sprig` (+ `/keep`) import to the RUNNING CLI's EXACT version, so an
@@ -816,11 +902,7 @@ async function collectSource(
     const p = join(dir, e.name);
     if (e.isDirectory) {
       // static/ is build output (regenerated); the rest are vendored/scaffold/VCS — never source.
-      if (
-        ["node_modules", ".git", "static", "isolate", "_isolate"].includes(
-          e.name,
-        )
-      ) continue;
+      if (Object.hasOwn(SKIP_DIRS, e.name)) continue;
       await collectSource(p, out);
     } else if (/\.(?:tsx?|jsx?|mjs)$/.test(e.name)) {
       out.push(p);
@@ -964,10 +1046,7 @@ async function collectTs(dir: string, out: string[] = []): Promise<string[]> {
   for await (const e of Deno.readDir(dir)) {
     const p = join(dir, e.name);
     if (e.isDirectory) {
-      if (
-        e.name === "isolate" || e.name === "_isolate" ||
-        e.name === "node_modules"
-      ) continue;
+      if (Object.hasOwn(SKIP_DIRS, e.name)) continue; // generated / third-party (REQ-055)
       await collectTs(p, out);
     } else if (
       e.isFile && e.name.endsWith(".ts") && !e.name.endsWith(".test.ts")
@@ -983,12 +1062,15 @@ async function collectTs(dir: string, out: string[] = []): Promise<string[]> {
  *  drops its @techgoose-labs/sprig pin (the CLI is the sole runtime owner): the app authors against the
  *  @techgoose-labs/sprig interface, the CLI supplies the one implementation, so what typechecks is
  *  exactly what builds — there is no second copy to drift against. */
-async function check(appDir = "."): Promise<void> {
+async function check(appDir = ".", rootArg?: string): Promise<void> {
   const srcDir = join(resolve(appDir), "src");
   if (!(await pathExists(srcDir))) {
     console.error(`sprig check: no src/ under ${resolve(appDir)}`);
     Deno.exit(1);
   }
+  // REQ-048: every check runs, then one verdict — a red typecheck never hides a
+  // red lint. `red` collects the names of the checks that failed.
+  const red: string[] = [];
   const tmp = await Deno.makeTempDir({ prefix: "sprig-check-" });
   // A temp deno.json carrying BOTH the forced runtime imports AND the app's compilerOptions —
   // islands run in the browser, so the app's `lib` (dom) + decorator options must apply or
@@ -1005,30 +1087,101 @@ async function check(appDir = "."): Promise<void> {
   const files = await collectTs(srcDir);
   try {
     if (files.length === 0) {
-      console.log(`sprig check: no .ts files under ${srcDir}`);
-      return;
+      console.log(
+        `sprig check: no .ts files under ${srcDir} — nothing to typecheck`,
+      );
+    } else {
+      const res = await new Deno.Command("deno", {
+        args: ["check", "--config", cfgPath, ...files],
+        stdout: "inherit",
+        stderr: "inherit",
+      }).output();
+      if (res.success) {
+        console.log(
+          `sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`,
+        );
+      } else red.push("typecheck");
     }
-    const res = await new Deno.Command("deno", {
-      args: ["check", "--config", cfgPath, ...files],
-      stdout: "inherit",
-      stderr: "inherit",
-    }).output();
-    if (!res.success) Deno.exit(1);
-    console.log(
-      `sprig check: ${files.length} file(s) typecheck clean under the CLI runtime.`,
-    );
   } finally {
     await Deno.remove(tmp, { recursive: true }).catch(() => {});
   }
   // TEMPLATE WIRING lint (spec §6): the same required check `sprig build` gates on —
   // run it here too so `sprig check` is the one pre-flight that catches everything.
   const wiring = await analyzeWiring(resolve(appDir));
-  if (reportWiringDiags("sprig check", wiring.diagnostics)) Deno.exit(1);
+  if (reportWiringDiags("sprig check", wiring.diagnostics)) red.push("wiring");
   if (wiring.channels.length && !wiring.diagnostics.length) {
     console.log(
       `sprig check: ${wiring.channels.length} wiring channel(s) lint clean (\`sprig map\` draws them).`,
     );
   }
+  // COMPOSITION (REQ-024/025): every tag resolves, no undeclared shadowing — the
+  // same check the build gates on, so `sprig check` is the one pre-flight.
+  try {
+    await assertComposition(srcDir, "sprig check", console.log, {
+      skipDirs: SKIP_DIRS,
+    });
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    red.push("composition");
+  }
+  // SOURCE LINTS (REQ-022/023/027/028/030): each prints what it checked, what it
+  // skipped and why, every finding with its fix, every suppression with its reason.
+  const gitRoot = rootArg
+    ? resolve(rootArg)
+    : gitRepoRoot(resolve(appDir)) ?? resolve(appDir);
+  // REQ-068: the contract is looked up at the app root (the dir holding deno.json)
+  // first, then the git root (or --root) — each contract lint names the one it read.
+  const appRoot = await appRootOf(resolve(appDir), gitRoot);
+  const lints: [string, () => Promise<LintResult>][] = [
+    [
+      "contract-calls",
+      () => lintContractCalls({ uiSrc: srcDir, gitRoot, appRoot }),
+    ],
+    ["logic-placement", () => lintLogicPlacement({ uiSrc: srcDir })],
+    ["tokens", () => lintTokens({ uiSrc: srcDir })],
+    ["duplicate-templates", () => lintDuplicateTemplates({ uiSrc: srcDir })],
+    [
+      "optimistic-writes",
+      () => lintOptimisticWrites({ uiSrc: srcDir, gitRoot, appRoot }),
+    ],
+  ];
+  for (const [name, run] of lints) {
+    const r = await run();
+    for (const line of formatLintResult(name, r)) console.log(line);
+    if (r.findings.some((f) => f.severity === "error")) red.push(name);
+  }
+  const all = [
+    "typecheck",
+    "wiring",
+    "composition",
+    ...lints.map(([n]) => n),
+  ];
+  if (red.length) {
+    console.error(
+      `sprig check: red — ${red.join(", ")} (green: ${
+        all.filter((n) => !red.includes(n)).join(", ") || "none"
+      })`,
+    );
+    Deno.exit(1);
+  }
+  console.log(`sprig check: green — ${all.join(", ")}`);
+}
+
+/** Split a command's args into positionals and the values of the named `--flag <value>`
+ *  options, so a flag's value is never mistaken for the app directory. */
+function splitArgs(
+  args: string[],
+  valued: string[],
+): { positional: string[]; values: Record<string, string> } {
+  const positional: string[] = [];
+  const values: Record<string, string> = {};
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (valued.includes(a)) {
+      values[a] = args[++i] ?? "";
+    } else if (!a.startsWith("-")) positional.push(a);
+  }
+  return { positional, values };
 }
 
 /** `sprig map [appDir]` — render the app's dataflow from its templates alone (spec §5):
@@ -1036,11 +1189,21 @@ async function check(appDir = "."): Promise<void> {
  *  `org: set by side-nav → edited by org-quick-rename → read by org-detail, app-detail`.
  *  Stable-ordered (declaring template path, then template line), so it diffs cleanly —
  *  the proof that the HTML is the source of truth, and the regression guard. */
-async function mapCmd(appArg = "."): Promise<void> {
+async function mapCmd(
+  appArg = ".",
+  opts: { compose?: boolean; json?: boolean } = {},
+): Promise<void> {
   const app = resolve(appArg);
   if (!(await pathExists(join(app, "src")))) {
     console.error(`sprig map: no src/ under ${app}`);
     Deno.exit(1);
+  }
+  // --compose (REQ-026): who composes whom, from the same registry resolution the
+  // renderer uses — the ground truth for reuse, not a regex over templates.
+  if (opts.compose) {
+    const g = await compositionGraph(app);
+    console.log(opts.json ? compositionGraphJson(g) : renderCompositionMap(g));
+    return;
   }
   const analysis = await analyzeWiring(app);
   if (!analysis.channels.length) {
@@ -1152,9 +1315,12 @@ async function emitRuneComposition(
   await assertServerBackend(gitRoot);
   const serverRel = "server";
   await writeRuneServe(gitRoot, uiRel, serverRel, assetsRel);
-  await ensureRuneWorkspace(gitRoot, uiRel, serverRel);
-  const envHint = (await pathExists(join(gitRoot, ".env")))
-    ? " --env-file=.env"
+  const { start, edits } = await ensureRuneWorkspace(gitRoot, uiRel, serverRel);
+  // A .env the author's own `start` task never loads: say so once, don't edit
+  // the task (REQ-018 — it is theirs; they may load env some other way).
+  const envHint = (await pathExists(join(gitRoot, ".env"))) &&
+      !/--env-file\b/.test(start)
+    ? `\n  (.env is here but tasks.start passes no --env-file — add --env-file=.env if the app reads it)`
     : "";
   console.log(
     `sprig build --rune: composed ${serverRel}/ (keep) + ${uiRel}/ (sprig) → ${
@@ -1163,9 +1329,11 @@ async function emitRuneComposition(
       `  + Deno workspace in ${
         join(gitRoot, "deno.json")
       } (members ./${uiRel}, ./${serverRel})\n` +
+      // every deno.json edit this build made, one line each (REQ-019); none → silence
+      edits.map((l) => `  ${l}\n`).join("") +
       `  run it from ${
         relative(Deno.cwd(), gitRoot) || "here"
-      }:  deno serve -A${envHint} serve.ts`,
+      }:  deno task start   (${start})` + envHint,
   );
 }
 
@@ -1465,13 +1633,36 @@ async function ensureRuneWorkspace(
   gitRoot: string,
   uiRel: string,
   serverRel: string,
-): Promise<void> {
-  const uiCfg = await readJson(join(gitRoot, uiRel, "deno.json"));
+): Promise<{ start: string; edits: string[] }> {
+  const rootPath = join(gitRoot, "deno.json");
+  const uiPath = join(gitRoot, uiRel, "deno.json");
+  const serverPath = join(gitRoot, serverRel, "deno.json");
+  const rootBefore = await readJson(rootPath);
+  const uiCfg = await readJson(uiPath);
+  const serverBefore = await readJson(serverPath);
   const uiImports = (uiCfg?.imports ?? {}) as Record<string, string>;
   const fallbackSprigV = cliVersion() ?? "2.0";
   const envFlag = (await pathExists(join(gitRoot, ".env")))
     ? " --env-file=.env"
     : "";
+  // The `start` task: the author's if it already runs the composition root —
+  // flags, env prefix and all, it is passed back unchanged so the writer sees
+  // nothing to replace (REQ-018). Only a task that cannot run the composed
+  // root (1.x's `deno run -A serve.ts`, another entry, none) gets ours.
+  const existingStart =
+    (rootBefore?.tasks as Record<string, unknown> | undefined)
+      ?.start;
+  const generatedStart = `deno${" "}serve -A${envFlag} serve.ts`;
+  const start = runsCompositionRoot(existingStart)
+    ? existingStart
+    : generatedStart;
+  const hoistOnly = [
+    "@techgoose-labs/bedrock",
+    "@techgoose-labs/sprig",
+    "@techgoose-labs/sprig/",
+    "@techgoose-labs/sprig/keep",
+    "@techgoose-labs/sprig/bedrock",
+  ];
 
   await ensureWorkspace(gitRoot, {
     members: [`./${uiRel}`, `./${serverRel}`],
@@ -1486,19 +1677,53 @@ async function ensureRuneWorkspace(
     // builder, and the stamp keeps its pin with the runtime's (REQ-020/017).
     // Added only when the root has none, so an app's own value stands.
     imports: rootImports(uiImports, fallbackSprigV),
-    hoistOnly: [
-      "@techgoose-labs/bedrock",
-      "@techgoose-labs/sprig",
-      "@techgoose-labs/sprig/",
-      "@techgoose-labs/sprig/keep",
-      "@techgoose-labs/sprig/bedrock",
-    ],
+    hoistOnly,
     // Deno KV is unstable on the CLI and keep backends commonly use it; the
     // field is honored ONLY in the workspace root.
     unstable: ["kv"],
-    tasks: { start: `deno${" "}serve -A${envFlag} serve.ts` },
+    // (bedrock's writer types tasks as strings; Deno's object form passes
+    // through untouched because it is the author's, compared by identity)
+    tasks: { start: start as string },
     replaceTasks: ["start"],
   });
+
+  // What changed, said out loud (REQ-019): the root's edits, then each
+  // member's — a hoisted pin names the root pin it now resolves through.
+  const rootAfter = await readJson(rootPath);
+  const rootImports = (rootAfter?.imports ?? {}) as Record<string, string>;
+  const hoistNotes = () => {
+    const notes: Record<string, string> = {
+      unstable: "hoisted: honored only in the workspace root",
+    };
+    for (const spec of hoistOnly) {
+      notes[`imports.${spec}`] = spec in rootImports
+        ? `hoisted: root-only, resolved through deno.json's ${
+          JSON.stringify(rootImports[spec])
+        }`
+        : "hoisted: root-only";
+    }
+    return notes;
+  };
+  const edits = [
+    ...describeConfigEdits("deno.json", rootBefore, rootAfter, {
+      "tasks.start": existingStart !== undefined && start !== existingStart
+        ? "it did not run the composed root"
+        : "",
+    }),
+    ...describeConfigEdits(
+      `${uiRel}/deno.json`,
+      uiCfg,
+      await readJson(uiPath),
+      hoistNotes(),
+    ),
+    ...describeConfigEdits(
+      `${serverRel}/deno.json`,
+      serverBefore,
+      await readJson(serverPath),
+      hoistNotes(),
+    ),
+  ];
+  return { start: taskCommand(start), edits };
 }
 
 async function serve(entry = "serve.ts"): Promise<void> {
@@ -2439,6 +2664,73 @@ async function isolate(appDir = ".", open = true): Promise<void> {
   Deno.exit(code);
 }
 
+function isDirSync(p: string): boolean {
+  try {
+    return Deno.statSync(p).isDirectory;
+  } catch {
+    return false;
+  }
+}
+
+/** `sprig isolate test|list` (REQ-056) — run the workbench runner (cli/main.ts) on
+ *  `appAbs` and exit with its code. A test run gets a PRIVATE workbench (a pre-set
+ *  SPRIG_WB_ROOT wins) so concurrent runs — parallel build agents each testing their
+ *  own unit — never rebuild one shared workbench under each other. */
+async function isolateRunner(
+  sub: "test" | "list",
+  appAbs: string,
+  args: string[],
+): Promise<void> {
+  const root = installRoot();
+  await assertWorkbench(root);
+  const env: Record<string, string> = {
+    ...Deno.env.toObject(),
+    ...parentEnv(), // the runner watches us: if we die without warning, it exits (REQ-004)
+  };
+  if (sub === "test") {
+    env.SPRIG_WB_ROOT = Deno.env.get("SPRIG_WB_ROOT") ??
+      `${workbenchRoot(appAbs)}-test-${Deno.pid}`;
+  }
+  const child = new Deno.Command(Deno.execPath(), {
+    args: [
+      "run",
+      "-A",
+      "--unstable-kv",
+      "--config",
+      join(root, "deno.json"),
+      join(root, "cli", "main.ts"),
+      sub,
+      "--root",
+      appAbs,
+      ...args,
+    ],
+    cwd: root,
+    env,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  }).spawn();
+  let stopping = false;
+  const stop = async (code: number): Promise<void> => {
+    if (stopping) return;
+    stopping = true;
+    await terminate(child, 3000);
+    Deno.exit(code);
+  };
+  for (
+    const [sig, code] of [["SIGINT", 130], ["SIGTERM", 143], [
+      "SIGHUP",
+      129,
+    ]] as const
+  ) {
+    try {
+      Deno.addSignalListener(sig, () => void stop(code));
+    } catch { /* signal not supported here */ }
+  }
+  const { code } = await child.status;
+  Deno.exit(code);
+}
+
 /** Read this install's own version (from the package deno.json) and publish time (from the
  *  runtime bundle's `framework/.sprig/build-info.json` stamp). `..` from framework/cli.ts is the
  *  install root, both in a checkout and in ~/.sprig. `publishedAt` is null on a dev/checkout
@@ -2621,11 +2913,38 @@ switch (cmd) {
       break;
     }
     const ui = await resolveBuildAppDir(appArg);
+    // REQ-067: an app that only LIVES inside a larger repo — not its ./ui or ./app, not a
+    // workspace member (fixtures/kennel-app in this one) — is its own project, so its
+    // composition root is the serve.ts at ITS root, never the enclosing repo's. Absent, refuse
+    // before touching anything, naming both paths tried and the UI-only build.
+    const repoRoot = gitRepoRoot(ui);
+    const ownRoot = repoRoot !== ui && !isCompositionRoot(ui) &&
+      projectRootOf(ui) === ui;
+    const appServe = join(ui, "serve.ts");
+    if (ownRoot && !(await pathExists(appServe))) {
+      const outer = compositionRootOf(ui, repoRoot) ?? repoRoot;
+      const uiArg = appArg ?? (relative(Deno.cwd(), ui) || ".");
+      console.error(
+        `sprig build: no serve.ts at ${ui}; a UI-only build is \`--ui-only\`.\n` +
+          `  Tried the composition root relative to the APP root (the dir holding its deno.json):\n` +
+          `    ${appServe} — absent\n` +
+          (outer
+            ? `    ${
+              join(outer, "serve.ts")
+            } — not this app's: ${ui} is not a package of ${outer}\n` +
+              `      (not its ./ui or ./app, not a member of its workspace)\n`
+            : "") +
+          `  Nothing was touched. Give the app its own composition root at ${appServe},\n` +
+          `  or build just the client bundle:\n` +
+          `      sprig build --ui-only ${uiArg}`,
+      );
+      Deno.exit(1);
+    }
     // Artifact gates (both fail LOUD, never a silent misread): the manifest
     // version handshake, and contract freshness — a committed typed client
     // must match the committed openapi.json it claims to come from.
     {
-      const gitRoot = dirname(ui);
+      const gitRoot = ownRoot ? ui : dirname(ui);
       for (
         const err of [
           await checkArtifactVersion(gitRoot),
@@ -2645,17 +2964,58 @@ switch (cmd) {
         await registerManifestEntries(gitRoot, SPRIG_MANIFEST_ENTRIES);
       } catch { /* no artifact — nothing to register */ }
     }
+    if (ownRoot) {
+      // The app's own serve.ts IS its composition root: build the client bundle beside it and
+      // leave the root as written — there is no server/ package here to compose.
+      await build(ui, join(ui, "static"), false);
+      console.log(
+        `sprig build: composition root is the app's own ${appServe} — left as written;\n` +
+          `  run it from ${
+            relative(Deno.cwd(), ui) || "here"
+          }:  deno serve -A serve.ts`,
+      );
+      break;
+    }
     await build(ui, join(ui, "static"), true);
     break;
   }
   case "check": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await check(appArg);
+    const { positional, values } = splitArgs(rest, ["--root"]);
+    await check(positional[0] ?? ".", values["--root"]);
     break;
   }
   case "map": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await mapCmd(appArg);
+    const { positional } = splitArgs(rest, []);
+    await mapCmd(positional[0] ?? ".", {
+      compose: rest.includes("--compose"),
+      json: rest.includes("--json"),
+    });
+    break;
+  }
+  case "spec-check": {
+    // REQ-032: the breakdown's machine checks — unassigned, binding drift, tier
+    // cases, built coverage, composition vs usage matrix, double assignment;
+    // REQ-070: the DRY checks — census, same-job, reuse.
+    const { positional, values } = splitArgs(rest, [
+      "--root",
+      "--ui-src",
+      "--app",
+    ]);
+    const gitRoot = values["--root"]
+      ? resolve(values["--root"])
+      : gitRepoRoot(Deno.cwd()) ?? Deno.cwd();
+    const breakdownDir = positional[0]
+      ? resolve(positional[0])
+      : join(gitRoot, "spec", "ui", "breakdown");
+    const r = await specCheck({
+      gitRoot,
+      breakdownDir,
+      uiSrc: values["--ui-src"] ? resolve(values["--ui-src"]) : undefined,
+      appDir: values["--app"] ? resolve(values["--app"]) : undefined,
+    });
+    if (rest.includes("--json")) console.log(JSON.stringify(r, null, 2));
+    else console.log(renderSpecCheck(r));
+    if (!r.ok) Deno.exit(1);
     break;
   }
   case "dev":
@@ -2698,8 +3058,22 @@ switch (cmd) {
     await version();
     break;
   case "isolate": {
-    const appArg = rest.find((a) => !a.startsWith("-")) ?? ".";
-    await isolate(appArg, !rest.includes("--no-open"));
+    // REQ-056 — `test`/`list` are the workbench runner's; anything else must be an
+    // existing app dir (the dev workbench). A typo is an error, never a green no-op.
+    const plan = parseIsolateArgs(rest, isDirSync);
+    if (plan.kind === "error") {
+      console.error(plan.message);
+      Deno.exit(1);
+    }
+    if (plan.kind === "dev") await isolate(plan.app, plan.open);
+    else {
+      await isolateRunner(plan.sub, resolve(plan.app), [
+        ...plan.args,
+        ...(plan.evidence !== undefined
+          ? ["--evidence", resolve(plan.evidence)]
+          : []),
+      ]);
+    }
     break;
   }
   case undefined:

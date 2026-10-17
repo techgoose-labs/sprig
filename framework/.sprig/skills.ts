@@ -31,13 +31,16 @@ async function pathExists(p: string): Promise<boolean> {
 }
 
 /** Skill destination = user scope. NEVER a project/checkout path. Honors CLAUDE_SKILLS_DIR. */
-export function skillsDest(): string {
-  return Deno.env.get("CLAUDE_SKILLS_DIR") ?? join(home(), ".claude", "skills");
+/** the env these readers use — injectable so tests never mutate Deno.env (REQ-021 AMENDMENT) */
+export type EnvReader = { get(key: string): string | undefined };
+
+function skillsDest(env: EnvReader = Deno.env): string {
+  return env.get("CLAUDE_SKILLS_DIR") ?? join(home(), ".claude", "skills");
 }
 
 /** Agent destination = user scope. NEVER a project/checkout path. Honors CLAUDE_AGENTS_DIR. */
-export function agentsDest(): string {
-  return Deno.env.get("CLAUDE_AGENTS_DIR") ?? join(home(), ".claude", "agents");
+function agentsDest(env: EnvReader = Deno.env): string {
+  return env.get("CLAUDE_AGENTS_DIR") ?? join(home(), ".claude", "agents");
 }
 
 /** Skip cleanly when Claude Code is absent (no ~/.claude AND no explicit override) so
@@ -45,8 +48,8 @@ export function agentsDest(): string {
  *  CLAUDE_AGENTS_DIR override always proceeds (e.g. a sandbox) — checking only the
  *  skills override made installAgents silently skip on any machine without ~/.claude
  *  even when told exactly where to install (the CI agents test failed exactly so). */
-async function claudeAbsent(): Promise<boolean> {
-  if (Deno.env.get("CLAUDE_SKILLS_DIR") || Deno.env.get("CLAUDE_AGENTS_DIR")) {
+async function claudeAbsent(env: EnvReader = Deno.env): Promise<boolean> {
+  if (env.get("CLAUDE_SKILLS_DIR") || env.get("CLAUDE_AGENTS_DIR")) {
     return false;
   }
   return !(await pathExists(join(home(), ".claude")));
@@ -111,8 +114,12 @@ export async function installAgent(
 }
 
 /** Install/update EVERY skill under `skillsDir` into the user-scope skills dir. */
-export async function installSkills(skillsDir: string): Promise<void> {
-  if (await claudeAbsent()) {
+export async function installSkills(
+  skillsDir: string,
+  opts: { env?: EnvReader } = {},
+): Promise<void> {
+  const env = opts.env ?? Deno.env;
+  if (await claudeAbsent(env)) {
     console.log("sprig: ~/.claude not found — skipping Claude Code skills.");
     return;
   }
@@ -122,7 +129,7 @@ export async function installSkills(skillsDir: string): Promise<void> {
     );
     return;
   }
-  const dest = skillsDest();
+  const dest = skillsDest(env);
   await Deno.mkdir(dest, { recursive: true });
   for await (const e of Deno.readDir(skillsDir)) {
     if (e.name.startsWith(".")) continue; // skip .gitkeep et al
@@ -132,8 +139,12 @@ export async function installSkills(skillsDir: string): Promise<void> {
 }
 
 /** Install/update EVERY agent under `agentsDir` into the user-scope agents dir. */
-export async function installAgents(agentsDir: string): Promise<void> {
-  if (await claudeAbsent()) {
+export async function installAgents(
+  agentsDir: string,
+  opts: { env?: EnvReader } = {},
+): Promise<void> {
+  const env = opts.env ?? Deno.env;
+  if (await claudeAbsent(env)) {
     console.log("sprig: ~/.claude not found — skipping Claude Code agents.");
     return;
   }
@@ -143,7 +154,7 @@ export async function installAgents(agentsDir: string): Promise<void> {
     );
     return;
   }
-  const dest = agentsDest();
+  const dest = agentsDest(env);
   await Deno.mkdir(dest, { recursive: true });
   for await (const e of Deno.readDir(agentsDir)) {
     if (e.name.startsWith(".")) continue; // skip .gitkeep et al

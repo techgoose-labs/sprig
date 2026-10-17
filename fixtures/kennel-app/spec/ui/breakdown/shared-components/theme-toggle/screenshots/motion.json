@@ -1,0 +1,460 @@
+{
+  "trigger": "click label.swap -> input#theme-toggle change -> setTheme(brand-dark): documentElement.dataset.theme flips; captured ~20ms after click at 1280x800 on #/board",
+  "unitAnimations": [
+    {
+      "kind": "CSSTransition",
+      "name": "background-color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "backgroundColor": "oklab(0 0 0 / 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "backgroundColor": "oklab(0.234431 0.00937385 0.0136012)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-bottom-color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderBottomColor": "oklab(0 0 0 / 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderBottomColor": "oklab(0.222709 0.00890515 0.0129211)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-left-color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderLeftColor": "oklab(0 0 0 / 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderLeftColor": "oklab(0.222709 0.00890515 0.0129211)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-right-color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderRightColor": "oklab(0 0 0 / 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderRightColor": "oklab(0.222709 0.00890515 0.0129211)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-top-color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderTopColor": "oklab(0 0 0 / 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderTopColor": "oklab(0.222709 0.00890515 0.0129211)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "box-shadow",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "oklab(0 0 0 / 0) 0px 0px 0px 0px inset, oklab(0 0 0 / 0) 0px 0px 0px 0px, oklab(0 0 0 / 0) 0px 0px 0px 0px",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.234431 0.00937385 0.0136012 / 0.3) 0px 3px 2px -2px, oklab(0.234431 0.00937385 0.0136012 / 0.3) 0px 4px 3px -2px",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "color",
+      "target": "label.swap.swap-rotate.btn.btn-ghost.btn-sm.btn-square",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "color": "rgb(59, 42, 30)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "color": "rgb(241, 231, 217)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "opacity",
+      "target": "svg.lucide.lucide-sun.swap-off.size-[1.2em]",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "1",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "0",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "rotate",
+      "target": "svg.lucide.lucide-sun.swap-off.size-[1.2em]",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "rotate": "none",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "rotate": "-45deg",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "opacity",
+      "target": "svg.lucide.lucide-moon.swap-on.size-[1.2em]",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "0",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "opacity": "1",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "rotate",
+      "target": "svg.lucide.lucide-moon.swap-on.size-[1.2em]",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "rotate": "45deg",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "rotate": "0deg",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 16.70099997787533,
+        "progress": 0.26429660706777697
+      },
+      "playState": "running"
+    }
+  ],
+  "pageCascade": {
+    "note": "Flipping data-theme also starts CSSTransitions on every element that has a daisyUI/Tailwind color transition (btn 200ms cubic-bezier(0,0,.2,1); board status-strip cards transition-colors 150ms cubic-bezier(.4,0,.2,1)). Surfaces without a transition (header/body bg) snap instantly.",
+    "count": 32,
+    "byTarget": [
+      {
+        "target": "a.btn.btn-ghost.btn-sm.btn-active",
+        "properties": [
+          "background-color",
+          "border-bottom-color",
+          "border-left-color",
+          "border-right-color",
+          "border-top-color",
+          "color"
+        ],
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)"
+      },
+      {
+        "target": "a.btn.btn-ghost.btn-sm",
+        "properties": [
+          "color"
+        ],
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)"
+      },
+      {
+        "target": "div.btn.btn-ghost.btn-sm.btn-square",
+        "properties": [
+          "color"
+        ],
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)"
+      },
+      {
+        "target": "button.card.bg-base-100.border.border-base-300.text-left.hover:bg-base-200.transition-colors",
+        "properties": [
+          "background-color",
+          "border-bottom-color",
+          "border-left-color",
+          "border-right-color",
+          "border-top-color",
+          "color"
+        ],
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+      }
+    ]
+  }
+}
