@@ -27,6 +27,11 @@ import {
 import { buildClient, forcedImportMap } from "./.sprig/compiler/build.ts";
 import { existingAuthSlot, existingUiSlot } from "./.sprig/serve-slots.ts";
 import {
+  describeConfigEdits,
+  runsCompositionRoot,
+  taskCommand,
+} from "./.sprig/config-edits.ts";
+import {
   compositionRootOf,
   isCompositionRoot,
   ROOT_ENV,
@@ -1306,9 +1311,12 @@ async function emitRuneComposition(
   await assertServerBackend(gitRoot);
   const serverRel = "server";
   await writeRuneServe(gitRoot, uiRel, serverRel, assetsRel);
-  await ensureRuneWorkspace(gitRoot, uiRel, serverRel);
-  const envHint = (await pathExists(join(gitRoot, ".env")))
-    ? " --env-file=.env"
+  const { start, edits } = await ensureRuneWorkspace(gitRoot, uiRel, serverRel);
+  // A .env the author's own `start` task never loads: say so once, don't edit
+  // the task (REQ-018 — it is theirs; they may load env some other way).
+  const envHint = (await pathExists(join(gitRoot, ".env"))) &&
+      !/--env-file\b/.test(start)
+    ? `\n  (.env is here but tasks.start passes no --env-file — add --env-file=.env if the app reads it)`
     : "";
   console.log(
     `sprig build --rune: composed ${serverRel}/ (keep) + ${uiRel}/ (sprig) → ${
@@ -1317,9 +1325,11 @@ async function emitRuneComposition(
       `  + Deno workspace in ${
         join(gitRoot, "deno.json")
       } (members ./${uiRel}, ./${serverRel})\n` +
+      // every deno.json edit this build made, one line each (REQ-019); none → silence
+      edits.map((l) => `  ${l}\n`).join("") +
       `  run it from ${
         relative(Deno.cwd(), gitRoot) || "here"
-      }:  deno serve -A${envHint} serve.ts`,
+      }:  deno task start   (${start})` + envHint,
   );
 }
 
@@ -1619,13 +1629,36 @@ async function ensureRuneWorkspace(
   gitRoot: string,
   uiRel: string,
   serverRel: string,
-): Promise<void> {
-  const uiCfg = await readJson(join(gitRoot, uiRel, "deno.json"));
+): Promise<{ start: string; edits: string[] }> {
+  const rootPath = join(gitRoot, "deno.json");
+  const uiPath = join(gitRoot, uiRel, "deno.json");
+  const serverPath = join(gitRoot, serverRel, "deno.json");
+  const rootBefore = await readJson(rootPath);
+  const uiCfg = await readJson(uiPath);
+  const serverBefore = await readJson(serverPath);
   const uiImports = (uiCfg?.imports ?? {}) as Record<string, string>;
   const fallbackSprigV = cliVersion() ?? "2.0";
   const envFlag = (await pathExists(join(gitRoot, ".env")))
     ? " --env-file=.env"
     : "";
+  // The `start` task: the author's if it already runs the composition root —
+  // flags, env prefix and all, it is passed back unchanged so the writer sees
+  // nothing to replace (REQ-018). Only a task that cannot run the composed
+  // root (1.x's `deno run -A serve.ts`, another entry, none) gets ours.
+  const existingStart =
+    (rootBefore?.tasks as Record<string, unknown> | undefined)
+      ?.start;
+  const generatedStart = `deno${" "}serve -A${envFlag} serve.ts`;
+  const start = runsCompositionRoot(existingStart)
+    ? existingStart
+    : generatedStart;
+  const hoistOnly = [
+    "@techgoose-labs/bedrock",
+    "@techgoose-labs/sprig",
+    "@techgoose-labs/sprig/",
+    "@techgoose-labs/sprig/keep",
+    "@techgoose-labs/sprig/bedrock",
+  ];
 
   await ensureWorkspace(gitRoot, {
     members: [`./${uiRel}`, `./${serverRel}`],
@@ -1648,19 +1681,53 @@ async function ensureRuneWorkspace(
       "@preact/signals-core": uiImports["@preact/signals-core"] ??
         "npm:@preact/signals-core@^1",
     },
-    hoistOnly: [
-      "@techgoose-labs/bedrock",
-      "@techgoose-labs/sprig",
-      "@techgoose-labs/sprig/",
-      "@techgoose-labs/sprig/keep",
-      "@techgoose-labs/sprig/bedrock",
-    ],
+    hoistOnly,
     // Deno KV is unstable on the CLI and keep backends commonly use it; the
     // field is honored ONLY in the workspace root.
     unstable: ["kv"],
-    tasks: { start: `deno${" "}serve -A${envFlag} serve.ts` },
+    // (bedrock's writer types tasks as strings; Deno's object form passes
+    // through untouched because it is the author's, compared by identity)
+    tasks: { start: start as string },
     replaceTasks: ["start"],
   });
+
+  // What changed, said out loud (REQ-019): the root's edits, then each
+  // member's — a hoisted pin names the root pin it now resolves through.
+  const rootAfter = await readJson(rootPath);
+  const rootImports = (rootAfter?.imports ?? {}) as Record<string, string>;
+  const hoistNotes = () => {
+    const notes: Record<string, string> = {
+      unstable: "hoisted: honored only in the workspace root",
+    };
+    for (const spec of hoistOnly) {
+      notes[`imports.${spec}`] = spec in rootImports
+        ? `hoisted: root-only, resolved through deno.json's ${
+          JSON.stringify(rootImports[spec])
+        }`
+        : "hoisted: root-only";
+    }
+    return notes;
+  };
+  const edits = [
+    ...describeConfigEdits("deno.json", rootBefore, rootAfter, {
+      "tasks.start": existingStart !== undefined && start !== existingStart
+        ? "it did not run the composed root"
+        : "",
+    }),
+    ...describeConfigEdits(
+      `${uiRel}/deno.json`,
+      uiCfg,
+      await readJson(uiPath),
+      hoistNotes(),
+    ),
+    ...describeConfigEdits(
+      `${serverRel}/deno.json`,
+      serverBefore,
+      await readJson(serverPath),
+      hoistNotes(),
+    ),
+  ];
+  return { start: taskCommand(start), edits };
 }
 
 async function serve(entry = "serve.ts"): Promise<void> {

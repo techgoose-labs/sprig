@@ -119,7 +119,8 @@
       "framework/.sprig/wire-paths.ts",
       "framework/cli.ts",
       "packages/keep/mod.ts",
-      "packages/keep/vendor/apexcharts.js"
+      "packages/keep/vendor/apexcharts.js",
+      "framework/.sprig/config-edits.ts"
     ]
   },
   "git": {
