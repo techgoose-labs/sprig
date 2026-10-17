@@ -1690,15 +1690,15 @@ async function ensureRuneWorkspace(
   // What changed, said out loud (REQ-019): the root's edits, then each
   // member's — a hoisted pin names the root pin it now resolves through.
   const rootAfter = await readJson(rootPath);
-  const rootImports = (rootAfter?.imports ?? {}) as Record<string, string>;
+  const rootImportsAfter = (rootAfter?.imports ?? {}) as Record<string, string>;
   const hoistNotes = () => {
     const notes: Record<string, string> = {
       unstable: "hoisted: honored only in the workspace root",
     };
     for (const spec of hoistOnly) {
-      notes[`imports.${spec}`] = spec in rootImports
+      notes[`imports.${spec}`] = spec in rootImportsAfter
         ? `hoisted: root-only, resolved through deno.json's ${
-          JSON.stringify(rootImports[spec])
+          JSON.stringify(rootImportsAfter[spec])
         }`
         : "hoisted: root-only";
     }
