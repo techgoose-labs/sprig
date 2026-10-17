@@ -1,0 +1,16 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the unit names
+   its own face and ink rather than relying on the app body. daisyUI's stats,
+   stat-* and progress are used as-is — never restyled here. */
+.day-stats-region {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+/* daisyUI .stats scrolls horizontally when its columns outgrow the slot (the
+   mock at 768 is 720px wide with overflow). Keep the island wrapper from
+   growing to the columns' min-content so that overflow can happen. */
+sprig-island[data-sel="day-stats"] {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}

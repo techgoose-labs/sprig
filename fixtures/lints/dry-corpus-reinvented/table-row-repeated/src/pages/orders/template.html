@@ -1,0 +1,15 @@
+<main class="p-6">
+  <table class="table">
+    <thead><tr><th>#</th><th>Customer</th><th>Total</th><th>State</th></tr></thead>
+    <tbody>
+      @for (o of orders; track o.id) {
+      <tr class="hover:bg-base-200">
+        <td class="font-mono text-sm">{{ o.number }}</td>
+        <td>{{ o.customer }}</td>
+        <td class="text-right tabular-nums">{{ o.total }}</td>
+        <td><span class="badge badge-ghost badge-sm">{{ o.state }}</span></td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</main>

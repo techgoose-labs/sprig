@@ -1,0 +1,34 @@
+{
+  "_name": "Focus — note input focused",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d01",
+  "dogName": "Biscuit",
+  "_signals": {
+    "notes": [
+      {
+        "text": "Allergic to chicken — kibble from home only.",
+        "author": "Front desk",
+        "at": "2026-09-27T14:05"
+      },
+      {
+        "text": "Pulls hard on the lead near the gate; use the harness.",
+        "author": "Walker: Dana",
+        "at": "2026-09-28T09:40"
+      },
+      {
+        "text": "Owner called: fine to extend a night if needed, will confirm by noon. Please also give the blue squeaky toy at bedtime — he won't settle without it and tends to bark at the kennel door for a good half hour otherwise.",
+        "author": "Front desk",
+        "at": "2026-09-29T08:12"
+      }
+    ],
+    "author": "Front desk",
+    "draft": ""
+  },
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/dog-notes-focus@1280.png",
+    "tolerance": 0.03,
+    "reason": "the still shows the note input's focus ring (2px outline around the ~856x40 input); the reference row renders the case unfocused — the ring itself is asserted by this case's focus spec"
+  }
+}

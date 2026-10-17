@@ -1,0 +1,9 @@
+{
+  "_name": "Biscuit after the dog channel flips to checked-in (1280)",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading-after-check-in@1280.png",
+  "name": "Biscuit",
+  "_signals": { "status": "checked-in", "overdue": false, "overdueBy": "" }
+}

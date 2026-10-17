@@ -1,0 +1,8 @@
+{
+  "_name": "375, brand-dark, icon-only nav",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand-dark",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/top-bar/screenshots/top-bar@375-brand-dark.png",
+  "view": "board"
+}

@@ -1,0 +1,72 @@
+{
+  "_name": "Filtered: walking (5 dogs) @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/board-walking@1280.png",
+  "loadState": "ready",
+  "status": "walking",
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": false,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    }
+  },
+  "dogList": [
+    {
+      "id": "d03",
+      "name": "Sir Reginald Barksworth-Fluffington III",
+      "kennel": "K03",
+      "breed": "Cavalier King Charles Spaniel",
+      "ownerName": "Hannah Lindqvist",
+      "status": "walking",
+      "arrival": "09:30",
+      "overdue": false
+    },
+    {
+      "id": "d07",
+      "name": "Luna",
+      "kennel": "K07",
+      "breed": "Greyhound",
+      "ownerName": "Sofia Moretti",
+      "status": "walking",
+      "arrival": "08:30",
+      "overdue": false
+    },
+    {
+      "id": "d11",
+      "name": "Nala",
+      "kennel": "K11",
+      "breed": "Beagle",
+      "ownerName": "Ingrid Holm",
+      "status": "walking",
+      "arrival": "07:30",
+      "overdue": false
+    },
+    {
+      "id": "d15",
+      "name": "Pickles",
+      "kennel": "K15",
+      "breed": "Whippet",
+      "ownerName": "Leila Haddad",
+      "status": "walking",
+      "arrival": "11:30",
+      "overdue": false
+    },
+    {
+      "id": "d19",
+      "name": "Tofu",
+      "kennel": "K19",
+      "breed": "Cavalier King Charles Spaniel",
+      "ownerName": "Sam Okafor",
+      "status": "walking",
+      "arrival": "10:30",
+      "overdue": false
+    }
+  ]
+}

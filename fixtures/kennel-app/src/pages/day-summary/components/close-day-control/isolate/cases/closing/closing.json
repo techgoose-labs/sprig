@@ -1,0 +1,15 @@
+{
+  "_name": "Click → confirmed wait (reply held 3s)",
+  "_tier": "confirmed-write",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control@1280.png",
+  "_network": {
+    "dayClose": "delay:3000"
+  },
+  "_signals": {
+    "dayId": "today",
+    "closed": false,
+    "pending": false
+  }
+}

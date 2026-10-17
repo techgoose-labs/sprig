@@ -150,16 +150,10 @@ Deno.test(`${ROOT_ENV} overrides the walk outright`, async () => {
     "ui/bootstrap/template.html": "<html></html>",
     "elsewhere/": null,
   }, (repo) => {
-    const prev = Deno.env.get(ROOT_ENV);
-    Deno.env.set(ROOT_ENV, join(repo, "elsewhere"));
-    try {
-      assertEquals(
-        compositionRootOf(join(repo, "ui"), repo),
-        join(repo, "elsewhere"),
-      );
-    } finally {
-      if (prev === undefined) Deno.env.delete(ROOT_ENV);
-      else Deno.env.set(ROOT_ENV, prev);
-    }
+    // the SPRIG_ROOT override, passed in — never set on the process (REQ-021 AMENDMENT)
+    assertEquals(
+      compositionRootOf(join(repo, "ui"), repo, join(repo, "elsewhere")),
+      join(repo, "elsewhere"),
+    );
   });
 });

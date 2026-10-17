@@ -1,0 +1,227 @@
+{
+  "trigger": "hover a[data-nav=summary] (inactive link) on #/board, 1280x800; captured ~30ms after hover. Route-change btn-active toggle was not separately captured; per the .btn rule in css/main-nav.matched.css (transition-property color,background-color,border-color,box-shadow,transform .2s cubic-bezier(0,0,.2,1)) it runs the same transition.",
+  "animations": [
+    {
+      "kind": "CSSTransition",
+      "name": "background-color",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "backgroundColor": "oklab(0.874263 0.00338137 0.0203905)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-bottom-color",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderBottomColor": "rgba(0, 0, 0, 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderBottomColor": "oklab(0.83055 0.0032123 0.019371)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-left-color",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderLeftColor": "rgba(0, 0, 0, 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderLeftColor": "oklab(0.83055 0.0032123 0.019371)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-right-color",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderRightColor": "rgba(0, 0, 0, 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderRightColor": "oklab(0.83055 0.0032123 0.019371)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "border-top-color",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "borderTopColor": "rgba(0, 0, 0, 0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "borderTopColor": "oklab(0.83055 0.0032123 0.019371)",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    },
+    {
+      "kind": "CSSTransition",
+      "name": "box-shadow",
+      "target": "a.btn.btn-ghost.btn-sm",
+      "keyframes": [
+        {
+          "offset": 0,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "oklab(0 0 0 / 0) 0px 0px 0px 0px inset, oklab(0 0 0 / 0) 0px 0px 0px 0px",
+          "computedOffset": 0
+        },
+        {
+          "offset": 1,
+          "easing": "linear",
+          "composite": "auto",
+          "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.874263 0.00338137 0.0203905 / 0.3) 0px 3px 2px -2px, oklab(0.874263 0.00338137 0.0203905 / 0.3) 0px 4px 3px -2px",
+          "computedOffset": 1
+        }
+      ],
+      "timing": {
+        "delay": 0,
+        "direction": "normal",
+        "duration": 200,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "endDelay": 0,
+        "fill": "backwards",
+        "iterationStart": 0,
+        "iterations": 1,
+        "activeDuration": 200,
+        "currentIteration": 0,
+        "endTime": 200,
+        "localTime": 33.31999998348767,
+        "progress": 0.44143142991707196
+      },
+      "playState": "running"
+    }
+  ]
+}

@@ -74,8 +74,10 @@ export function isCompositionRoot(dir: string): boolean {
 export function compositionRootOf(
   startAbs: string,
   gitRoot: string | null,
+  /** the SPRIG_ROOT override — else the process env; a test passes its own
+   *  (REQ-021 AMENDMENT: lane tests never mutate Deno.env) */
+  override: string | undefined = Deno.env.get(ROOT_ENV),
 ): string | null {
-  const override = Deno.env.get(ROOT_ENV);
   if (override) return resolve(override);
   let d = resolve(startAbs);
   while (true) {

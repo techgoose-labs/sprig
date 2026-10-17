@@ -1,0 +1,296 @@
+{
+ "note": "`animations` is what document.getAnimations() returns with the unit at rest after load: EMPTY. Every record in `interactionTriggered` needs an interaction to start (out of scope for an isolate `_motion` case — assert those in a spec). Captured live from http://localhost:8744 (Chromium via playwright-core, dsf 1), 2026-09-29.",
+ "animations": [],
+ "interactionTriggered": [
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "background-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "oklab(0.939658 -0.00117043 0.0130299)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "oklab(0.471425 -0.0296651 0.043195)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "border-bottom-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.93025 -0.00183842 0.0137563)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.447854 -0.0281819 0.0410352)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "border-left-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.93025 -0.00183842 0.0137563)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.447854 -0.0281819 0.0410352)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "border-right-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.93025 -0.00183842 0.0137563)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.447854 -0.0281819 0.0410352)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "border-top-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.93025 -0.00183842 0.0137563)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.447854 -0.0281819 0.0410352)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "box-shadow",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(0 0 0 / 0) 0px 0px 0px 0px inset, oklab(0 0 0 / 0) 0px 0px 0px 0px",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.471425 -0.0296651 0.043195 / 0.3) 0px 3px 2px -2px, oklab(0.471425 -0.0296651 0.043195 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button.btn.btn-soft.btn-secondary",
+   "name": "color",
+   "kind": "CSSTransition",
+   "trigger": "hover #note-form button (Add note)",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "color": "rgb(94, 107, 71)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "color": "rgb(251, 247, 240)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "div.alert.alert-error.shadow-sm.max-w-xs",
+   "name": "toast",
+   "kind": "CSSAnimation",
+   "trigger": "addNote rejected → toast() appends div.alert to #toasts",
+   "duration": 250,
+   "delay": 0,
+   "easing": "ease-out",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "0",
+     "scale": "0.9",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "1",
+     "scale": "1",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 250,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "linear",
+    "fill": "none",
+    "direction": "normal"
+   }
+  }
+ ]
+}

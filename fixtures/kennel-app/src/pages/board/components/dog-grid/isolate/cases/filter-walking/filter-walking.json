@@ -1,0 +1,60 @@
+{
+  "_name": "Filter: walking — 5 cards",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-grid/screenshots/dog-grid-filter-walking@1280.png",
+  "status": "walking",
+  "dogs": [
+    {
+      "id": "d03",
+      "name": "Sir Reginald Barksworth-Fluffington III",
+      "breed": "Cavalier King Charles Spaniel",
+      "kennel": "K03",
+      "status": "walking",
+      "arrival": "09:30",
+      "overdue": false,
+      "ownerName": "Hannah Lindqvist"
+    },
+    {
+      "id": "d07",
+      "name": "Luna",
+      "breed": "Greyhound",
+      "kennel": "K07",
+      "status": "walking",
+      "arrival": "08:30",
+      "overdue": false,
+      "ownerName": "Sofia Moretti"
+    },
+    {
+      "id": "d11",
+      "name": "Nala",
+      "breed": "Beagle",
+      "kennel": "K11",
+      "status": "walking",
+      "arrival": "07:30",
+      "overdue": false,
+      "ownerName": "Ingrid Holm"
+    },
+    {
+      "id": "d15",
+      "name": "Pickles",
+      "breed": "Whippet",
+      "kennel": "K15",
+      "status": "walking",
+      "arrival": "11:30",
+      "overdue": false,
+      "ownerName": "Leila Haddad"
+    },
+    {
+      "id": "d19",
+      "name": "Tofu",
+      "breed": "Cavalier King Charles Spaniel",
+      "kennel": "K19",
+      "status": "walking",
+      "arrival": "10:30",
+      "overdue": false,
+      "ownerName": "Sam Okafor"
+    }
+  ]
+}

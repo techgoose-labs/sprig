@@ -1,0 +1,12 @@
+{
+  "_name": "d01 at base 375 (single column, full width)",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-profile-card/screenshots/dog-profile-card@375.png",
+  "breed": "Golden Retriever",
+  "kennel": "K01",
+  "arrival": "07:00",
+  "ownerName": "Priya Raman",
+  "ownerPhone": "(555) 0100-4000"
+}

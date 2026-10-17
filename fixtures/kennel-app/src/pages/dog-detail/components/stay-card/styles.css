@@ -1,0 +1,75 @@
+/* The isolate stage inherits the workbench's monospace/ink, so the unit names
+   its own face and colour rather than relying on the app body. */
+.stay-card {
+  font-family: var(--font-body);
+  color: var(--color-base-content);
+}
+
+/* h2 in the mock: Caveat 700, display tracking, tight leading, text-2xl. */
+.stay-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+}
+
+.stay-card-icon {
+  width: calc(var(--spacing) * 5);
+  height: calc(var(--spacing) * 5);
+}
+
+/* grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm */
+.stay-card-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: calc(var(--spacing) * 4);
+  row-gap: calc(var(--spacing) * 2);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+.stay-card-term {
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}
+
+.stay-card-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* divider my-1 */
+.stay-card-divider {
+  margin-block: var(--spacing);
+}
+
+/* flex items-baseline justify-between gap-2 */
+.stay-card-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--spacing) * 2);
+}
+
+/* text-sm font-semibold uppercase tracking-wide text-base-content/70 */
+.stay-card-total-label {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+/* text-3xl font-semibold tabular-nums */
+.stay-card-total-amount {
+  font-size: var(--text-3xl);
+  line-height: var(--text-3xl--line-height);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* text-base-content/60 italic */
+.stay-card-empty {
+  font-style: italic;
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+}

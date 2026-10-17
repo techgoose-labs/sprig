@@ -21,8 +21,11 @@ root):
   the file is that type's collection (an array of id-related records, joined
   client-side).
 - `commands.json` — **seam 2, the write contract**: intent verbs
-  `{ type, kind, input, does }` with `kind ∈ create|set|append|adjust|remove` —
-  never an editable record.
+  `{ type, kind, input, feedback, does }` with
+  `kind ∈ create|set|append|adjust|remove` — never an editable record — and
+  `"feedback": "instant" | "confirmed"`: `instant` = the UI reflects the intent
+  before the reply (and reverts on failure); `confirmed` = the UI waits for the
+  reply, with the reason in `does` (a server-generated id, a payment auth).
 - `_start.ts` + `deno.json` — the **generic host, copied verbatim**
   (`deno task start` → `http://localhost:8723`, `PORT` overrides). Injects
   `window.objects`/`window.commands` + the annotate overlay at serve time;
@@ -30,9 +33,9 @@ root):
   `GET /events`); appends every applied command to `events.json`.
 - `feedback/` — the annotate sink (`feedback.json`).
 
-**Legacy shape** (pre-contract): a single self-contained
-`spec/ui/<app>-prototype.html` with hardcoded data — still valid breakdown
-input; new prototypes use the folder.
+**Pre-contract shape**: a single self-contained `spec/ui/<app>-prototype.html`
+with hardcoded data — still valid breakdown input; new prototypes use the
+folder.
 
 ## Shape (what consumers can rely on)
 
@@ -48,13 +51,14 @@ input; new prototypes use the folder.
 - **The seams ARE the draft contract** (bridge 1): each `objects/<type>.json`
   maps to a backend type + read DTO + query endpoints (`<type>.all`,
   `<type>.get`); each `commands.json` entry maps to a command verb + input DTO,
-  its `kind` seeding `rune:data`'s immutability strategy. Introspectable over
-  HTTP without opening a file.
+  its `kind` seeding `rune:data`'s immutability strategy and its `feedback`
+  seeding breakdown's interaction tier (`instant` → optimistic write) and the
+  build's `optimistic(...)`. Introspectable over HTTP without opening a file.
 
 ## Invariants
 
-- **Location:** `spec/ui/<app>-prototype/` (glob `spec/ui/*-prototype/`; legacy
-  glob `spec/ui/*-prototype.html`).
+- **Location:** `spec/ui/<app>-prototype/` (glob `spec/ui/*-prototype/`; the
+  pre-contract glob `spec/ui/*-prototype.html`).
 - The UI holds no data and makes no `fetch` beyond the two injected seams;
   writes are intent verbs, **never an "edit-this-record"** (the waist rule).
 - The host is generic and never edited per-app; seed data is deterministic
@@ -66,4 +70,5 @@ input; new prototypes use the folder.
 ## Validation
 
 `deno task start` serves it; every flow + unglamorous state is reachable by
-clicking; `GET /objects` and `GET /commands` return the two seams.
+clicking; `GET /objects` and `GET /commands` return the two seams; every command
+carries a `feedback` value and the UI behaves as it says.

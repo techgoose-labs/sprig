@@ -1,0 +1,4 @@
+{
+  "_name": "Drifts from its reference (expected to fail)",
+  "_reference": { "image": "ref.png", "tolerance": 0.01 }
+}

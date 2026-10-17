@@ -1,7 +1,12 @@
 // REQ-010 (unit) — the generated-serve.ts marker counts only as the file's
 // first-line banner, so a hand-owned composition root that merely MENTIONS the
 // marker's name is never mistaken for a generated one.
-import { assert, assertFalse, assertStringIncludes } from "jsr:@std/assert@^1";
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertStringIncludes,
+} from "@std/assert";
 import { BEDROCK_SERVE_MARKER } from "@techgoose-labs/bedrock/artifact";
 import {
   handOwnedRefusal,
@@ -173,4 +178,99 @@ Deno.test("REQ-014 (unit): §3a gives the hand-owned root the same instruction i
     /top-level code/i.test(paras[handOwn]),
     `the hand-own case must name top-level code itself:\n${paras[handOwn]}`,
   );
+});
+
+// REQ-016 — the refusal is read in a hosted build log, where a bare `sprig`
+// head is exactly what cannot run: the launcher is what `sprig install` writes
+// on a developer's machine, and a deploy's build container is a clean checkout
+// (coms 20260921T190104Z-w5-80834: "sprig: command not found", exit 127, every
+// revision for a month). So the refusal names the hosted form as well — the
+// same CLI run from jsr through the import map — as a whole line of its own.
+Deno.test("REQ-016 (unit): the refusal names the hosted-build form — the same command run from jsr through the import map — as a whole line with the app's ui dir, and says why a bare `sprig` head fails there", () => {
+  const reason = handOwnedRefusal("/repo/serve.ts", "web", "2.1.3");
+  const lines = reason.split("\n").map((l) => l.trim());
+  assertEquals(
+    lines.filter((l) => l === "sprig build --ui-only web").length,
+    1,
+    `the local instruction is still one whole line:\n${reason}`,
+  );
+  assertEquals(
+    lines.filter((l) =>
+      l === "deno run -A @techgoose-labs/sprig/cli build --ui-only web"
+    ).length,
+    1,
+    `the hosted form must be one whole line with the app's ui dir:\n${reason}`,
+  );
+  // the mapping that line resolves through, at the CLI's own version
+  assertStringIncludes(
+    reason,
+    `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.1.3/cli"`,
+  );
+  // and why: a hosted build has no launcher — that is a local install's
+  assertStringIncludes(reason, "sprig install");
+  assert(
+    /hosted build/i.test(reason),
+    `the refusal must say where the bare head fails:\n${reason}`,
+  );
+  // order: the local instruction, then its hosted form, then the marker footnote
+  const local = reason.indexOf("sprig build --ui-only web");
+  const hosted = reason.indexOf("deno run -A @techgoose-labs/sprig/cli");
+  const marker = reason.indexOf(BEDROCK_SERVE_MARKER);
+  assert(local < hosted && hosted < marker, `wrong order:\n${reason}`);
+  assert(!/\bwrap/i.test(reason), "the wrapper is not the instruction");
+  // a jsr run has no version on disk to hand over: a placeholder, never "null"
+  const remote = handOwnedRefusal("/repo/serve.ts", "web", null);
+  assertStringIncludes(remote, "jsr:@techgoose-labs/sprig@<version>/cli");
+  assertEquals(remote.includes("null"), false);
+  assertEquals(
+    remote.includes("undefined"),
+    false,
+    "the two-argument call must still read whole",
+  );
+});
+
+// REQ-016 AMENDMENT (unit) — the line under the hosted command credited the
+// stamp to "the build", which reads as if the hosted build re-pins the /cli
+// entry. It cannot: a CLI run from jsr has no install root to read a version
+// from, so stamp() returns before it touches the file (framework/cli.ts). The
+// refusal credits a LOCAL build and says the hosted run never restamps — the
+// pin you commit is the pin that ships (coms 20260921T190104Z-w5-80834, the
+// reporter's closing note).
+Deno.test("REQ-016 AMENDMENT (unit): the refusal credits the stamp to a LOCAL build and says the hosted run never restamps — the pin you commit is the pin that ships — under the hosted command", () => {
+  for (const v of ["2.1.3", null]) {
+    const reason = handOwnedRefusal("/repo/serve.ts", "web", v);
+    assertStringIncludes(reason, "the pin you commit is the pin that ships");
+    assertStringIncludes(reason, "local `sprig build` stamps that pin");
+    assert(
+      /hosted run never restamps/.test(reason),
+      `the refusal must say the hosted run never restamps:\n${reason}`,
+    );
+    assertFalse(
+      reason.includes("the build stamps that pin"),
+      `still credits the stamp to "the build", next to the hosted command:\n${reason}`,
+    );
+    // under the hosted command, above the marker footnote
+    const hosted = reason.indexOf(
+      "deno run -A @techgoose-labs/sprig/cli build --ui-only web",
+    );
+    const ships = reason.indexOf("the pin you commit is the pin that ships");
+    const marker = reason.indexOf(BEDROCK_SERVE_MARKER);
+    assert(
+      hosted >= 0 && hosted < ships && ships < marker,
+      `wrong order (v=${v}):\n${reason}`,
+    );
+    // and the sentence adds no second command line of either shape
+    const lines = reason.split("\n").map((l) => l.trim());
+    assertEquals(
+      lines.filter((l) => l === "sprig build --ui-only web").length,
+      1,
+    );
+    assertEquals(
+      lines.filter((l) =>
+        l === "deno run -A @techgoose-labs/sprig/cli build --ui-only web"
+      ).length,
+      1,
+    );
+    assert(!/\bwrap/i.test(reason), "the wrapper is not the instruction");
+  }
 });

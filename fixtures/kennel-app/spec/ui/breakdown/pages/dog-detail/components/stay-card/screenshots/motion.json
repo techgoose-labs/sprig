@@ -1,0 +1,5 @@
+{
+ "note": "stay-card is static: no animation at rest and none on any interaction (no hover/focus styles on the card).",
+ "animations": [],
+ "interactionTriggered": []
+}

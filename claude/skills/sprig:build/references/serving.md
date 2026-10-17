@@ -18,6 +18,20 @@ import { api } from "./server/bootstrap/mod.ts"; // the keep backend: await boot
 export default Bedrock({ ui: Frontend(), backend: api });
 ```
 
+Bare `Frontend()` finds the UI at `<serve.ts dir>/ui|app/{src,static}` only.
+An app whose `src/` + `static/` sit beside its `serve.ts` (a fixture, a
+monorepo package) passes both, or every page answers 500:
+
+```ts
+import { fromFileUrl } from "@std/path";
+import { sprigApp } from "./src/mod.ts";
+
+export default Bedrock({
+  ui: Frontend({ app: sprigApp, assetsDir: fromFileUrl(new URL("./static", import.meta.url)) }),
+  backend: api,
+});
+```
+
 Every slot is optional and every subset serves:
 
 ```ts
@@ -97,5 +111,9 @@ source); type errors at the import sites are the drift alarm doing its job.
 hydration runtime), `isl.<sel>.js` (one code-split chunk per island), shared
 `chunk-*.js`, scoped `app.css`, and `templates.json` (the prebuilt serialized
 templates — so the runtime never parses HTML). Assets are content-hash
-cache-busted via `?v=`. **Run the production path before shipping**:
-`deno task build` then `deno task start`, and hit a real URL.
+cache-busted via `?v=`. An app that is its own project (not the root's
+`ui/`/`app/`, not a workspace member) builds beside its own `serve.ts`, left as
+written; with none, the plain build refuses naming both paths it tried, and
+`sprig build --ui-only <app>` builds just the client bundle. **Run the production path before
+shipping**: `deno task build`, serve it, and GET every route (the prod-build
+smoke of `sprig-build-scaffolder` names the pass criteria).

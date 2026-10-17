@@ -1,0 +1,12 @@
+{
+  "_name": "Loading skeleton @1280",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/board-loading@1280.png",
+  "_motion": {
+    "spec": "fixtures/kennel-app/spec/ui/breakdown/pages/board/screenshots/motion-loading.json"
+  },
+  "loadState": "loading",
+  "status": "all"
+}

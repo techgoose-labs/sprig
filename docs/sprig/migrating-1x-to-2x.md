@@ -112,6 +112,34 @@ composed build: switched to `--ui-only`, every generated-root app would deploy
 with no entrypoint at all. Only a hand-owned root's own deploy config points at
 `--ui-only`, and committing `serve.ts` is what makes a root hand-owned.
 
+Either command is what a **hosted** build runs too, with a different head. A
+deploy's build step (Deno Deploy runs `deno task build` in a clean checkout) has
+no `sprig` on PATH: that launcher is what `sprig install` writes on your
+machine, so a bare `sprig …` task ends there with `sprig: command not found`,
+exit code 127 — and a scripted `deno deploy` still reports success while the
+site stays on the last revision that built. Run the same CLI from jsr instead,
+through an import-map entry, so its pin sits on a line a local `sprig build`
+stamps together with the runtime pins:
+
+```jsonc
+// deno.json — the hand-owned row. A generated root's composed build is
+// `deno run -A @techgoose-labs/sprig/cli build`, the same head.
+"imports": {
+  "@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@2.1.2/cli"
+},
+"tasks": {
+  "build": "deno run -A @techgoose-labs/sprig/cli build --ui-only ui"
+}
+```
+
+Every local `sprig build` re-pins that entry to the CLI that ran it, exactly as
+it does the `@techgoose-labs/sprig` and `/bedrock` entries, so the deploy builds
+with the CLI that built here — never one that drifted. The hosted build itself
+never restamps: a CLI run from jsr has no install root to read a version from,
+so its stamp step returns before it touches the file, and `sprig: stamped …`
+never prints there — so the pin you commit is the pin that ships. Build locally,
+or re-pin by hand, before you deploy.
+
 **You wrote it only to keep your OWN `ui:` unit** (a Frontend of your own that
 serves extra routes, or wraps the sprig one). You do not have to own the file
 for that — keep the banner as the first line and compose your unit under it:

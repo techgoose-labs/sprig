@@ -6,7 +6,8 @@
 // app pinned to 1.0.0, resurrecting every runtime bug fixed in between):
 //   · stamping keeps an app's @techgoose-labs/sprig pin matched to the CLI that
 //     builds it, but NEVER downgrades — a pin AHEAD of the CLI means the CLI
-//     install is stale, not the app;
+//     install is stale, not the app; the `/cli` mapping a hosted build runs
+//     the CLI through is stamped with the runtime entries (REQ-017);
 //   · migration renames the legacy `@sprig/core`/`@sprig/keep` scope AND the
 //     retired `/keep` subpath (now `/bedrock`, because the module exports a
 //     bedrock Unit rather than a keep-specific serving layer) — an
@@ -56,6 +57,11 @@ export function stampImports(
   const wanted: Record<string, string> = {
     "@techgoose-labs/sprig": `jsr:@techgoose-labs/sprig@${v}`,
     "@techgoose-labs/sprig/bedrock": `jsr:@techgoose-labs/sprig@${v}/bedrock`,
+    // the CLI's own subpath: a hosted build (a clean checkout, no `sprig`
+    // launcher on PATH) runs the CLI from jsr through this mapping, so it must
+    // be the CLI that built locally — the version the runtime entries pin.
+    // It was the one sprig entry the stamp never re-pinned (REQ-017).
+    "@techgoose-labs/sprig/cli": `jsr:@techgoose-labs/sprig@${v}/cli`,
   };
   const out = { ...imports };
   let changed = false;
@@ -87,7 +93,7 @@ export function sprigImportsInText(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (
     const m of text.matchAll(
-      /"(@techgoose-labs\/sprig(?:\/bedrock)?)"\s*:\s*"([^"]*)"/g,
+      /"(@techgoose-labs\/sprig(?:\/bedrock|\/cli)?)"\s*:\s*"([^"]*)"/g,
     )
   ) {
     out[m[1]] = m[2];
@@ -107,12 +113,15 @@ export function declinedStampNotice(
   v: string,
 ): string | null {
   const found = sprigImportsInText(text);
-  if (!stampImports(found, v).changed) return null;
-  const cur =
-    Object.values(found).map(pinnedSprigVersion).find((p) => p !== null) ??
-      "an older pin";
+  const stamped = stampImports(found, v);
+  if (!stamped.changed) return null;
+  // name the entry that is behind and the pin it keeps — the runtime entry may
+  // be current while the CLI mapping is not (REQ-017)
+  const key = Object.keys(found).find((k) => stamped.imports[k] !== found[k]) ??
+    "@techgoose-labs/sprig";
+  const cur = pinnedSprigVersion(found[key] ?? "") ?? "an older pin";
   return `sprig: ${path} is not plain JSON (a comment? a trailing comma?) — left unstamped: ` +
-    `@techgoose-labs/sprig stays at ${cur} while this CLI is ${v}. ` +
+    `${key} stays at ${cur} while this CLI is ${v}. ` +
     `Re-pin it by hand, or drop the comments and rebuild.`;
 }
 

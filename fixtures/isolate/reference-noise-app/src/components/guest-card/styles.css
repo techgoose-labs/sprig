@@ -1,0 +1,32 @@
+.guest-card {
+  --primary: #2563eb;
+  --muted: #475467;
+  box-sizing: border-box;
+  width: 320px;
+  padding: 16px;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #101828;
+  font-family: "DejaVu Sans", sans-serif;
+}
+.guest-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.guest-card p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.guest-card button {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font: 600 14px/20px "DejaVu Sans", sans-serif;
+}

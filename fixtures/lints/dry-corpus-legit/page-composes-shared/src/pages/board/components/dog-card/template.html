@@ -1,0 +1,9 @@
+<a class="card bg-base-100 border" [attr.href]="'/dog/' + id">
+  <div class="card-body p-4 gap-2">
+    <h2 class="card-title">{{ name }}</h2>
+    <p class="text-sm">{{ breed }}</p>
+    <div class="flex items-center gap-2">
+      <status-badge [tone]="tone" [label]="statusLabel"></status-badge>
+    </div>
+  </div>
+</a>

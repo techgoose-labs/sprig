@@ -30,8 +30,9 @@ Rule: **prefix every class you style yourself** (`cm-dot`, `wb-badge`,
 name(s) globally`)
 — treat the warning as red. Want the daisyUI component? Use its own name and
 modifiers on purpose (`btn btn-sm`, `status status-success`) and let the tokens
-style it. Full list + mechanism: `docs/sprig/styling.md` → "Reserved class
-names".
+style it. The complete list lives in the sprig source repo's
+`docs/sprig/styling.md` (not installed with this skill); in an app, the build
+warning above is the authority.
 
 ## Two ways to write `logic.ts`
 
@@ -114,6 +115,36 @@ effect(() => console.log(count())); // re-runs on change
 Templates read signals by calling them: `{{ count() }}`, `[value]="count()"`.
 Reactive updates re-render the island in place.
 
+## No business logic — the `logic-placement` lint
+
+`sprig check` fails any island `logic.ts`, page `resolve.ts` or `template.html`
+expression that decides a domain rule. Each finding names its rule letter and
+line: **(a)** arithmetic on data (data × data, a member or money-named signal
+× a rate literal, a `( … )` group of reads counts as data); **(b)** a
+relational branch — data vs data, a member vs a threshold literal/`ALL_CAPS`
+constant, the wall clock (`Date.now()`/`new Date()`) vs data, a `.length` vs
+a data limit; **(c)** validation beyond required/type — `.test/.match/.exec/
+.matchAll/.search(`, `RegExp`, an exact `.length`; **(d)** a validate/
+compute/total/price/… function or a date-rule call (`isAfter`, `addDays`,
+`differenceIn…`); **(e)** access decided in the client — `role`/`plan`/`tier`/
+`permission` compared or used as a key, `can…`/`may…` set in a `switch`, a
+`switch`/`if` chain on a record's `status`/`state`/`stage`/`phase` deciding data
+in ≥2 branches (in a template: rendering different `(event)` actions); **(f)**
+a retry loop around an awaited call. In templates a label ternary
+(`m.age < 60 ? 'min ago' : …`) and `[class…]`/`[style…]`/`[attr.aria-…]`
+bindings are presentation. Suppress a truly presentational line with
+`// sprig-logic: <reason>` (`<!-- sprig-logic: <reason> -->` in a template).
+
+**Known holes** (the lint lets these through — `logic-placement-corpus.int.test.ts`
+pins each): composing a business identifier in a template string; equality with
+a hard-coded code (`code === "SHIPFREE26"`); clamping to a limit
+(`Math.min(n, MAX_PER_ORDER)`); searching/filtering loaded rows
+(`.filter(… includes(q))`); a comparator without arithmetic
+(`localeCompare`); a threshold on a local (`hoursLeft < 4` after clock math); a
+`switch`/`if` chain on a non-lifecycle field or a bare field (`d.type`,
+`@switch (status)`) — the same shape as UI dispatch. Not being flagged is not
+permission: these are still queries and commands the backend answers.
+
 ## Optimistic UI (the default for every server write)
 
 **Mandatory** (see SKILL.md): a user action that writes to the server updates
@@ -121,46 +152,56 @@ the UI _immediately_, runs the server call in the background, and rolls back
 only if it fails. The component must be an **island** (it has a `logic.ts`) so
 it can react on the client.
 
-The shape is **snapshot → mutate → call → reconcile**:
+Use the primitive — `optimistic(sig, next, call, { reconcile?, onError? })` from
+`@techgoose-labs/sprig`. It snapshots the signal, writes `next` synchronously
+(the view repaints before the call starts), runs `call`, and on rejection
+restores the snapshot. It returns `{ done, pending, error }`:
 
 ```ts
-import { inject, signal } from "@techgoose-labs/sprig";
-import Api from "../../services/api/mod.ts";
+import { defineComponent, optimistic, signal } from "@techgoose-labs/sprig";
 
-export default class Todo {
-  items = inject(State).items; // a signal-backed list the template renders
-  error = signal("");
-  api = inject(Api);
-
-  async toggle(item) {
-    const prev = item.done; // 1. snapshot what we're about to change
-    item.done = !item.done; // 2. optimistic: update + render NOW
-    this.items.update((x) => [...x]); //    nudge the signal so the view re-renders
-    try {
-      await this.api.setDone(item.id, item.done); // 3. server, NOT awaited before the UI moved
-    } catch {
-      item.done = prev; // 4. failed → roll back the exact change
-      this.items.update((x) => [...x]);
-      this.error.set("Couldn't save — reverted.");
-    }
-  }
-}
+export default defineComponent({
+  setup: () => {
+    const items = signal<Todo[]>([]);
+    const failed = signal("");
+    const toggle = (id: string) =>
+      optimistic(
+        items,
+        (xs) => xs.map((t) => t.id === id ? { ...t, done: !t.done } : t),
+        () => client.toggleTodo({ id }), // a command posted as intent
+        {
+          reconcile: (saved, prev) =>
+            prev.map((t) => t.id === saved.id ? saved : t), // server projection wins
+          onError: () => failed.set("Couldn't save — reverted."),
+        },
+      );
+    return { items, failed, toggle };
+  },
+});
 ```
 
 Rules of thumb:
 
-- **Capture a precise rollback snapshot** before mutating (the old value, or the
-  removed item + its index for a list delete) — roll back to _that_, don't
-  refetch.
+- **One call per write.** The snapshot is taken for you — roll back to it,
+  don't refetch. Write new values (`{ ...t, done }`, `[...xs]`); never mutate an
+  item in place, the rollback restores the old reference.
 - **Don't `await` the server call before the UI changes.** Awaiting first = a
-  spinner, which is the thing we're avoiding.
-- **Surface failures** — a rollback that's silent looks like the click did
-  nothing. Show a toast/inline error.
-- **Fall back to a pending/disabled state only when the result is unknowable
-  client-side** (server-generated id, payment auth, a fetched result set). Then
-  show a spinner and `await`.
-- **Overrides:** an inline `data-note` on the element can demand "wait for the
-  server" or "realtime island" — honor it over this default.
+  spinner, which is the thing we're avoiding. `sprig check`'s
+  **optimistic-writes** lint fails a `logic.ts` that does — including a
+  loading flag set first with the real write landing after the await. Reads
+  (search, load-more) may await.
+- **Surface failures** — pass `onError` (toast/inline error) or render
+  `w.error()`. Without either the rollback is only logged; the user sees the
+  click undo itself with no reason.
+- **Concurrent writes are last-write-wins** by start order: a stale failure
+  never clobbers a newer write, and a rollback never lands on a value that
+  failed.
+- **When to wait:** only when the result is unknowable client-side
+  (server-generated id, payment auth, a fetched result set). Show a
+  pending/disabled state, `await`, and mark the await
+  `// sprig-wait: <reason>` — the lint lists it with the reason instead of
+  failing it. A spec or build-note that demands "wait for the server" is
+  honored the same way.
 
 ## The serialization boundary (island state crosses as JSON)
 

@@ -1,0 +1,7 @@
+{
+  "_name": "Page context — anchored bottom-right above the page (dog-detail, 1280x800)",
+  "_tier": "pure-client",
+  "_theme": "brand",
+  "_viewport": { "width": 1280, "height": 800 },
+  "_signals": { "toasts": [ { "kind": "error", "msg": "Biscuit: checked in didn't go through — reverted." } ] }
+}

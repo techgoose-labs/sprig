@@ -1,0 +1,13 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "todos", "version": "1.0.0" },
+  "paths": {
+    "/api/todos": {
+      "get": { "operationId": "listTodos" },
+      "post": { "operationId": "addTodo" }
+    },
+    "/api/todos/{id}": {
+      "delete": { "operationId": "removeTodo" }
+    }
+  }
+}

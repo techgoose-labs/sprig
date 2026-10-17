@@ -26,6 +26,7 @@ export default defineComponent({
       ok.set(null);
       error.set(null);
       try {
+        // sprig-wait: a test run is the server's verdict — there is nothing to show before it answers
         const res = await fetch("/api/http/post-test-run", {
           method: "POST",
           headers: { "content-type": "application/json" },

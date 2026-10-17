@@ -1,0 +1,30 @@
+{
+  "_name": "Accepted write (d05 Pepper) — reply reconciles to checked-in, no toast",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": {
+    "status": "booked",
+    "dogId": "d05",
+    "dogName": "Pepper",
+    "closed": false,
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_network": {
+    "dogCheckIn": {
+      "status": 200,
+      "body": {
+        "id": "d05",
+        "status": "checked-in"
+      }
+    }
+  }
+}

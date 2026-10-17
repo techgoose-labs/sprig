@@ -1,0 +1,26 @@
+{
+  "_name": "Check in rejected (500) — reverted to booked, error toast emitted",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "_signals": {
+    "status": "booked",
+    "dogId": "d01",
+    "dogName": "Biscuit",
+    "closed": false,
+    "allowedActions": [
+      "dog.checkIn"
+    ],
+    "allowedAfter": {
+      "dog.checkIn": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_network": {
+    "dogCheckIn": {
+      "status": 500
+    }
+  }
+}

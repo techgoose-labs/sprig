@@ -1,0 +1,8 @@
+/* skeleton-card — one placeholder dog card in a page's loading grid (board, day-summary).
+   daisyUI `card` + `skeleton` as-is; the only rule of its own stops the shimmer for
+   reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-card-block {
+    animation: none;
+  }
+}

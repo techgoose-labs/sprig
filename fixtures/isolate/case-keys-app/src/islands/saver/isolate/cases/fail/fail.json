@@ -1,0 +1,5 @@
+{
+  "_name": "Save fails → rollback",
+  "_tier": "optimistic-write",
+  "_network": { "POST /api/save": "fail" }
+}

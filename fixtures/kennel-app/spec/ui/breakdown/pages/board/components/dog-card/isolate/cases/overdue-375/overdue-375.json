@@ -1,0 +1,16 @@
+{
+  "_name": "Overdue @375",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "id": "d14",
+  "name": "Rocco",
+  "kennel": "K14",
+  "breed": "French Bulldog",
+  "ownerName": "Oliver Brandt",
+  "status": "checked-in",
+  "arrival": "10:15",
+  "overdue": true,
+  "overdueBy": "2h 15m",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/board/components/dog-card/screenshots/dog-card-overdue@375.png"
+}

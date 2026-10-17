@@ -1,0 +1,21 @@
+{
+  "_name": "Walking (d03) — only End walk enabled @1280",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d03",
+  "closed": false,
+  "_signals": {
+    "status": "walking",
+    "allowedActions": [
+      "dog.endWalk"
+    ],
+    "allowedAfter": {
+      "dog.endWalk": [
+        "dog.startWalk",
+        "dog.checkOut"
+      ]
+    }
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-actions/screenshots/dog-actions-walking@1280.png"
+}

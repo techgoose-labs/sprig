@@ -1,0 +1,21 @@
+{
+  "category": "day-summary",
+  "folder": "close-day-control",
+  "controls": {
+    "dayId": {
+      "type": "text",
+      "value": "today",
+      "signal": true
+    },
+    "closed": {
+      "type": "boolean",
+      "value": false,
+      "signal": true
+    },
+    "pending": {
+      "type": "boolean",
+      "value": false,
+      "signal": true
+    }
+  }
+}

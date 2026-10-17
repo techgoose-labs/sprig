@@ -1,13 +1,17 @@
 import { Command } from "@cliffy/command";
 import { fromFileUrl, join, resolve } from "#std/path";
 import { discover } from "../../server/src/core/business/discover/mod.ts";
-import { runTests } from "../../server/src/core/business/runner/mod.ts";
+import {
+  planRun,
+  runTests,
+} from "../../server/src/core/business/runner/mod.ts";
 import { ensureRunner } from "../lib/runner.ts";
 import { generatePreviews } from "../lib/generate-previews.ts";
 import { materializeWorkbench } from "../lib/workbench.ts";
 import { buildClient } from "../../framework/.sprig/compiler/build.ts";
 import { formatProblems, printReport } from "../lib/format.ts";
 import { emitJson } from "../lib/json-stdout.ts";
+import { skippedRows, verdict } from "../lib/verdict.ts";
 import { parentEnv, terminate } from "../../framework/.sprig/supervise.ts";
 
 const REPO = fromFileUrl(new URL("../../", import.meta.url));
@@ -30,8 +34,9 @@ async function startServer(
   projectRoot: string,
   wbRoot?: string,
   wbApp?: string,
+  fixedPort?: number,
 ): Promise<{ child: Deno.ChildProcess; baseURL: string }> {
-  const port = 3000 + Math.floor(Math.random() * 4000);
+  const port = fixedPort ?? 3000 + Math.floor(Math.random() * 4000);
   const args = wbRoot && wbApp
     ? [
       "serve",
@@ -95,12 +100,22 @@ export const testCmd = new Command()
     "--base-url <url:string>",
     "Reuse a running preview server instead of spawning one.",
   )
+  .option(
+    "--port <port:number>",
+    "Port for the spawned preview server (default: a random one).",
+  )
+  .option(
+    "--evidence <dir:string>",
+    "Where captures, diff images and generated specs go (outside the project; default $SPRIG_WB_ROOT/evidence/<stamp>, else a temp dir).",
+  )
   .action(async (opts, filter) => {
     const o = opts as unknown as {
       root: string;
       json?: boolean;
       failuresOnly?: boolean;
       baseUrl?: string;
+      port?: number;
+      evidence?: string;
     };
     const root = resolve(o.root);
     // --json promises "stdout is exactly one JSON document". The import-time reroute in
@@ -141,24 +156,21 @@ export const testCmd = new Command()
       Deno.exit(1);
     }
 
-    const byCase = new Map<string, string>();
-    for (const e of entries) {
-      for (const c of e.cases) {
-        for (const t of c.tests) byCase.set(t.file, `${e.label}/${c.name}`);
-      }
-    }
-    let files = [...byCase.keys()];
-    if (filter) {
-      const f = filter as string;
-      files = files.filter((p) =>
-        p.includes(f) || (byCase.get(p) ?? "").includes(f)
-      );
-    }
-    if (files.length === 0) {
-      if (o.json) {
-        printJson({ ok: true, ran: false, total: 0, testResults: [] });
-      } else console.log("No matching tests.");
-      return;
+    // What would run: every case's spec files plus its reference/motion checks
+    // (a case with only a _reference still runs), narrowed by the filter.
+    const plan = planRun(
+      entries,
+      { filter: filter as string | undefined },
+      root,
+    );
+    // REQ-056 — every selected case gets a row: one with nothing to check is
+    // `skipped`, and a run that checks nothing is not a pass.
+    const skipped = skippedRows(entries, filter as string | undefined);
+    if (plan.cases.length === 0 && plan.loose.length === 0) {
+      const v = verdict(null, skipped);
+      if (o.json) printJson(v);
+      else printReport(v, root);
+      Deno.exit(v.exitCode);
     }
 
     const runner = await ensureRunner();
@@ -250,7 +262,7 @@ export const testCmd = new Command()
 
       if (!baseUrl) {
         if (!o.json) console.error("Starting preview server…");
-        const s = await startServer(root, wbRoot, wbApp);
+        const s = await startServer(root, wbRoot, wbApp, o.port);
         child = s.child;
         baseUrl = s.baseURL;
       }
@@ -278,10 +290,16 @@ export const testCmd = new Command()
     // unwind, so the finally never ran and every run left its server behind.)
     let code = 1;
     try {
-      const report = await runTests({ files, baseUrl, projectRoot: root });
-      if (o.json) printJson(report);
-      else printReport(report, root);
-      code = report.ran && report.failed === 0 ? 0 : 1;
+      const report = await runTests({
+        filter: filter as string | undefined,
+        baseUrl,
+        projectRoot: root,
+        evidenceDir: o.evidence,
+      });
+      const v = verdict(report, skipped);
+      if (o.json) printJson(v);
+      else printReport(v, root);
+      code = v.exitCode;
     } catch (e) {
       const msg = (e as Error).message;
       if (o.json) {

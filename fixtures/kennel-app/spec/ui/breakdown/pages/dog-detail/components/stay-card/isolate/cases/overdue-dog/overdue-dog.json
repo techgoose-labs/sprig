@@ -1,0 +1,13 @@
+{
+  "_name": "d14 — overdue dog, card unchanged",
+  "_tier": "static",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/stay-card/screenshots/stay-card-d14-overdue@1280.png",
+  "hasStay": true,
+  "checkIn": "Sep 28, 10:15 AM",
+  "plannedCheckOut": "Sep 30, 11:00 AM",
+  "nightlyRate": "$55.00",
+  "nights": 2,
+  "totalDue": "$110.00"
+}

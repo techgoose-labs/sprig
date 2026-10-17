@@ -1,0 +1,302 @@
+{
+ "note": "`animations` is what document.getAnimations() returns with the unit at rest after load: EMPTY. Every record in `interactionTriggered` needs an interaction to start (out of scope for an isolate `_motion` case — assert those in a spec). Captured live from http://localhost:8744 (Chromium via playwright-core, dsf 1), 2026-09-29.",
+ "animations": [],
+ "interactionTriggered": [
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "background-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "rgb(194, 65, 12)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "backgroundColor": "oklab(0.514694 0.126733 0.10045)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "border-bottom-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderBottomColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "border-left-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderLeftColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "border-right-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderRightColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "border-top-color",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.525762 0.129458 0.10261)",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "borderTopColor": "oklab(0.488959 0.120396 0.0954274)",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "button#close-day.btn.btn-primary",
+   "name": "box-shadow",
+   "kind": "CSSTransition",
+   "trigger": "hover #close-day",
+   "duration": 200,
+   "delay": 0,
+   "easing": "cubic-bezier(0, 0, 0.2, 1)",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 3px 2px -2px, oklab(0.553434 0.136272 0.108011 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "linear",
+     "composite": "auto",
+     "boxShadow": "oklab(1 0 0 / 0.06) 0px 0.5px 0px 0.5px inset, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 3px 2px -2px, oklab(0.514694 0.126733 0.10045 / 0.3) 0px 4px 3px -2px",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 200,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "cubic-bezier(0, 0, 0.2, 1)",
+    "fill": "backwards",
+    "direction": "normal"
+   }
+  },
+  {
+   "selector": "div.alert.alert-error.shadow-sm.max-w-xs",
+   "name": "toast",
+   "kind": "CSSAnimation",
+   "trigger": "day.close resolves → toast() appends div.alert (error on reject, success on accept)",
+   "duration": 250,
+   "delay": 0,
+   "easing": "ease-out",
+   "iterations": 1,
+   "keyframeCount": 2,
+   "keyframes": [
+    {
+     "offset": 0,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "0",
+     "scale": "0.9",
+     "computedOffset": 0
+    },
+    {
+     "offset": 1,
+     "easing": "ease-out",
+     "composite": "auto",
+     "opacity": "1",
+     "scale": "1",
+     "computedOffset": 1
+    }
+   ],
+   "timing": {
+    "duration": 250,
+    "delay": 0,
+    "endDelay": 0,
+    "iterations": 1,
+    "easing": "linear",
+    "fill": "none",
+    "direction": "normal"
+   }
+  }
+ ],
+ "codeExtracted": [
+  {
+   "source": "daisyUI 5.7.46 .loading-spinner mask-image data-URI SVG (SMIL) — read from code; invisible to getAnimations() and not controllable by Playwright's clock",
+   "selector": "span.loading.loading-spinner.loading-sm (inside button#close-day while pending)",
+   "trigger": "ui.pendingClose=true (click #close-day, until the day.close reply)",
+   "smil": [
+    {
+     "element": "animateTransform",
+     "attributeName": "transform",
+     "type": "rotate",
+     "from": "0 12 12",
+     "to": "360 12 12",
+     "dur": "2s",
+     "repeatCount": "indefinite"
+    },
+    {
+     "element": "animate",
+     "attributeName": "stroke-dasharray",
+     "values": "0,150;42,150;42,150",
+     "keyTimes": "0;0.475;1",
+     "dur": "1.5s",
+     "repeatCount": "indefinite"
+    },
+    {
+     "element": "animate",
+     "attributeName": "stroke-dashoffset",
+     "values": "0;-16;-59",
+     "keyTimes": "0;0.475;1",
+     "dur": "1.5s",
+     "repeatCount": "indefinite"
+    }
+   ],
+   "reducedMotion": "under prefers-reduced-motion the default mask uses dur 8s (rotate) / 6s (dash) instead",
+   "circle": {
+    "cx": 12,
+    "cy": 12,
+    "r": 9.5,
+    "strokeWidth": 3,
+    "linecap": "round"
+   }
+  }
+ ]
+}

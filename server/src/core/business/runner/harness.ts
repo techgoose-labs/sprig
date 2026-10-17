@@ -1,0 +1,589 @@
+// The Playwright side of the case keys (REQ-040..045). runTests writes, per run
+// and OUTSIDE the project: this harness, one wrapper spec per case, and a config
+// whose testDir is that folder. A wrapper imports the case's own spec files — so
+// their tests register inside it — then installs the case's viewport, theme and
+// network fakes for every one of them, and adds the generated `reference: …` /
+// `motion: …` capture tests. The runner compares the captures afterwards.
+import type {
+  MotionRef,
+  NetworkRule,
+  ReferenceSpec,
+  Tier,
+  Viewport,
+} from "../discover/mod.ts";
+
+/** An explicit stage colour behind a `_reference` capture (REQ-063) and where it
+ *  was declared — the case's `_reference.background`, else the fixture's. */
+export interface StageBackground {
+  value: string;
+  from: string;
+}
+
+/** One case as the run sees it. `key` is `<unit>/<case>` — the row-name suffix. */
+export interface PlannedCase {
+  key: string;
+  unit: string;
+  caseName: string;
+  route: string;
+  tier?: Tier;
+  viewport?: Viewport;
+  theme?: string;
+  network?: NetworkRule[];
+  reference?: ReferenceSpec;
+  /** REQ-063: absent → the harness resolves the app's page colour for the theme. */
+  stageBackground?: StageBackground;
+  motion?: MotionRef;
+  /** The case's own spec files selected for this run (absolute). */
+  files: string[];
+}
+
+export const HARNESS_FILE = "isolate-harness.ts";
+export const CONFIG_FILE = "playwright.config.mjs";
+export const WRAPPER_SUFFIX = ".iso.ts";
+export const ACTUAL_PNG = "actual.png";
+export const DIFF_PNG = "diff.png";
+export const MOTION_ACTUAL = "motion.actual.json";
+
+/** The files an app declares its document fonts in (REQ-059), relative to the
+ *  project root the runner spawns Playwright in: the shell's `<head>` (the
+ *  framework lifts `bootstrap/template.html`'s head into every page, with
+ *  `bootstrap/head.html` as the fallback beside a body-only template) and the
+ *  global stylesheets. */
+export const FONT_SOURCE_FILES = [
+  "bootstrap/template.html",
+  "bootstrap/head.html",
+  "bootstrap/styles.css",
+  "src/shell/styles.css",
+] as const;
+
+/** What the app's document loads for fonts, read from FONT_SOURCE_FILES: the
+ *  head's stylesheet `<link>`s and `<style>` blocks, and the global
+ *  stylesheets' `@import`s and `@font-face` rules. `urls` are http(s) only — a
+ *  root-relative asset would resolve against the workbench, so it is `skipped`
+ *  (named on the row) rather than silently missing. Pure: embedded in the
+ *  harness by its source text, so it must stay self-contained. */
+export function appFontSources(
+  files: Record<string, string>,
+): { urls: string[]; css: string[]; skipped: string[] } {
+  const urls: string[] = [];
+  const css: string[] = [];
+  const skipped: string[] = [];
+  const add = (u: string) => {
+    // a bare build-time specifier (`@import "tailwindcss"`) is not a font source
+    if (!/^(https?:)?\/|^\.\.?\/|\.css(\?|$)/i.test(u)) return;
+    if (/^https?:\/\//i.test(u)) {
+      if (!urls.includes(u)) urls.push(u);
+    } else if (!skipped.includes(u)) skipped.push(u);
+  };
+  // as the framework does: the shell's own <head>, else bootstrap/head.html —
+  // which is honoured only beside a (body-only) bootstrap/template.html
+  const tpl = files["bootstrap/template.html"];
+  const m = tpl?.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const head = m
+    ? m[1]
+    : tpl === undefined
+    ? ""
+    : (files["bootstrap/head.html"] ?? "");
+  for (const l of head.matchAll(/<link\b[^>]*>/gi)) {
+    if (!/\brel\s*=\s*["']?stylesheet\b/i.test(l[0])) continue;
+    const h = l[0].match(/\bhref\s*=\s*["']([^"']+)["']/i);
+    if (h) add(h[1]);
+  }
+  for (const st of head.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
+    css.push(st[1]);
+  }
+  for (const f of ["bootstrap/styles.css", "src/shell/styles.css"]) {
+    const t = files[f] ?? "";
+    for (
+      const i of t.matchAll(
+        /@import\s+(?:url\(\s*["']?([^"')]+)["']?\s*\)|["']([^"']+)["'])/gi,
+      )
+    ) add(i[1] ?? i[2]);
+    for (const ff of t.matchAll(/@font-face\s*\{[^}]*\}/gi)) css.push(ff[0]);
+  }
+  return { urls, css, skipped };
+}
+
+/** The app shell's global stylesheets, in cascade order: the shell head's
+ *  `<style>` blocks, `bootstrap/styles.css`, `src/shell/styles.css` — each as
+ *  `[name, css]`. Pure + self-contained: embedded in the harness. */
+function shellStyleSheets(
+  files: Record<string, string>,
+): [string, string][] {
+  const tpl = files["bootstrap/template.html"];
+  const m = tpl?.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const head = m
+    ? m[1]
+    : tpl === undefined
+    ? ""
+    : (files["bootstrap/head.html"] ?? "");
+  const headName = m ? "bootstrap/template.html <head>" : "bootstrap/head.html";
+  const sheets: [string, string][] = [];
+  for (const st of head.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
+    sheets.push([headName, st[1]]);
+  }
+  for (const f of ["bootstrap/styles.css", "src/shell/styles.css"]) {
+    if (files[f]) sheets.push([f, files[f]]);
+  }
+  return sheets;
+}
+
+/** The page background the APP's shell declares (REQ-063): the last `background`
+ *  / `background-color` on a `body` rule (else an `html` rule — it paints the
+ *  canvas) across the shell head's `<style>` blocks, `bootstrap/styles.css` and
+ *  `src/shell/styles.css`, in that order (`:global(body)` counts). The value is
+ *  returned as written (`var(--color-base-200, #f3eadb)`) — the browser resolves
+ *  it under the case's theme. Pure; embedded in the harness with shellStyleSheets. */
+export function appPageBackground(
+  files: Record<string, string>,
+): { value: string; source: string } | null {
+  let body: { value: string; source: string } | null = null;
+  let html: { value: string; source: string } | null = null;
+  for (const [name, css] of shellStyleSheets(files)) {
+    const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const rule of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const sels = rule[1].split(",").map((x) =>
+        x.trim().replace(/^:global\((.*)\)$/, "$1").trim()
+      );
+      let value: string | null = null;
+      for (
+        const d of rule[2].matchAll(
+          /(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)/gi,
+        )
+      ) value = d[1].replace(/!important/i, "").trim();
+      if (!value) continue;
+      if (sels.includes("body")) body = { value, source: name + " body" };
+      if (sels.includes("html")) html = { value, source: name + " html" };
+    }
+  }
+  return body ?? html;
+}
+
+/** The text the APP's page sets (REQ-068): the last `color`, `font-family`,
+ *  `font-size` and `line-height` on a `body` rule (else an `html` rule), per
+ *  property, across the same stylesheets as appPageBackground — as written, for
+ *  the browser to resolve under the case's theme. A unit rendered on the stage
+ *  inherits these exactly as it does in the app. Pure; embedded in the harness. */
+export function appPageText(
+  files: Record<string, string>,
+): { prop: string; value: string; source: string }[] {
+  const PROPS = ["color", "font-family", "font-size", "line-height"];
+  const body: Record<string, { value: string; source: string }> = {};
+  const html: Record<string, { value: string; source: string }> = {};
+  for (const [name, css] of shellStyleSheets(files)) {
+    const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const rule of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const sels = rule[1].split(",").map((x) =>
+        x.trim().replace(/^:global\((.*)\)$/, "$1").trim()
+      );
+      const isBody = sels.includes("body"), isHtml = sels.includes("html");
+      if (!isBody && !isHtml) continue;
+      for (const d of rule[2].split(";")) {
+        const i = d.indexOf(":");
+        if (i < 0) continue;
+        const prop = d.slice(0, i).trim().toLowerCase();
+        if (!PROPS.includes(prop)) continue;
+        const value = d.slice(i + 1).replace(/!important/i, "").trim();
+        if (!value) continue;
+        if (isBody) body[prop] = { value, source: name + " body" };
+        if (isHtml) html[prop] = { value, source: name + " html" };
+      }
+    }
+  }
+  const out: { prop: string; value: string; source: string }[] = [];
+  for (const prop of PROPS) {
+    const d = body[prop] ?? html[prop];
+    if (d) out.push({ prop, value: d.value, source: d.source });
+  }
+  return out;
+}
+
+/** The stage colours to try behind a `_reference` capture, in order (REQ-063): an
+ *  explicit one alone (it never falls back — an unresolvable one fails the row),
+ *  else the app's page background, the design system's `--color-base-100`, and
+ *  the browser's default canvas. The first that resolves to an opaque colour
+ *  under the case's theme wins. Pure + self-contained: embedded in the harness. */
+export function stageBackgrounds(
+  explicit: StageBackground | undefined,
+  page: { value: string; source: string } | null,
+): { value: string; source: string; explicit: boolean }[] {
+  if (explicit) {
+    return [{ value: explicit.value, source: explicit.from, explicit: true }];
+  }
+  const out: { value: string; source: string; explicit: boolean }[] = [];
+  if (page) {
+    out.push({
+      value: page.value,
+      source: "the app's page background (" + page.source + ")",
+      explicit: false,
+    });
+  }
+  out.push({
+    value: "var(--color-base-100)",
+    source: "the design system's --color-base-100",
+    explicit: false,
+  });
+  out.push({
+    value: "#ffffff",
+    source:
+      "the browser's default canvas (the app declares no page background)",
+    explicit: false,
+  });
+  return out;
+}
+
+/** The harness module every wrapper imports (Node, run by Playwright). */
+export const HARNESS_SOURCE =
+  `// GENERATED by isolate test — the case-key harness (see runner/harness.ts).
+import { test } from "@playwright/test";
+import * as fs from "node:fs";
+import * as path from "node:path";
+
+const BASE = () => process.env.ISOLATE_BASE_URL ?? "http://127.0.0.1:8000";
+const note = (info, description) => info.annotations.push({ type: "isolate", description });
+
+function describeAction(a) {
+  return a.kind === "fail" ? "fail" : a.kind === "delay" ? "delay " + a.ms + "ms" : "respond " + a.status;
+}
+
+function installCase(c) {
+  if (c.viewport) test.use({ viewport: c.viewport });
+  // REQ-059: a reference is compared pixel for pixel, so the render is always at
+  // device scale 1 — whatever a project config says. Stills are captured at 1.
+  if (c.reference) test.use({ deviceScaleFactor: 1 });
+  const fired = new Map();
+  test.beforeEach(async ({ page }, info) => {
+    const applied = [];
+    if (c.viewport) applied.push("viewport " + c.viewport.width + "x" + c.viewport.height);
+    if (c.reference) applied.push("device scale 1");
+    if (c.theme) {
+      applied.push("theme " + c.theme);
+      await page.addInitScript((theme) => {
+        const set = () => {
+          const h = document.documentElement;
+          if (h && h.getAttribute("data-theme") !== theme) h.setAttribute("data-theme", theme);
+        };
+        set();
+        new MutationObserver(set).observe(document, {
+          childList: true, subtree: true, attributes: true, attributeFilter: ["data-theme"],
+        });
+      }, c.theme);
+    }
+    const counts = {};
+    fired.set(info.testId, counts);
+    for (const r of c.network ?? []) {
+      const re = new RegExp(r.pattern);
+      counts[r.key] = 0;
+      await page.route((url) => re.test(url.pathname), async (route) => {
+        if (route.request().method() !== r.method) return route.fallback();
+        counts[r.key]++;
+        const a = r.action;
+        try {
+          if (a.kind === "fail") return await route.abort("failed");
+          if (a.kind === "delay") {
+            await new Promise((res) => setTimeout(res, a.ms));
+            return await route.fallback();
+          }
+          const text = typeof a.body === "string";
+          return await route.fulfill({
+            status: a.status,
+            contentType: text ? "text/plain" : "application/json",
+            body: a.body === undefined ? "" : text ? a.body : JSON.stringify(a.body),
+          });
+        } catch { /* the page closed while the request was held */ }
+      });
+    }
+    if (applied.length) note(info, "case " + c.key + ": " + applied.join(" · "));
+  });
+  test.afterEach(async ({}, info) => {
+    const counts = fired.get(info.testId) ?? {};
+    for (const r of c.network ?? []) {
+      note(info, "network " + r.key + (r.via ? " (the " + r.via + "'s contract)" : "") + " → " + describeAction(r.action) + ": fired " + (counts[r.key] ?? 0) + "×");
+    }
+    fired.delete(info.testId);
+  });
+}
+
+async function openCase(page, c) {
+  await page.goto(BASE() + c.route);
+  await page.waitForFunction(() => globalThis.__isolateReady === true, undefined, { timeout: 10000 });
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+}
+
+const appFontSources = ${appFontSources.toString()};
+const shellStyleSheets = ${shellStyleSheets.toString()};
+const appPageBackground = ${appPageBackground.toString()};
+const appPageText = ${appPageText.toString()};
+const stageBackgrounds = ${stageBackgrounds.toString()};
+
+/** The app's shell head + global stylesheets, read from the project root (the
+ *  runner spawns Playwright there). */
+function readAppFiles() {
+  const files = {};
+  for (const f of ${JSON.stringify(FONT_SOURCE_FILES)}) {
+    try { files[f] = fs.readFileSync(path.join(process.cwd(), f), "utf8"); } catch { /* absent */ }
+  }
+  return files;
+}
+
+/** REQ-063: paint the stage behind the unit with the colour the unit sits on in
+ *  the app — the case's explicit background, else the app's page background under
+ *  the case's theme (see stageBackgrounds) — never the workbench's own paper. */
+async function paintStage(page, c) {
+  const order = stageBackgrounds(c.stageBackground, appPageBackground(readAppFiles()));
+  const got = await page.evaluate((order) => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;width:0;height:0;visibility:hidden";
+    document.body.appendChild(probe);
+    try {
+      for (const o of order) {
+        probe.style.background = "";
+        probe.style.background = o.value;
+        const bg = probe.style.background ? getComputedStyle(probe).backgroundColor : "";
+        const clear = !bg || bg === "transparent" || /^rgba\(.*,\s*0\)$/.test(bg);
+        if (!clear) return { color: bg, source: o.source };
+        if (o.explicit) return { error: o.value + " (" + o.source + ") does not resolve to an opaque colour" };
+      }
+      return { error: "no stage background resolved" };
+    } finally {
+      probe.remove();
+    }
+  }, order);
+  if (got.error) throw new Error("stage background: " + got.error);
+  await page.addStyleTag({
+    content: "html, body, .iso-stage-page { background: " + got.color + " !important; }",
+  });
+  note(test.info(), "stage background " + got.color + " — " + got.source + (c.theme ? " under theme " + c.theme : ""));
+  // REQ-068: the stage also carries the shell body's text — colour, face, size,
+  // leading — resolved under the case's theme, so an unhosted unit inherits what
+  // it inherits in the app, not the workbench's own ink and monospace.
+  const text = appPageText(readAppFiles());
+  if (!text.length) return;
+  const applied = await page.evaluate((text) => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden";
+    document.body.appendChild(probe);
+    try {
+      const out = [];
+      for (const t of text) {
+        probe.style.setProperty(t.prop, "");
+        probe.style.setProperty(t.prop, t.value);
+        if (!probe.style.getPropertyValue(t.prop)) continue;
+        out.push({ prop: t.prop, declared: t.value, value: getComputedStyle(probe).getPropertyValue(t.prop), source: t.source });
+        probe.style.setProperty(t.prop, "");
+      }
+      return out;
+    } finally {
+      probe.remove();
+    }
+  }, text);
+  if (!applied.length) return;
+  // As written, on body + the stage (never html: a root font-size moves every rem),
+  // so relative values (line-height 1.5, 1rem) behave as they do in the app.
+  await page.addStyleTag({
+    content: "body, .iso-stage-page { " + applied.map((a) => a.prop + ": " + a.declared + " !important;").join(" ") + " }",
+  });
+  const sources = [...new Set(applied.map((a) => a.source))].join(", ");
+  note(test.info(), "stage text " + applied.map((a) => a.prop + " " + a.value).join(", ") + " — the app's page text (" + sources + ")" + (c.theme ? " under theme " + c.theme : ""));
+}
+
+/** REQ-059: load what the APP's document loads for fonts (its shell head and
+ *  global stylesheets — see appFontSources), so the render uses the app's real
+ *  fonts, not a system fallback. The runner spawns Playwright in the project root.
+ *  A stylesheet that fails to load fails the row, naming it. */
+async function loadAppFonts(page) {
+  const src = appFontSources(readAppFiles());
+  for (const url of src.urls) {
+    try {
+      await page.addStyleTag({ url });
+    } catch (e) {
+      throw new Error("the app's font stylesheet " + url + " did not load: " + (e && e.message));
+    }
+  }
+  for (const content of src.css) await page.addStyleTag({ content });
+  await page.evaluate(async () => {
+    await Promise.all([...document.fonts].filter((f) => f.status === "unloaded").map((f) => f.load().catch(() => {})));
+    await document.fonts.ready;
+  });
+  const bits = [];
+  if (src.urls.length || src.css.length) bits.push("fonts: " + src.urls.length + " stylesheet(s), " + src.css.length + " inline block(s) from the app");
+  if (src.skipped.length) bits.push("fonts not loaded (local to the app, not served by the workbench): " + src.skipped.join(", "));
+  if (bits.length) note(test.info(), bits.join(" · "));
+}
+
+/** The still's own pixel size, from its PNG header (null when unreadable). */
+function stillSize(file) {
+  try {
+    const b = fs.readFileSync(file);
+    if (b.length < 24 || b.readUInt32BE(12) !== 0x49484452) return null;
+    return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+  } catch { return null; }
+}
+
+/** Screenshot the rendered target (the stage page's first child) at the case's
+ *  viewport/theme. REQ-059: the unit is laid out in a slot exactly the still's
+ *  pixel width (the width it had on the captured page) — the stage loses its
+ *  padding and centring (which also landed the target on half pixels) and
+ *  stretches the target across that width; a unit with its own fixed width keeps
+ *  it, so a width drift still shows. The page viewport stays the case's
+ *  _viewport, so media queries see the breakpoint the still was shot at. */
+async function captureReference(page, c, out) {
+  await openCase(page, c);
+  await loadAppFonts(page);
+  await paintStage(page, c);
+  const still = c.reference && c.reference.image ? stillSize(c.reference.image) : null;
+  const slot = still ? " width: " + still.width + "px !important; box-sizing: content-box !important;" : "";
+  await page.addStyleTag({
+    content: ".iso-stage-page { place-items: start stretch !important; padding: 0 !important; min-height: 0 !important;" + slot + " }",
+  });
+  if (still) note(test.info(), "slot " + still.width + "px wide (the still's width)");
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  const stage = page.locator(".iso-stage-page");
+  const target = (await stage.count()) ? stage.locator(":scope > *").first() : page;
+  await target.screenshot({ path: out, animations: "disabled", caret: "hide" });
+}
+
+/** REQ-063: start what the case's _motion.trigger names on the unit's root (the
+ *  stage page's first child) — hover, focus (the root, else its first focusable
+ *  descendant) or click; load does nothing. */
+async function performTrigger(page, trigger) {
+  if (!trigger || trigger === "load") return;
+  const stage = page.locator(".iso-stage-page");
+  const root = (await stage.count())
+    ? stage.locator(":scope > *").first()
+    : page.locator("body > *").first();
+  const what = await root.evaluate((el) =>
+    el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+    (el.classList.length ? "." + [...el.classList].join(".") : "")
+  );
+  if (trigger === "hover") await root.hover();
+  else if (trigger === "click") await root.click();
+  else if (trigger === "focus") {
+    const ok = await root.evaluate((el) => {
+      const sel = 'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+      const t = el.matches(sel) ? el : el.querySelector(sel);
+      if (!t) return false;
+      t.focus();
+      return document.activeElement === t;
+    });
+    if (!ok) throw new Error("_motion trigger focus: nothing focusable in the unit's root " + what);
+  } else throw new Error("unknown _motion trigger " + JSON.stringify(trigger));
+  await page.waitForTimeout(50); // let the style change start its transitions
+  note(test.info(), "motion trigger: " + trigger + " on " + what);
+}
+
+/** Read document.getAnimations() after hydration — every animation paused at its
+ *  start (DevTools playback rate 0) so entrance animations are still listed — and
+ *  after the case's _motion.trigger, so hover/focus/click motion is too. */
+async function captureMotion(page, c, out) {
+  try {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Animation.enable");
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 0 });
+  } catch { /* not Chromium: animations run at speed */ }
+  await openCase(page, c);
+  const trigger = c.motion && c.motion.trigger;
+  await performTrigger(page, trigger);
+  const records = await page.evaluate(() =>
+    document.getAnimations().map((a) => {
+      const el = a.effect && a.effect.target;
+      const t = (a.effect && a.effect.getComputedTiming && a.effect.getComputedTiming()) || {};
+      const kfs = (a.effect && a.effect.getKeyframes && a.effect.getKeyframes()) || [];
+      return {
+        selector: el
+          ? el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+            (el.classList.length ? "." + [...el.classList].join(".") : "")
+          : undefined,
+        name: a.animationName ?? a.transitionProperty ?? undefined,
+        keyframes: kfs.map((k) => ({ offset: k.offset, easing: k.easing })),
+        timing: {
+          duration: t.duration,
+          delay: t.delay,
+          iterations: t.iterations === Infinity ? "Infinity" : t.iterations,
+          easing: t.easing,
+        },
+      };
+    })
+  );
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify(records, null, 2));
+}
+export { installCase, captureReference, captureMotion };
+`;
+
+/** One wrapper spec for a case. */
+export function wrapperSource(
+  c: PlannedCase,
+  harnessPath: string,
+  caseEvidenceDir: string,
+): string {
+  const payload = {
+    key: c.key,
+    route: c.route,
+    viewport: c.viewport,
+    theme: c.theme,
+    network: c.network ?? [],
+    ...(c.reference ? { reference: { image: c.reference.image } } : {}),
+    ...(c.reference && c.stageBackground
+      ? { stageBackground: c.stageBackground }
+      : {}),
+    ...(c.motion ? { motion: { trigger: c.motion.trigger } } : {}),
+  };
+  const lines = [
+    `// GENERATED by isolate test for ${c.key} — see runner/harness.ts.`,
+    `import { test } from "@playwright/test";`,
+    `import { installCase, captureReference, captureMotion } from ${
+      JSON.stringify(harnessPath)
+    };`,
+    ...c.files.map((f) => `import ${JSON.stringify(f)};`),
+    ``,
+    `const CASE = ${JSON.stringify(payload)};`,
+    `installCase(CASE);`,
+  ];
+  if (c.reference) {
+    lines.push(
+      `test(${JSON.stringify(`reference: ${c.key}`)}, async ({ page }) => {`,
+      `  await captureReference(page, CASE, ${
+        JSON.stringify(`${caseEvidenceDir}/${ACTUAL_PNG}`)
+      });`,
+      `});`,
+    );
+  }
+  if (c.motion) {
+    lines.push(
+      `test(${JSON.stringify(`motion: ${c.key}`)}, async ({ page }) => {`,
+      `  await captureMotion(page, CASE, ${
+        JSON.stringify(`${caseEvidenceDir}/${MOTION_ACTUAL}`)
+      });`,
+      `});`,
+    );
+  }
+  return lines.join("\n") + "\n";
+}
+
+/** The run's Playwright config: the wrappers only, all output outside the project.
+ *  A project config (given or auto-detected) contributes its settings, not its tests. */
+export function configSource(
+  specsDir: string,
+  outputDir: string,
+  baseConfig?: string,
+): string {
+  const own =
+    `testDir: ${JSON.stringify(specsDir)}, testMatch: /\\.iso\\.ts$/, ` +
+    `outputDir: ${JSON.stringify(outputDir)}`;
+  if (!baseConfig) {
+    return `// GENERATED by isolate test.\nexport default { ${own} };\n`;
+  }
+  return [
+    `// GENERATED by isolate test — settings from ${baseConfig}, tests from the case wrappers.`,
+    `import loaded from ${JSON.stringify(baseConfig)};`,
+    // REQ-061: Playwright's loader compiles a .ts config to CommonJS, so this ESM
+    // import receives `{ default: config }` — unwrap it (no config has a
+    // top-level `default` key), or its `use` never reaches the run.
+    `const base = loaded && typeof loaded === "object" && "default" in loaded ? loaded.default : loaded;`,
+    `const { projects: _p, testDir: _d, testMatch: _m, testIgnore: _i, ...rest } = base ?? {};`,
+    `export default { ...rest, ${own} };`,
+    ``,
+  ].join("\n");
+}

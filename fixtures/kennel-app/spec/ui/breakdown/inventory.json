@@ -1,0 +1,272 @@
+{
+  "units": [
+    {
+      "name": "top-bar",
+      "dir": "shared-components/top-bar",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: navbar. Source comment '============ Top bar ============'; global mount in <body> above #app, sticky on every route -> shell-scoped, shared. Holds the dog icon + 'Kennel board' wordmark link (#/board), composes main-nav and theme-toggle. The flask 'Demo states' dropdown (header .dropdown: #demo-state select live/empty/loading/error + #demo-fail 'Next write fails' toggle) is PROTOTYPE HARNESS, not product: it is not rebuilt; its states become isolate cases (board empty/loading, load-error, rolled-back cases of dog-actions/dog-notes/close-day-control).",
+      "dataNeeds": []
+    },
+    {
+      "name": "main-nav",
+      "dir": "shared-components/main-nav",
+      "classification": "island",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "pure-client",
+      "evidence": "primitive: button (btn btn-ghost btn-sm, btn-active on current). Two links [data-nav=board|summary]; render() toggles btn-active by route (dog/* highlights board). Island because it lives in the shell, which survives client soft-nav — the server cannot re-render the active state after navigation. UI state only (current route), no server write. Labels hidden below sm.",
+      "dataNeeds": []
+    },
+    {
+      "name": "theme-toggle",
+      "dir": "shared-components/theme-toggle",
+      "classification": "island",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "pure-client",
+      "evidence": "primitive: swap (swap swap-rotate btn btn-ghost btn-sm btn-square) with sun/moon. change -> document.documentElement.dataset.theme = brand|brand-dark. Needs client JS to flip the document theme; no server write. Initial theme from ?theme= (prototype param) else brand.",
+      "dataNeeds": []
+    },
+    {
+      "name": "toast-stack",
+      "dir": "shared-components/toast-stack",
+      "classification": "island",
+      "scope": "shared",
+      "usedOn": ["dog-detail", "day-summary"],
+      "tier": "pure-client",
+      "evidence": "primitive: toast + alert (toast toast-end toast-bottom z-50 mb-12; alert alert-error|alert-success shadow-sm max-w-xs). Authorial signal: single global mount #toasts in <body>. Holds a queue signal; each toast auto-removes after 3500ms (setTimeout). Channel: toasts: sets by toast-stack -> edits by dog-actions, dog-notes (dog-detail) / close-day-control (day-summary); PAGE-scoped — composed in each page's template as a sibling of its writing islands, because <router-outlet> forwarding does not reach islands nested inside a page. No server write. Board raises no toasts.",
+      "dataNeeds": []
+    },
+    {
+      "name": "status-badge",
+      "dir": "shared-components/status-badge",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: badge. The STATUS map: booked=badge-info badge-soft+calendar-clock, checked-in=badge-success badge-soft+house, walking=badge-accent+footprints, checked-out=badge-outline+log-out; optional size modifier (badge-sm). Used by status-strip, dog-card (board), dog-heading (dog-detail), status-breakdown (day-summary). Pure display from a status prop.",
+      "dataNeeds": []
+    },
+    {
+      "name": "overdue-badge",
+      "dir": "shared-components/overdue-badge",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: badge (badge badge-error + alarm-clock, 'Overdue · <overdueBy>'). overdueBadge() helper used by dog-card, dog-heading, overdue-pickups. Renders nothing when !overdue. Server-decided flag, display only.",
+      "dataNeeds": []
+    },
+    {
+      "name": "load-error",
+      "dir": "shared-components/load-error",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "dog-detail", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: alert (alert alert-error alert-soft, wifi-off, 'Couldn't load today's board', Retry btn btn-sm). renderError() replaces #app on any route when the load fails. Retry = re-request the page (a plain link to the current URL) — no client JS needed.",
+      "dataNeeds": []
+    },
+    {
+      "name": "skeleton-card",
+      "dir": "shared-components/skeleton-card",
+      "classification": "static",
+      "scope": "shared",
+      "usedOn": ["board", "day-summary"],
+      "tier": "static",
+      "evidence": "primitive: card (card bg-base-100 border border-base-300 > card-body gap-3 with four daisyUI skeleton blocks h-6 w-2/3, h-4 w-1/2, h-5 w-20, h-5 w-14). skeletonCards(8) helper rendered by renderLoading() into the loading grid of every route while the load is pending (board, day summary). No props, no data, decorative (aria-hidden).",
+      "dataNeeds": []
+    },
+    {
+      "name": "board",
+      "dir": "pages/board",
+      "classification": "page-composition",
+      "scope": "page",
+      "page": "board",
+      "usedOn": ["board"],
+      "tier": "static",
+      "evidence": "Route #/board (default; source 'Screen 1 — Board', nav label 'Board'). Composes heading ('Today's dogs' h1 + day label + 'Day closed' badge-neutral when closed), status-strip, status-filter-tabs, dog-grid. Data from resolve.ts: today + dogList with the `status` QUERY PARAM read from url.searchParams (the mock's client-side filter becomes a query). Owns the loading skeleton (renderLoading: 4 strip skeletons + 8 card skeletons + 'Loading today's dogs…') as its `loading` state and delegates the failed load to load-error. No logic.ts.",
+      "dataNeeds": ["today", "dogList"]
+    },
+    {
+      "name": "status-strip",
+      "dir": "pages/board/components/status-strip",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "board",
+      "usedOn": ["board"],
+      "tier": "static",
+      "evidence": "primitive: card (4 card bg-base-100 border cards, grid-cols-2 md:grid-cols-4). Each card shows status-badge + byStatus count ('—' when no dogs). Click sets the filter, clicking the active one returns to all -> rendered as LINKS to ?status=<s> (active card links to all, border-primary) — the server re-renders; no island. Board-only.",
+      "dataNeeds": ["today"]
+    },
+    {
+      "name": "status-filter-tabs",
+      "dir": "pages/board/components/status-filter-tabs",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "board",
+      "usedOn": ["board"],
+      "tier": "static",
+      "evidence": "primitive: tabs (tabs tabs-box, role=tablist, tab-active on current; All/Booked/Checked in/Walking/Checked out). Filtering is a query: each tab is a link to ?status=<s>, the server renders the filtered list. Holds only the current param; no logic.ts.",
+      "dataNeeds": []
+    },
+    {
+      "name": "dog-grid",
+      "dir": "pages/board/components/dog-grid",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "board",
+      "usedOn": ["board"],
+      "tier": "static",
+      "evidence": "primitive: card (empty states: card border-dashed). Grid grid-cols-1 sm:2 lg:3 xl:4 of dog-card. Honest-empty x2: no dogs today ('No dogs booked today', bone icon) vs empty for the filter ('No dogs are <status> right now' + 'Show all dogs' link to ?status=all). Read-only, request-response.",
+      "dataNeeds": ["dogList"]
+    },
+    {
+      "name": "dog-card",
+      "dir": "pages/board/components/dog-card",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "board",
+      "usedOn": ["board"],
+      "tier": "static",
+      "evidence": "primitive: card (a.card link to #/dog/<id>; border-error when overdue; hover:shadow-sm). Name (card-title, break-words), kennel badge (badge badge-outline font-mono), breed, owner name (from the query DTO, not a client join), status-badge + overdue-badge, arrival time. Only on board.",
+      "dataNeeds": ["dogList"]
+    },
+    {
+      "name": "dog-detail",
+      "dir": "pages/dog-detail",
+      "classification": "page-composition",
+      "scope": "page",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "static",
+      "evidence": "Route #/dog/:id (source 'Screen 2 — Dog detail'). Composes the back link ('Board', btn-ghost), dog-heading, then a lg:grid-cols-3 grid of dog-profile-card, stay-card, dog-actions, dog-notes (lg:col-span-3), and toast-stack (page-scoped channels: dog, toasts). Data from resolve.ts: dogDetail by params.id + today.closed. Not-found state ('We can't find that dog' card + 'Back to the board') = 404 via setResponseStatus. No logic.ts.",
+      "dataNeeds": ["dogDetail", "today"]
+    },
+    {
+      "name": "dog-heading",
+      "dir": "pages/dog-detail/components/dog-heading",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "pure-client",
+      "evidence": "Dog name h1 (font-display text-4xl md:text-5xl, break-words) + status-badge + overdue-badge. Island ONLY to follow the optimistic status: channel dog: sets by dog-actions -> reads by dog-heading (page-scoped). Renders its SSR input until the channel is seeded. No server write.",
+      "dataNeeds": ["dogDetail"]
+    },
+    {
+      "name": "dog-profile-card",
+      "dir": "pages/dog-detail/components/dog-profile-card",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "static",
+      "evidence": "primitive: card ('The dog', paw-print; dl grid-cols-[auto_1fr] Breed/Kennel badge/Arrival/Owner/Phone). Pure display from dogDetail.",
+      "dataNeeds": ["dogDetail"]
+    },
+    {
+      "name": "stay-card",
+      "dir": "pages/dog-detail/components/stay-card",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "static",
+      "evidence": "primitive: card ('The stay', bed-double; dl Check-in/Planned check-out/Nightly rate/Nights; divider; 'Total due' text-3xl [data-total-due]). Honest-empty: 'No stay on file for this dog.' Total due is the server's figure and does not change on check-out (commands.json dog.checkOut) -> static.",
+      "dataNeeds": ["dogDetail"]
+    },
+    {
+      "name": "dog-actions",
+      "dir": "pages/dog-detail/components/dog-actions",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "optimistic-write",
+      "evidence": "primitive: card + button ('Actions', list-checks; Check in [btn-primary when booked], Start walk, End walk [btn-soft btn-secondary], Check out [btn-primary when checked-in]; enabled by status; all disabled + 'The day is closed — stays are locked.' when today.closed). Server writes dog.checkIn/startWalk/endWalk/checkOut, all feedback: instant -> optimistic: flip status first, reconcile with the reply's dog (status, overdue), revert + error toast '<name>: <status> didn't go through — reverted.' on rejection. Channels: dog: sets by dog-actions -> reads by dog-heading; toasts: edits by dog-actions.",
+      "dataNeeds": ["dogDetail", "today", "checkIn", "startWalk", "endWalk", "checkOut"]
+    },
+    {
+      "name": "dog-notes",
+      "dir": "pages/dog-detail/components/dog-notes",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "dog-detail",
+      "usedOn": ["dog-detail"],
+      "tier": "optimistic-write",
+      "evidence": "primitive: card + input + button ('Notes' notebook-pen + count badge badge-sm; ul divide-y of notes 'text' / 'author · time'; form: author input [default 'Front desk', required], text input [required], 'Add note' btn-soft btn-secondary). Server write dog.addNote (append, feedback: instant): append a dimmed (opacity-50) 'saving…' note + clear the form first, replace with the reply's note; on rejection remove it, restore the typed text into the input, error toast 'Note for <name> wasn't saved — it's back in the box.'. Honest-empty 'No notes yet — add the first one below.'. Validation is required-only. Channel toasts: edits by dog-notes.",
+      "dataNeeds": ["dogDetail", "addNote"]
+    },
+    {
+      "name": "day-summary",
+      "dir": "pages/day-summary",
+      "classification": "page-composition",
+      "scope": "page",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "static",
+      "evidence": "Route #/summary (source 'Screen 3 — Day summary', nav label 'Day summary'). Composes heading ('Day summary' h1 + day label) with close-day-control, day-closed-alert, day-stats, then lg:grid-cols-2 of status-breakdown + overdue-pickups, and toast-stack (page-scoped channels: day, toasts). Data from resolve.ts: today + overduePickups (?overdue=true query — the mock's client filter on the server flag). No logic.ts.",
+      "dataNeeds": ["today", "overduePickups"]
+    },
+    {
+      "name": "close-day-control",
+      "dir": "pages/day-summary/components/close-day-control",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "confirmed-write",
+      "evidence": "primitive: button (btn btn-primary 'Close the day' + lock; pending: disabled + loading-spinner 'Closing the day…') / badge (badge-neutral badge-lg 'Day closed' once closed). Server write day.close, feedback: confirmed -> waits: day.close — the lock and the final revenue are decided server-side and the close can be refused (dogs still walking), so the UI cannot show the result before the reply (build marks the await // sprig-wait: <reason>). On success: success toast 'Day closed — ledger locked.' and publishes the server's day; on failure: error toast 'The day couldn't be closed — nothing changed.'. Channels: day: sets by close-day-control -> reads by day-closed-alert, day-stats; toasts: edits by close-day-control. Tier confirmed-write (REQ-064): the reply decides, so it proves a pending case only.",
+      "dataNeeds": ["today", "closeDay"]
+    },
+    {
+      "name": "day-closed-alert",
+      "dir": "pages/day-summary/components/day-closed-alert",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "pure-client",
+      "evidence": "primitive: alert (role=alert alert-soft alert-success, circle-check, 'Today's ledger is locked. Revenue below is final.'). Shown only when day.closed; island ONLY to appear after a confirmed close without a reload: channel day: reads by day-closed-alert. SSR renders from today.closed.",
+      "dataNeeds": ["today"]
+    },
+    {
+      "name": "day-stats",
+      "dir": "pages/day-summary/components/day-stats",
+      "classification": "island",
+      "scope": "page-local",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "pure-client",
+      "evidence": "primitive: stats (stats stats-vertical md:stats-horizontal; stat Occupancy [warehouse, 'N of M kennels', progress-secondary + pct], Revenue today [banknote, money, desc 'Final' | 'Settles when the day closes'], Overdue pickups [alarm-clock, count, 'Past their planned check-out']). Island ONLY because day.close's reply changes revenue + 'Final': channel day: reads by day-stats. All figures are server aggregates — never computed here.",
+      "dataNeeds": ["today"]
+    },
+    {
+      "name": "status-breakdown",
+      "dir": "pages/day-summary/components/status-breakdown",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "static",
+      "evidence": "primitive: card + progress ('Dogs by status', dog icon; per status: status-badge badge-sm, progress [info/success/accent/none] value=byStatus[s] max=kennelsTotal, count). Server aggregates, read-only.",
+      "dataNeeds": ["today"]
+    },
+    {
+      "name": "overdue-pickups",
+      "dir": "pages/day-summary/components/overdue-pickups",
+      "classification": "static",
+      "scope": "page-local",
+      "page": "day-summary",
+      "usedOn": ["day-summary"],
+      "tier": "static",
+      "evidence": "primitive: card + link ('Overdue pickups', alarm-clock; ul divide-y rows: dog name link to dog-detail, kennel badge, owner name · phone, overdue-badge). Rows come from the overduePickups query (server flag), never a client filter. Honest-empty 'No overdue pickups — every owner is on time.'. Request-response.",
+      "dataNeeds": ["overduePickups"]
+    }
+  ],
+  "unassigned": []
+}

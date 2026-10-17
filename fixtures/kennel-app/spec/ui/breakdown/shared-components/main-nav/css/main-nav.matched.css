@@ -1,0 +1,25 @@
+/* Matched CSS rules (via CDP CSS.getMatchedStylesForNode) for every element in region `header.navbar nav > a[data-nav]` — reference only, not deliverable. Sources: daisyUI 5 CDN, @tailwindcss/browser@4 generated utilities, inline theme <style>. */
+@layer base *, ::after, ::backdrop, ::before, ::file-selector-button { box-sizing:border-box;border:0 solid;margin:0;padding:0 }
+@layer base *, ::after, ::before, ::backdrop, ::file-selector-button { box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid; }
+@layer base a { color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit; }
+@layer utilities.daisyui.l1.l2.l3 :where(.btn) { width:unset }
+@layer utilities.daisyui.l1.l2.l3 @media (width >= 640px) :where(.btn) { width:unset }
+@layer utilities.daisyui.l1.l2.l3 @media (width >= 768px) :where(.btn) { width:unset }
+@layer utilities.daisyui.l1.l2.l3 @media (width >= 1024px) :where(.btn) { width:unset }
+@layer utilities.daisyui.l1.l2.l3 @media (width >= 1280px) :where(.btn) { width:unset }
+@layer utilities.daisyui.l1.l2.l3 .btn { --size:calc(var(--size-field,.25rem) * 10);--btn-p:1rem;--btn-fg:var(--color-base-content);cursor:pointer;text-align:center;vertical-align:middle;outline-offset:2px;-webkit-user-select:none;user-select:none;border-width:var(--border);touch-action:manipulation;--btn-bg:var(--btn-color,var(--color-base-200));--btn-border:color-mix(in oklab, var(--btn-color,var(--color-base-200)), #000 calc(var(--depth) * 5%));--btn-soft-bg:initial;--btn-shadow:0 3px 2px -2px color-mix(in oklab, var(--btn-bg) calc(var(--depth) * 30%), #0000), 0 4px 3px -2px color-mix(in oklab, var(--btn-bg) calc(var(--depth) * 30%), #0000);--btn-inset:0 .5px 0 .5px oklch(100% 0 0 / calc(var(--depth) * 6%));height:var(--size);padding-inline:var(--btn-p);font-weight:600;font-size:var(--fontsize,.875rem);background-color:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-border);border-style:var(--btn-border-style,solid);outline-color:var(--btn-color,var(--color-base-content));--tw-prose-links:var(--btn-fg);background-image:none, var(--fx-noise);background-size:auto, calc(var(--noise,0) * 100%);text-shadow:0 .5px oklch(100% 0 0 / calc(var(--depth) * .15));box-shadow:var(--btn-inset) inset, var(--btn-shadow);border-start-start-radius:var(--join-ss,var(--radius-field));border-start-end-radius:var(--join-se,var(--radius-field));border-end-end-radius:var(--join-ee,var(--radius-field));border-end-start-radius:var(--join-es,var(--radius-field));flex-wrap:nowrap;flex-shrink:0;justify-content:center;align-items:center;gap:.375rem;transition-property:color,background-color,border-color,box-shadow,transform;transition-duration:.2s;transition-timing-function:cubic-bezier(0,0,.2,1);display:inline-flex }
+@layer utilities.daisyui.l1.l2.l3 .btn-ghost { --btn-bg:#0000;color:var(--btn-rest-fg,var(--btn-color,var(--color-base-content,currentColor)));--btn-border:#0000;--btn-inset:0 0 0 0 oklch(0% 0 0/0);--btn-shadow:0 0 0 0 oklch(0% 0 0/0);background-image:none }
+@layer utilities.daisyui.l1.l2 .btn-active, .btn:is([aria-pressed="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"], [aria-current=""])) { --btn-bg:color-mix(in oklab, var(--btn-color,var(--color-base-200)), #000 5%);color:var(--btn-fg,var(--color-base-content));--btn-border:color-mix(in oklab, var(--btn-color,var(--color-base-200)), #000 7%);--btn-border-style:solid;--btn-inset:0 0 0 0 oklch(0% 0 0/0);--btn-shadow:0 0 0 0 oklch(0% 0 0/0);isolation:isolate }
+@layer utilities.daisyui.l1.l2 .btn-sm { --fontsize:.75rem;--btn-p:.75rem;--size:calc(var(--size-field,.25rem) * 8) }
+@layer base audio, canvas, embed, iframe, img, object, svg, video { vertical-align:middle;display:block }
+@layer base img, svg, video, canvas, audio, iframe, embed, object { display: block;
+    vertical-align: middle; }
+@layer utilities .size-\[1\.2em\] { width: 1.2em;
+    height: 1.2em; }
+@layer utilities .hidden { display: none; }
+@layer utilities @media (width >= 40rem) .sm\:inline { display: inline; }

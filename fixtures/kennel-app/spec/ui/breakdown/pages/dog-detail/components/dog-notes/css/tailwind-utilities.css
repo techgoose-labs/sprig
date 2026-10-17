@@ -1,0 +1,24 @@
+/* Tailwind v4 browser-generated utility rules for the classes used in dog-notes across every captured state (source.html). Reference only. */
+.mt-1 { margin-top: var(--spacing); }
+.mt-2 { margin-top: calc(var(--spacing) * 2); }
+.flex { display: flex; }
+.size-5 { width: calc(var(--spacing) * 5); height: calc(var(--spacing) * 5); }
+.size-\[1\.2em\] { width: 1.2em; height: 1.2em; }
+.w-full { width: 100%; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: calc(var(--spacing) * 2); }
+:where(.divide-y > :not(:last-child)) { --tw-divide-y-reverse: 0; border-bottom-style: var(--tw-border-style); border-top-style: var(--tw-border-style); border-top-width: calc(1px * var(--tw-divide-y-reverse)); border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse))); }
+.border { border-style: var(--tw-border-style); border-width: 1px; }
+.border-b { border-bottom-style: var(--tw-border-style); border-bottom-width: 1px; }
+.py-3 { padding-block: calc(var(--spacing) * 3); }
+.text-2xl { font-size: var(--text-2xl); line-height: var(--tw-leading, var(--text-2xl--line-height)); }
+.text-xs { font-size: var(--text-xs); line-height: var(--tw-leading, var(--text-xs--line-height)); }
+.break-words { overflow-wrap: break-word; }
+.italic { font-style: italic; }
+.opacity-50 { opacity: 0.5; }
+@media (width >= 48rem){.md\:w-48 { width: calc(var(--spacing) * 48); }}
+@media (width >= 48rem){.md\:flex-1 { flex: 1 1 0%; }}
+@media (width >= 48rem){.md\:flex-row { flex-direction: row; }}
+@media (width >= 64rem){.lg\:col-span-3 { grid-column: span 3 / span 3; }}

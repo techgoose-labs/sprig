@@ -1,0 +1,48 @@
+{
+  "category": "board",
+  "folder": "dog-card",
+  "controls": {
+    "id": {
+      "type": "text",
+      "value": "d01"
+    },
+    "name": {
+      "type": "text",
+      "value": "Biscuit"
+    },
+    "kennel": {
+      "type": "text",
+      "value": "K01"
+    },
+    "breed": {
+      "type": "text",
+      "value": "Golden Retriever"
+    },
+    "ownerName": {
+      "type": "text",
+      "value": "Priya Raman"
+    },
+    "status": {
+      "type": "select",
+      "options": [
+        "booked",
+        "checked-in",
+        "walking",
+        "checked-out"
+      ],
+      "value": "booked"
+    },
+    "arrival": {
+      "type": "text",
+      "value": "07:00"
+    },
+    "overdue": {
+      "type": "boolean",
+      "value": false
+    },
+    "overdueBy": {
+      "type": "text",
+      "value": ""
+    }
+  }
+}

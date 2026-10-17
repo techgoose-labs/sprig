@@ -1,0 +1,10 @@
+<article class="member">
+  <header class="member__head">
+    <h3>{{ member.fullName }}</h3>
+    <span class="pill">{{ member.team }}</span>
+  </header>
+  <p class="member__about">Joined {{ member.since }}</p>
+  @if (member.active) {
+    <button class="btn btn-primary" (click)="open(member)">Open</button>
+  }
+</article>

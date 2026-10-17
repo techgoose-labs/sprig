@@ -1,0 +1,8 @@
+{
+  "_name": "Error toast — brand-dark (1280)",
+  "_tier": "pure-client",
+  "_theme": "brand-dark",
+  "_viewport": 1280,
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/toast-stack/screenshots/toast-stack-error@1280-brand-dark.png",
+  "_signals": { "toasts": [ { "kind": "error", "msg": "The day couldn't be closed — nothing changed." } ] }
+}

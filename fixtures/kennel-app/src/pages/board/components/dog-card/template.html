@@ -1,0 +1,15 @@
+<a [attr.href]="'/ui/dog/' + id" class="card bg-base-100 border min-w-0 dog-card-root" [class.dog-card-root--overdue]="overdue" [class.border-error]="overdue">
+  <div class="card-body p-4 gap-2">
+    <div class="dog-card-head flex items-start justify-between gap-2 min-w-0">
+      <h2 class="card-title text-2xl leading-tight min-w-0 break-words dog-card-name">{{ name }}</h2>
+      <span class="badge badge-outline font-mono shrink-0">{{ kennel }}</span>
+    </div>
+    <p class="text-sm text-base-content/70 truncate">{{ breed }}</p>
+    <p class="dog-card-owner text-sm flex items-center gap-1 min-w-0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-user size-4 shrink-0"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="truncate">{{ ownerName }}</span></p>
+    <div class="dog-card-foot flex flex-wrap items-center gap-2 mt-1">
+      <status-badge [status]="status"></status-badge>
+      <overdue-badge [overdue]="overdue" [overdueBy]="overdueBy"></overdue-badge>
+      <span class="dog-card-arrival ml-auto text-sm text-base-content/70 flex items-center gap-1 tabular-nums"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-clock size-4"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>{{ arrival }}</span>
+    </div>
+  </div>
+</a>

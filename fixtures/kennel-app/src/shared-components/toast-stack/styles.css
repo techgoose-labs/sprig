@@ -1,0 +1,37 @@
+/* The island host IS the anchored box (fixed, bottom-right: 16px right inset,
+   16px + 48px bottom inset, above the page) so the stack has a box of its own;
+   daisyUI `toast` inside keeps the column, the gap and the entrance animation. */
+sprig-island[data-sel="toast-stack"] {
+  position: fixed;
+  inset-inline: auto 1rem;
+  bottom: 4rem;
+  z-index: 50;
+  display: block;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  /* The stack reads the body face explicitly: it is a viewport-anchored overlay
+     and must not depend on whatever ancestor it happens to be mounted under. */
+  font-family: var(--font-body);
+}
+
+.toast-stack-queue {
+  position: static;
+  inset: auto;
+  translate: none;
+  width: auto;
+  max-width: none;
+}
+
+/* Exit: the entry fades/scales out before it leaves the queue (compositor-only). */
+@media (prefers-reduced-motion: no-preference) {
+  .toast-stack-leaving {
+    animation: toast-stack-leave 200ms ease-in forwards;
+  }
+}
+
+@keyframes toast-stack-leave {
+  to {
+    opacity: 0;
+    scale: 0.9;
+  }
+}

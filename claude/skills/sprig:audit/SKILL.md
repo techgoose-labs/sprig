@@ -83,6 +83,11 @@ change **and** VALIDATE's check passed.
 - **Read `user-stories.md` end to end** if present — each bullet is a contract
   the hunter verifies. No file? Tell the hunter to derive the story list from
   the route table + islands and note its absence.
+- **Resolve the mock** — if `spec/ui/breakdown/` exists at the git root, pass
+  the hunter the absolute path of `inventory.json` and of each page's
+  page-level stills (`pages/<page>/screenshots/<page>@<width>[-<theme>].png`):
+  the app must be faithful to the mock, so the stories alone are not the
+  oracle.
 - **Determine data ownership** — owns its data (in-app store, Deno KV, local
   JSON) or **fronts** a keep backend in-process? If it fronts one, the Backend
   bugs in the catalog are in scope (invisible from the DOM) — say so in the
@@ -99,7 +104,8 @@ change **and** VALIDATE's check passed.
 
 1. **HUNT.** Delegate to **`sprig-audit-hunter`** with its input contract: the
    running base URL, project root + map, data-ownership, `user-stories.md` (or
-   "derive"), the evidence dir, and the `references/` path. It owns the browser
+   "derive"), the MOCK (`inventory.json` + page-level stills, or "none"), the
+   evidence dir, and the `references/` path. It owns the browser
    for this stage. → take its `bugs[]` / `needs_investigation` /
    `checked_healthy`.
 2. **ROOT-CAUSE.** First resolve the sprig runtime's cached-source path ONCE

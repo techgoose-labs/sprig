@@ -1,0 +1,5 @@
+<form (submit)="submit()">
+  <input [(value)]="sku" />
+  <input [(value)]="qty" />
+  @if (error()) {<p>{{ error() }}</p>}
+</form>

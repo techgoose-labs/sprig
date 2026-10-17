@@ -1,0 +1,12 @@
+<main class="p-6">
+  <div class="stats shadow w-full">
+    <stat-tile title="Orders" [value]="orders" desc="this week"></stat-tile>
+    <stat-tile title="Revenue" [value]="revenue" desc="this week"></stat-tile>
+    <div class="stat">
+      <div class="stat-figure text-primary"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="size-8"><path d="M3 3v18h18"></path></svg></div>
+      <div class="stat-title">Refunds</div>
+      <div class="stat-value tabular-nums">{{ refunds }}</div>
+      <div class="stat-desc">this week</div>
+    </div>
+  </div>
+</main>

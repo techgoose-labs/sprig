@@ -1,0 +1,131 @@
+{
+ "unit": "status-strip",
+ "source": "http://localhost:8742/#/board",
+ "note": "Captured with CDP Animation.setPlaybackRate(0.01) so the 150ms transition could be read before it finished; keyframes/timing below are as returned by getAnimations() (playback rate does not alter effect timing).",
+ "hoverIn": {
+  "trigger": "pointer enters button[data-filter] (CSS :hover → hover:bg-base-200 via transition-colors)",
+  "animations": [
+   {
+    "kind": "CSSTransition",
+    "name": "background-color",
+    "target": "button.card.bg-base-100.border.border-base-300.text-left.hover:bg-base-200.transition-colors[data-filter=booked]",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(251, 247, 240)",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(243, 234, 219)",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 150,
+     "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "endDelay": 0,
+     "fill": "backwards",
+     "iterationStart": 0,
+     "iterations": 1,
+     "activeDuration": 150,
+     "currentIteration": 0,
+     "endTime": 150,
+     "localTime": 0.6669999999999732,
+     "progress": 0.00004155278079742763
+    },
+    "playState": "running"
+   }
+  ]
+ },
+ "hoverOut": {
+  "trigger": "pointer leaves button",
+  "animations": [
+   {
+    "kind": "CSSTransition",
+    "name": "background-color",
+    "target": "button.card.bg-base-100.border.border-base-300.text-left.hover:bg-base-200.transition-colors[data-filter=booked]",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(243, 234, 219)",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(251, 247, 240)",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 150,
+     "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "endDelay": 0,
+     "fill": "backwards",
+     "iterationStart": 0,
+     "iterations": 1,
+     "activeDuration": 150,
+     "currentIteration": 0,
+     "endTime": 150,
+     "localTime": 0.4990000000000272,
+     "progress": 0.000023205779460122076
+    },
+    "playState": "running"
+   }
+  ]
+ },
+ "clickFilter": {
+  "trigger": "click button[data-filter=walking] → ui.filter set, #app innerHTML re-rendered",
+  "animations": [
+   {
+    "kind": "CSSTransition",
+    "name": "background-color",
+    "target": "button.card.bg-base-100.border.border-primary.text-left.hover:bg-base-200.transition-colors[data-filter=walking]",
+    "keyframes": [
+     {
+      "offset": 0,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(251, 247, 240)",
+      "computedOffset": 0
+     },
+     {
+      "offset": 1,
+      "easing": "linear",
+      "composite": "auto",
+      "backgroundColor": "rgb(243, 234, 219)",
+      "computedOffset": 1
+     }
+    ],
+    "timing": {
+     "delay": 0,
+     "direction": "normal",
+     "duration": 150,
+     "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "endDelay": 0,
+     "fill": "backwards",
+     "iterationStart": 0,
+     "iterations": 1,
+     "activeDuration": 150,
+     "currentIteration": 0,
+     "endTime": 150,
+     "localTime": 0,
+     "progress": 0
+    },
+    "playState": "running"
+   }
+  ]
+ }
+}

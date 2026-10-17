@@ -1,0 +1,6 @@
+{
+  "title": "Water the plants",
+  "done": true,
+  "_tier": "optimistic-write",
+  "_network": { "POST /api/commands/markDone": "delay:2000" }
+}

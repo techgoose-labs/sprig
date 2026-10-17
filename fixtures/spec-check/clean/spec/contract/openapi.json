@@ -1,0 +1,17 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "tasks", "version": "1.0.0" },
+  "paths": {
+    "/api/tasks": { "get": { "operationId": "tasks.all" } },
+    "/api/tasks/counts": { "get": { "operationId": "tasks.counts" } },
+    "/api/tasks/{id}": { "get": { "operationId": "tasks.get" } },
+    "/api/archive": { "get": { "operationId": "archive.all" } },
+    "/api/commands/markDone": { "post": { "operationId": "markDone" } }
+  },
+  "components": {
+    "schemas": {
+      "TaskDto": { "type": "object" },
+      "TaskCountsDto": { "type": "object" }
+    }
+  }
+}

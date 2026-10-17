@@ -1,0 +1,12 @@
+{
+  "category": "dog-detail",
+  "folder": "stay-card",
+  "controls": {
+    "hasStay": { "type": "boolean", "value": true },
+    "checkIn": { "type": "text", "value": "Sep 29, 7:00 AM" },
+    "plannedCheckOut": { "type": "text", "value": "Sep 30, 11:00 AM" },
+    "nightlyRate": { "type": "text", "value": "$45.00" },
+    "nights": { "type": "number", "value": 1 },
+    "totalDue": { "type": "text", "value": "$45.00" }
+  }
+}

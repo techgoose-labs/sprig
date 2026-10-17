@@ -1,0 +1,21 @@
+<div role="tablist" class="tabs tabs-box sft-list">
+  <a role="tab" id="sft-all" class="tab sft-tab" href="?status=all"
+    [class.tab-active]="status !== 'booked' && status !== 'checked-in' && status !== 'walking' && status !== 'checked-out'"
+    [attr.aria-selected]="status !== 'booked' && status !== 'checked-in' && status !== 'walking' && status !== 'checked-out' ? 'true' : null">All</a>
+  <a role="tab" id="sft-booked" class="tab sft-tab"
+    [class.tab-active]="status === 'booked'"
+    [attr.aria-selected]="status === 'booked' ? 'true' : null"
+    [attr.href]="status === 'booked' ? '?status=all' : '?status=booked'">Booked</a>
+  <a role="tab" id="sft-checked-in" class="tab sft-tab"
+    [class.tab-active]="status === 'checked-in'"
+    [attr.aria-selected]="status === 'checked-in' ? 'true' : null"
+    [attr.href]="status === 'checked-in' ? '?status=all' : '?status=checked-in'">Checked in</a>
+  <a role="tab" id="sft-walking" class="tab sft-tab"
+    [class.tab-active]="status === 'walking'"
+    [attr.aria-selected]="status === 'walking' ? 'true' : null"
+    [attr.href]="status === 'walking' ? '?status=all' : '?status=walking'">Walking</a>
+  <a role="tab" id="sft-checked-out" class="tab sft-tab"
+    [class.tab-active]="status === 'checked-out'"
+    [attr.aria-selected]="status === 'checked-out' ? 'true' : null"
+    [attr.href]="status === 'checked-out' ? '?status=all' : '?status=checked-out'">Checked out</a>
+</div>

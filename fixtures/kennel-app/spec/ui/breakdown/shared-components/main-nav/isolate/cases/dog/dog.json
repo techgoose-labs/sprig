@@ -1,0 +1,8 @@
+{
+  "_name": "Dog detail route (#/dog/d01) highlights Board, 1280",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_signals": { "view": "dog" },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/main-nav/screenshots/main-nav-dog@1280.png"
+}

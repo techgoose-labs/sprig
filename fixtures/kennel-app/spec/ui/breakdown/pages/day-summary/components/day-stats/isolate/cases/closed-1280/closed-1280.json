@@ -1,0 +1,15 @@
+{
+  "_name": "Closed day (Final) @1280",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/day-stats/screenshots/day-stats-closed@1280.png",
+  "_signals": {
+    "kennelsUsed": 19,
+    "kennelsTotal": 40,
+    "occupancyPct": 48,
+    "revenueToday": 1225,
+    "overdueCount": 2,
+    "closed": true
+  }
+}

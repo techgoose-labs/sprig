@@ -1,0 +1,11 @@
+{
+  "category": "dog-detail",
+  "folder": "dog-profile-card",
+  "controls": {
+    "breed": { "type": "text", "value": "Golden Retriever" },
+    "kennel": { "type": "text", "value": "K01" },
+    "arrival": { "type": "text", "value": "07:00" },
+    "ownerName": { "type": "text", "value": "Priya Raman" },
+    "ownerPhone": { "type": "text", "value": "(555) 0100-4000" }
+  }
+}

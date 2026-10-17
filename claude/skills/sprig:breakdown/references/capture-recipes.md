@@ -8,9 +8,10 @@ Copy-adaptable recipes for the capture passes. They are plain Node scripts
 Don't install anything until you've checked what's already there, in order:
 
 1. **the isolate runner** (present on any machine that has run `sprig isolate`
-   and its case tests). Its dir is resolved the way sprig does: `ISOLATE_RUNNER_HOME`,
-   else `$XDG_CACHE_HOME/sprig/isolate-runner` (`~/.cache` default), else a legacy
-   `~/.isolate-runner` left by an older install:
+   and its case tests). Its dir is resolved the way sprig does:
+   `ISOLATE_RUNNER_HOME`, else `$XDG_CACHE_HOME/sprig/isolate-runner`
+   (`~/.cache` default), else a home-dir `~/.isolate-runner` left by an older
+   install:
 
    ```js
    const os = require("os");
@@ -58,15 +59,20 @@ await page.goto("file://" + src + "#/dashboard");
 await page.waitForTimeout(2500);
 
 // full page
-await page.screenshot({ path: "screenshots/dashboard.png", fullPage: true });
+await page.screenshot({
+  path: "screenshots/dashboard@1280.png",
+  fullPage: true,
+});
 // cropped to one component — locator screenshots auto-clip
-await page.locator(".topbar").screenshot({ path: ".../topbar.png" });
+await page.locator(".topbar").screenshot({ path: ".../topbar@1280.png" });
 ```
 
 - **Breakpoints**: read the source's `@media` queries and re-shoot at _those_
-  widths (e.g. a `max-width: 720px` query → shoot at 700×844), not guessed
-  device sizes. Re-create the page with a new viewport or use
-  `page.setViewportSize()`.
+  widths (e.g. a `max-width: 720px` query → shoot at 700×844 as
+  `<name>@700.png`), not guessed device sizes. Every still is named
+  `<name>@<width>[-<theme>].png` — the spec-writer turns each into a
+  `_viewport`/`_theme`/`_reference` case. Re-create the page with a new viewport
+  or use `page.setViewportSize()`.
 - **Themes**: if the source has a theme attribute/class, set it directly before
   shooting —
   `await page.evaluate(() => document.documentElement.dataset.theme = 'dark')` —

@@ -1,0 +1,42 @@
+{
+  "_name": "Rolled back — 500 on addNote: note removed, text back in the box",
+  "_tier": "optimistic-write",
+  "_theme": "brand",
+  "_viewport": 1280,
+  "dogId": "d01",
+  "dogName": "Biscuit",
+  "_signals": {
+    "notes": [
+      {
+        "text": "Allergic to chicken — kibble from home only.",
+        "author": "Front desk",
+        "at": "2026-09-27T14:05"
+      },
+      {
+        "text": "Pulls hard on the lead near the gate; use the harness.",
+        "author": "Walker: Dana",
+        "at": "2026-09-28T09:40"
+      },
+      {
+        "text": "Owner called: fine to extend a night if needed, will confirm by noon. Please also give the blue squeaky toy at bedtime — he won't settle without it and tends to bark at the kennel door for a good half hour otherwise.",
+        "author": "Front desk",
+        "at": "2026-09-29T08:12"
+      }
+    ],
+    "author": "Front desk",
+    "draft": "Extra blanket at night — he runs cold."
+  },
+  "_reference": {
+    "image": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-notes/screenshots/dog-notes-failed@1280.png",
+    "tolerance": 0.06,
+    "reason": "the still includes the page-level toast-stack's error alert overlapping the bottom-right corner (~312x39 px) — toast-stack renders it, not this unit — and was shot with the pointer still over 'Add note' (hover fill, ~118x40 px); together ~0.038 of the frame"
+  },
+  "_network": {
+    "dogAddNote": {
+      "status": 500,
+      "body": {
+        "error": "unreachable"
+      }
+    }
+  }
+}

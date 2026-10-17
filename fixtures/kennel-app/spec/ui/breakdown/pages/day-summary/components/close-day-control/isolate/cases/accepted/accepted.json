@@ -1,0 +1,10 @@
+{
+  "_name": "Accepted — reply publishes the server day, badge replaces button",
+  "_tier": "confirmed-write",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/close-day-control/screenshots/close-day-control@1280.png",
+  "_network": { "dayClose": { "status": 200, "body": { "id": "today", "closed": true } } },
+  "dayId": "today",
+  "_signals": { "closed": false, "pending": false }
+}

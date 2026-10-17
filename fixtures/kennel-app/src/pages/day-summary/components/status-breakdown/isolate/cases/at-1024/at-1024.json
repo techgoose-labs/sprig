@@ -1,0 +1,12 @@
+{
+  "_name": "Half column at 1024 (brand)",
+  "_tier": "static",
+  "_viewport": 1024,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/components/status-breakdown/screenshots/status-breakdown@1024.png",
+  "booked": 7,
+  "checkedIn": 14,
+  "walking": 5,
+  "checkedOut": 6,
+  "kennelsTotal": 40
+}

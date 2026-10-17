@@ -1,0 +1,4 @@
+<!-- Corpus (legit): a relative-time label from the server's minutes-ago value. -->
+@let mins = msg.minutesAgo;
+@let timeLabel = msg.minutesAgo < 1 ? 'just now' : (mins < 60 ? (mins + ' min ago') : (((mins - (mins % 60)) / 60) + ' h ago'));
+<span class="time-badge">{{ timeLabel }}</span>

@@ -1,0 +1,10 @@
+{
+  "_name": "Load failed — 375, brand (message wraps to 3 lines)",
+  "_tier": "static",
+  "_viewport": 375,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/shared-components/load-error/screenshots/load-error@375.png",
+  "title": "Couldn't load today's board",
+  "message": "The kennel server didn't answer. Your last check-ins are safe — nothing was lost.",
+  "retryLabel": "Retry"
+}

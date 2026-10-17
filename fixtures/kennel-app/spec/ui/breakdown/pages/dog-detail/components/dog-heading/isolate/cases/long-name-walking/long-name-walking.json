@@ -1,0 +1,9 @@
+{
+  "_name": "Long name, walking (1280)",
+  "_tier": "pure-client",
+  "_viewport": 1280,
+  "_theme": "brand",
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/dog-detail/components/dog-heading/screenshots/dog-heading-long-name-walking@1280.png",
+  "name": "Sir Reginald Barksworth-Fluffington III",
+  "_signals": { "status": "walking", "overdue": false, "overdueBy": "" }
+}

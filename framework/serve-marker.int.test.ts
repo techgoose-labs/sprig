@@ -317,3 +317,83 @@ Deno.test("REQ-013 (integration): the refusal reads as a build log — on stderr
     await Deno.remove(root, { recursive: true });
   }
 });
+
+// REQ-016 (integration) — the refusal, as a build log reads it, also names the
+// HOSTED form of the instruction: a deploy's build container has no `sprig`
+// launcher (that is a local install's), so the same CLI is run from jsr through
+// the import map (coms 20260921T190104Z-w5-80834).
+Deno.test("REQ-016 (integration): the refusal as a build log carries the hosted form once — a whole `deno run -A @techgoose-labs/sprig/cli build --ui-only ui` line on stderr, below the `sprig build --ui-only ui` line", async () => {
+  const root = await composedRepo(HAND_OWNED);
+  try {
+    const { code, out, err } = await sprigAsBuildLog(root, "build");
+    assertEquals(
+      code,
+      1,
+      `expected a refusal, got exit ${code}:\n${out}${err}`,
+    );
+    const lines = err.split("\n").map((l) => l.trim());
+    const local = lines.indexOf("sprig build --ui-only ui");
+    const hosted = lines.indexOf(
+      "deno run -A @techgoose-labs/sprig/cli build --ui-only ui",
+    );
+    assert(local >= 0, `the local instruction is missing:\n${err}`);
+    assert(hosted >= 0, `the hosted form is missing:\n${err}`);
+    assertEquals(
+      lines.filter((l) =>
+        l === "deno run -A @techgoose-labs/sprig/cli build --ui-only ui"
+      ).length,
+      1,
+      `expected exactly one hosted-form line:\n${err}`,
+    );
+    assert(
+      local < hosted,
+      `the hosted form belongs under the local one:\n${err}`,
+    );
+    // the mapping that line resolves through, pinned to the CLI that printed
+    // it — a file: run knows its own version
+    const cliV = JSON.parse(await Deno.readTextFile(CONFIG)).version as string;
+    assertStringIncludes(
+      err,
+      `"@techgoose-labs/sprig/cli": "jsr:@techgoose-labs/sprig@${cliV}/cli"`,
+    );
+    assert(
+      !out.includes("sprig/cli"),
+      `the hosted form leaked to stdout:\n${out}`,
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+// REQ-016 AMENDMENT (integration) — the refusal a build log reads credits the
+// stamp to a LOCAL build and says the hosted run never restamps: the pin you
+// commit is the pin that ships (coms 20260921T190104Z-w5-80834).
+Deno.test("REQ-016 AMENDMENT (integration): the refusal as a build log says the hosted run never restamps — the pin you commit is the pin that ships — on stderr, under the hosted line", async () => {
+  const root = await composedRepo(HAND_OWNED);
+  try {
+    const { code, out, err } = await sprigAsBuildLog(root, "build");
+    assertEquals(
+      code,
+      1,
+      `expected a refusal, got exit ${code}:\n${out}${err}`,
+    );
+    const hosted = err.indexOf(
+      "deno run -A @techgoose-labs/sprig/cli build --ui-only ui",
+    );
+    const ships = err.indexOf("the pin you commit is the pin that ships");
+    const marker = err.indexOf(BEDROCK_SERVE_MARKER);
+    assert(hosted >= 0, `the hosted form is missing:\n${err}`);
+    assert(
+      ships > hosted && ships < marker,
+      `the sentence belongs under the hosted line, above the marker footnote:\n${err}`,
+    );
+    assertStringIncludes(err, "local `sprig build` stamps that pin");
+    assert(
+      !err.includes("the build stamps that pin"),
+      `still credits the stamp to "the build":\n${err}`,
+    );
+    assert(!out.includes("pin that ships"), `leaked to stdout:\n${out}`);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});

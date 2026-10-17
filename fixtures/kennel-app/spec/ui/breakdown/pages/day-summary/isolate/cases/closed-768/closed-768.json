@@ -1,0 +1,51 @@
+{
+  "_name": "Day closed (768)",
+  "_tier": "static",
+  "_theme": "brand",
+  "_viewport": {
+    "width": 768,
+    "height": 1400
+  },
+  "_reference": "fixtures/kennel-app/spec/ui/breakdown/pages/day-summary/screenshots/day-summary-closed@768.png",
+  "today": {
+    "id": "today",
+    "date": "2026-09-29",
+    "closed": true,
+    "kennelsTotal": 40,
+    "kennelsUsed": 19,
+    "occupancyPct": 48,
+    "revenueToday": 1225,
+    "byStatus": {
+      "booked": 7,
+      "checked-in": 14,
+      "walking": 5,
+      "checked-out": 6
+    },
+    "overdueCount": 2
+  },
+  "overduePickups": [
+    {
+      "id": "d14",
+      "name": "Rocco",
+      "kennel": "K14",
+      "overdue": true,
+      "overdueBy": "2h 15m",
+      "owner": {
+        "name": "Oliver Brandt",
+        "phone": "(555) 0113-4481"
+      }
+    },
+    {
+      "id": "d18",
+      "name": "Olive",
+      "kennel": "K18",
+      "overdue": true,
+      "overdueBy": "45m",
+      "owner": {
+        "name": "Elena Popescu",
+        "phone": "(555) 0117-4629"
+      }
+    }
+  ],
+  "state": "live"
+}

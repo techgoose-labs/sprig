@@ -89,15 +89,35 @@ Control `type` values — each Props-table row maps to exactly one:
 ## Case JSON — `cases/<state>/<state>.json`
 
 One case per row of the component's **States → cases** table. Bare keys are
-props; `_`-prefixed keys are specials:
+props; `_`-prefixed keys are specials. **The list below is the whole list** —
+any other `_` key is a config error naming the key and the case file
+(`sprig isolate test` refuses to run, `sprig isolate list` and the workbench
+banner show it), never ignored.
 
-| Key          | Effect                                                          |
-| ------------ | --------------------------------------------------------------- |
-| _(bare key)_ | passed as a prop / `@input`                                     |
-| `_name`      | human label for the case (default: folder name)                 |
-| `_innerHtml` | the component's projected children (sprig `<content>`)          |
-| `_signals`   | `{ name: value }` seeded as island signals (the island's state) |
-| `_mocks`     | stub or force props on sub-components, keyed by **selector**    |
+| Key          | Effect                                                                |
+| ------------ | --------------------------------------------------------------------- |
+| _(bare key)_ | passed as a prop / `@input`                                           |
+| `_name`      | human label for the case (default: folder name)                       |
+| `_innerHtml` | the component's projected children (sprig `<content>`)                |
+| `_signals`   | `{ name: value }` seeded as island signals (the island's state)       |
+| `_mocks`     | stub or force props on sub-components, keyed by **selector**          |
+| `_viewport`  | px width, or `{ "width", "height" }` — the case renders + tests at it |
+| `_theme`     | `data-theme="<value>"` on `<html>` for every test of the case         |
+| `_reference` | the captured still the render is pixel-compared against               |
+| `_network`   | fakes for the case's requests (`fail` / `delay:<ms>` / a response)    |
+| `_tier`      | `static` \| `pure-client` \| `optimistic-write` \| `realtime`         |
+| `_motion`    | `{ "spec": "<captured motion JSON>", "trigger"? }` — animations compared to it |
+
+Paths (`_reference`, `_motion.spec`) resolve **relative to the case folder
+first, then relative to the app root (the `--root` app), then relative to the
+git root**; the file must exist at discovery — a missing one is an error naming
+every path tried, not a skipped check, and the report row says which resolution
+was used. **Write app-root-relative paths (the `--root` app), falling back to
+the git root** to the breakdown's own captures — the `isolate/` folder is copied
+into the built component under `ui/src`, where a case-relative path can't reach
+them:
+`spec/ui/breakdown/<unit>/screenshots/<name>@<width>[-<theme>].png` for stills,
+`spec/ui/breakdown/<unit>/screenshots/motion.json` for motion.
 
 ```jsonc
 // cases/default/default.json
@@ -117,11 +137,231 @@ props; `_`-prefixed keys are specials:
 `{ "props": {...} }` (force those props on every instance of that
 sub-component).
 
+### `_viewport` — the breakpoint the still was captured at
+
+```jsonc
+{ "_viewport": 375 }                               // width; height 720
+{ "_viewport": { "width": 1024, "height": 600 } }
+```
+
+`sprig isolate test` sets the Playwright viewport for **every** test of the case
+(its own specs and the generated `reference:`/`motion:` rows). `_viewport` is
+the **page** viewport — the breakpoint the still was shot at, so media queries
+resolve as they did on the mock — never the unit's own width: a card shot at
+1280 in a 600px column is `_viewport: 1280`, and the runner takes the 600 from
+the still itself (see `_reference`). The interactive workbench stage keeps its
+manual width presets — the runner is authoritative.
+
+### `_theme` — the theme the still was captured in
+
+```jsonc
+{ "_theme": "dark" }
+```
+
+Every test of the case sees `<html data-theme="dark">` from the first paint (set
+before any page script runs, and re-asserted if the app's markup overwrites it).
+The theme also picks the **stage colour** behind a `_reference` capture: the
+app's page background resolved under that theme (see `_reference`). The
+workbench stage shows the app's default theme; the runner is authoritative.
+
+### `_reference` — faithful to the mock, measured
+
+```jsonc
+{ "_reference": "spec/ui/breakdown/card/screenshots/card@375-dark.png" } // tolerance 0.01
+{
+  "_reference": {
+    "image": "../shared/card-dark.png",
+    "tolerance": 0.03,
+    "reason": "the mock's avatar is a photo; the build's is a monogram"
+  }
+}
+{ "_reference": { "image": "spec/ui/breakdown/card/screenshots/card@375.png", "background": "#ffffff" } }
+```
+
+**The stage behind the unit** (REQ-063) is the colour the unit sits on in the
+app — what shows through its transparent pixels in the still: the case's
+`_reference.background` if given, else `fixture.json`'s `background`, else the
+**app's page background for the case's `_theme`** — the `body` (else `html`)
+`background` the app shell declares (`src/shell/styles.css`,
+`bootstrap/styles.css`, the shell head's `<style>`), resolved in the browser
+under the theme — else the design system's `--color-base-100`, else white. Never
+the workbench's own paper. The row names it:
+`stage background rgb(243, 234, 219) — the app's page background (src/shell/styles.css body) under theme brand`.
+Set `background` only when the still was shot on something other than the page
+(a card inside a coloured panel); an explicit colour that does not resolve fails
+the row.
+
+`sprig isolate test` renders the case at its `_viewport`/`_theme` and **device
+scale 1** (pinned, whatever a project config says), loads the fonts the **app's
+document** loads (the stylesheet `<link>`s and `<style>`s of
+`bootstrap/template.html`'s `<head>` — or `bootstrap/head.html` — plus
+`@import`/`@font-face` in `bootstrap/styles.css` and `src/shell/styles.css`),
+and lays the unit out in a **slot exactly the still's pixel width** (no stage
+padding, no centring; a unit with its own fixed width keeps it, so a width drift
+still shows). It screenshots the **rendered target element** (the unit itself,
+animations settled, caret hidden) and compares it to the image: the **fraction
+of pixels that differ** (a pixel differs when any RGBA channel moves by more
+than 4/255). The result is a test row named `reference: <unit>/<case>` — passing
+rows say
+`measured 0.002 ≤ tolerance 0.010 — 156/68400 px differ (a channel moved more than 4/255) at 600×114`,
+failing ones `measured 0.093 > tolerance 0.010 …` plus the path of a diff PNG
+(differing pixels red) written **outside the project**. Sizes within 4px of each
+other are a drift (the non-overlap counts; the row names both sizes); **more
+than 4px apart is its own failure** —
+`size mismatch: reference 1200×230 vs render 600×115 (more than 4px apart — not the same crop …) — the reference is 2× the render, a deviceScaleFactor 2 still: recapture it at deviceScaleFactor 1`
+— never a diff fraction. `tolerance` defaults to `0.01`; any value above it
+**requires a `reason`** (a config error otherwise). An app that never loads its
+design-system font (no `<link>` in its head) renders the fallback in the runner
+exactly as it does in production — the row fails, and that is the finding.
+
+#### `_reference` noise floor — why 0.01 and 4/255 (REQ-051, REQ-059)
+
+Measured through the real `sprig isolate test` on one card (320×150, text + 1px
+border + primary button; chromium headless shell, DPR 1), each drift a one-line
+CSS change against the same markup. Columns: the fraction measured with the
+current 4/255 channel threshold, and with the old 24/255.
+
+| compared                                                                  | size         | 4/255 | 24/255    |
+| ------------------------------------------------------------------------- | ------------ | ----- | --------- |
+| **noise** — 5 independent runs, all 10 pairs (byte-identical PNGs)        | 320×150      | 0.000 | 0.000     |
+| noise — headless shell vs full chromium (`channel: "chromium"`)           | 320×150      | 0.000 | 0.000     |
+| noise — `--font-render-hinting=none`                                      | 320×150      | 0.000 | 0.000     |
+| env — Display-P3 colour profile (a macOS screenshot; max Δ17)             | 320×150      | 0.091 | 0.000     |
+| env — LCD text + subpixel positioning off                                 | 320×150      | 0.061 | 0.051     |
+| env — fallback font (DejaVu Sans → Liberation Sans)                       | 320×150      | 0.114 | 0.100     |
+| env — deviceScaleFactor 2 still vs the DPR-1 render                       | 640×300 · 1× | 0.818 | 0.815     |
+| env — the same DPR-2 still box-downscaled to 1×                           | 320×150      | 0.075 | 0.054     |
+| drift — corner radius 12px → 8px                                          | 320×150      | 0.004 | 0.002     |
+| drift — border colour one step lighter (Δ26)                              | 320×150      | 0.020 | 0.018     |
+| drift — muted text colour one step darker (Δ20)                           | 320×150      | 0.039 | **0.000** |
+| drift — 1px `padding-left` (same size, content shifted)                   | 320×150      | 0.089 | 0.075     |
+| drift — token swap: `--primary` one palette step (#2563eb → #1d4ed8, Δ21) | 320×150      | 0.093 | **0.000** |
+| drift — token swap: `--primary` to another hue                            | 320×150      | 0.097 | 0.095     |
+| drift — 1px padding all round (grows the box)                             | 320×152      | 0.128 | 0.113     |
+| drift — 1px border removed (shrinks the box)                              | 320×148      | 0.135 | 0.120     |
+| drift — font-size one step (14px → 15px)                                  | 320×170      | 0.287 | 0.275     |
+
+**Mock vs build — the eval-app message card** (`fixtures/eval-app`, "Marisol
+Vega", mock shot at 1280). Before REQ-059 every `_reference` on a real mock was
+red for reasons unrelated to fidelity; the control is the mock's own card with
+its computed styles frozen inline (so any residual is the pipeline's), in
+`fixtures/isolate/reference-noise-app/…/mock-card`:
+
+| compared (4/255 unless noted)                                                                                | measured                                                          |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| old pipeline: DPR-2 still (1200×230) vs the 1× render in the padded, centred stage (24/255)                  | 0.747                                                             |
+| old pipeline: that still box-downscaled to 600×115, `_viewport` 664 (24/255)                                 | 0.171                                                             |
+| now: the same DPR-2 still                                                                                    | size mismatch (named 2×)                                          |
+| eval **build**'s card vs a DPR-1 mock still, slot 600 — fonts not loaded                                     | 0.208 (600×118 vs 600×115)                                        |
+| eval **build**'s card, the app's fonts loaded (Quicksand)                                                    | 0.184 — the badge is a real drift                                 |
+| control (frozen mock card) vs its still (shot in a plain page) — fonts **not** loaded (DejaVu Sans fallback) | **0.095**                                                         |
+| control vs its still — the app's fonts loaded                                                                | **0.002** (all 156 px in the 4 rounded corners: stage background) |
+| control rendered in a plain page at y = 0 vs y = 17 / 196 / 300                                              | 0.000 (≤ 24 px)                                                   |
+| control vs the mock page's own crop, box at y = 195.59 (fractional)                                          | 0.100                                                             |
+| the same crop with the box nudged to y = 196 (whole pixels)                                                  | 0.019 (freeze rounding: the frozen paragraph is 0.016px shorter)  |
+
+The rule: **default tolerance 0.01 because noise is ≤ 0.002 (one box: re-renders
+byte-identical, 0.000; mock page vs the isolate stage with the app's fonts,
+whole pixels, DPR 1: 0.002) and a 1px padding drift measures ≥ 0.089** — the
+smallest colour drift worth catching (a border-colour step) measures 0.020, so
+0.01 sits 5× above the noise and 2× below that, and catches every drift in the
+first table except the **corner-radius step (0.004)**. The channel threshold is
+4/255 because the old 24/255 measured a one-palette-step token swap and a
+text-colour step as 0.000 — they now count; ±4 still absorbs colour rounding.
+The fraction is per area: a 1px shift on a large, sparse unit measures less than
+on this card.
+
+- **Lower** the tolerance (no `reason` needed) when the case pins something
+  small — radii, a hairline, an icon — or the unit is large and sparse:
+  `"tolerance": 0.005` (still above the 0.002 floor).
+- **Raise** it only with a `reason` naming content the build legitimately
+  renders differently (a photo vs a monogram, a live timestamp).
+- **Never raise it to absorb the environment.** A different colour profile,
+  font, text rasterisation or device scale measures 0.06–0.8 — far above any
+  tolerance. Capture stills with Playwright (it forces sRGB) at
+  `deviceScaleFactor` 1, fonts loaded, the unit on **whole pixels** (a box at y
+  = 195.59 measured 0.100 against the same card at y = 196 — nudge it with
+  `position: relative; top/left` to the next whole pixel before shooting).
+
+### `_network` — prove optimistic writes without a server
+
+```jsonc
+{
+  "_tier": "optimistic-write",
+  "_network": {
+    "POST /api/todos": "fail", // connection fails → rollback
+    "PATCH /api/todos/{id}": "delay:3000", // held 3s → the UI must not wait
+    "DELETE /api/todos/*": { "status": 409, "body": { "error": "conflict" } },
+    "createTodo": "fail" // a contract command name
+  }
+}
+```
+
+Installed with Playwright `page.route` before each of the case's tests, so a
+story can prove a rollback on a failed command and a no-wait on a delayed one.
+Keys are `"METHOD /path"` (`{id}`, `:id` match one segment, `*` anything;
+matched against the request's pathname) or a **command name** — an `operationId`
+from `spec/contract/openapi.json` at the `--root` app, else at the git root —
+the row says which (its first server URL's path is the prefix). With no contract, a command-name key is an error naming it.
+Values: `"fail"` (the request errors), `"delay:<ms>"` (held, then sent on), or
+`{ "status": n, "body": any }` (answered; an object body is JSON). Each test row
+records `network <key> → <action>: fired N×`, so a fake that never matched
+shows.
+
+### `_tier` — which interaction tier the case exercises
+
+```jsonc
+{ "_tier": "optimistic-write" }
+```
+
+Recorded on the discovered case and on every report row of the case; no runtime
+behaviour of its own (`sprig spec-check` consumes it). Use the tier from your
+interaction-tier map: `static`, `pure-client`, `optimistic-write`, `realtime`.
+
+### `_motion` — the captured animations, compared
+
+```jsonc
+{ "_motion": { "spec": "spec/ui/breakdown/toast/screenshots/motion.json" } }
+{ "_motion": { "spec": "spec/ui/breakdown/card/screenshots/motion.json", "trigger": "hover" } }
+```
+
+`motion.json` is the unit's extracted `document.getAnimations()` output — an
+array (or `{ "animations": [...] }`) of records:
+
+| Field           | Type                             | Compared                                  |
+| --------------- | -------------------------------- | ----------------------------------------- |
+| `selector`      | string, optional                 | pairs records (`tag#id.class…`)           |
+| `name`          | string, optional                 | pairs records (animation / property name) |
+| `duration`      | number (ms)                      | yes, ±1ms                                 |
+| `easing`        | string                           | yes (whitespace/number spelling ignored)  |
+| `keyframeCount` | number                           | yes                                       |
+| `delay`         | number (ms), optional            | when present, ±1ms                        |
+| `iterations`    | number or `"Infinity"`, optional | when present                              |
+
+Extra fields are ignored, and the capture recipe's raw record
+(`{ target, name, keyframes: [...], timing: { duration, delay, iterations, easing } }`)
+is read as-is: `target` → `selector`, `keyframes.length` → `keyframeCount`, and
+a CSS animation's curve is taken from its keyframes when `timing.easing` is
+`linear`. `sprig isolate test` opens the case with every animation paused at its
+start (so entrance animations are still listed), reads the same records after
+hydration, pairs them (selector + name, then name, then selector, then order)
+and adds a row `motion: <unit>/<case>` — failing with one line per difference
+(`pulse on span.dot: duration 1200ms ≠ spec 800ms`, a missing animation, an
+unexpected one). An animation that only starts on interaction (a hover lift, a
+focus ring) declares `"trigger"`: `"hover" | "focus" | "click" | "load"`
+(default `"load"` — nothing performed). The runner performs it on the unit's
+root (`focus`: the root, else its first focusable descendant) before reading
+the animations, and the row says `after trigger hover` — capture the mock's
+`motion.json` in the same state. Any other trigger is a config error at
+discovery.
+
 **Case values are the real captured data.** The build session diffs the rendered
 case against your screenshot — so the case must reproduce exactly what the
 screenshot shows (actual titles, names, dates, ids, series). For large data
 sets, carry the exact visible slice, not the full set and not invented
-lookalikes.
+lookalikes. Put that screenshot in the case folder and name it in `_reference`,
+with the `_viewport`/`_theme` it was captured at, so the diff is measured rather
+than eyeballed.
 
 ## Events → test predicates
 
@@ -143,12 +383,12 @@ await ev.expect((e) => e.source === "button#confirm" && e.type === "click", {
 });
 ```
 
-**Headless caveat — what actually runs under `isolate test`.** The headless
-runner executes specs with **Node** Playwright: `@std/expect` and every other
-Deno-only specifier fail to load (the run reports `ran: false, total: 0` and
-names the import). The `isolate-events` helpers (`capture`/`waitHydrated`) DO
-fire there — the stage-bridge produces both signals under direct navigation. A
-runnable case test is plain Playwright:
+**Headless caveat — what actually runs under `sprig isolate test`.** The
+headless runner executes specs with **Node** Playwright: `@std/expect` and every
+other Deno-only specifier fail to load (the run reports `ran: false, total: 0`
+and names the import). The `isolate-events` helpers (`capture`/`waitHydrated`)
+DO fire there — the stage-bridge produces both signals under direct navigation.
+A runnable case test is plain Playwright:
 
 ```ts
 import { expect, test } from "@playwright/test";
@@ -185,7 +425,13 @@ effect.
 - **Hydration is async** — interacting before it completes is a silent no-op;
   gate island interactions on `waitHydrated(page)` (interactive workbench) or
   the `sprig-island[data-sel="…"][data-sprig-hydrated]` selector wait above
-  (headless `isolate test`).
+  (headless `sprig isolate test`).
+- **A case with nothing to check is not a pass.** `sprig isolate test` gives a
+  case with no `tests/` spec and no `_reference`/`_motion` a
+  `skipped — no
+  tests, no _reference` row, and a run where every case is
+  skipped exits 1 ("nothing was checked"). Every proposed case carries at least
+  a `_reference` still or one spec (REQ-056).
 - Props crossing into an island must be **serializable** — no functions, no
   class instances. If the source passes a callback, redesign the prop as an
   event the island emits (`ctx.output`) and note it in the Events section.

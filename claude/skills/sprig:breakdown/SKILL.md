@@ -26,9 +26,10 @@ description: >-
 
 Produce a `spec/ui/breakdown/` directory a later build session can work through
 **mechanically**: scaffold a component, drop in its proposed `isolate/`, run
-`sprig isolate`, diff against the screenshots, write tests from the Events
-section, repeat. The spec must let someone rebuild each page/component **without
-opening the source** — judge every decision by that standard.
+`sprig isolate test` (each case's `_reference` diffs it against its still),
+write tests from the Events section, repeat. The spec must let someone rebuild
+each page/component **without opening the source** — judge every decision by
+that standard.
 
 **You are the orchestrator. You don't survey, render, or write specs yourself —
 you delegate each pass to a named specialist**, hand it its input contract, and
@@ -39,11 +40,11 @@ deliverable.
 
 ## The specialists you delegate to
 
-| Agent                             | Pass                                                                                                                                                                                                                                         | Returns                                                                  |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **`sprig-breakdown-analyst`**     | survey, page+component census, static/island classification + tiers, `design-tokens.md`, the contract **binding** (`spec/contract/binding.md`; legacy `data-model.md` when no contract) (opening); `index.md` + completeness audit (closing) | the written docs + a structured **inventory** of pages/components        |
-| **`sprig-breakdown-capture`**     | render the mock: cropped stills, breakpoint/theme shots, motion extraction, filmstrips, `jank.md`, jank lints, extracted `js/`/`css/`                                                                                                        | evidence files + extracted motion specs, jank findings, real data values |
-| **`sprig-breakdown-spec-writer`** | per component/page: the `.md` anatomy + the real runnable `isolate/` fixtures                                                                                                                                                                | the unit's spec files + case list                                        |
+| Agent                             | Pass                                                                                                                                                                                                                                                                                          | Returns                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **`sprig-breakdown-analyst`**     | survey, page+component census, static/island classification + tiers, `design-tokens.md`, the contract **binding** (`spec/contract/binding.md`; the pre-contract `data-model.md` when no contract), `inventory.json` (opening); `index.md` + completeness audit + `sprig spec-check` (closing) | the written docs + a structured **inventory** of pages/components        |
+| **`sprig-breakdown-capture`**     | render the mock: cropped stills, breakpoint/theme shots, motion extraction, filmstrips, `jank.md`, jank lints, extracted `js/`/`css/`                                                                                                                                                         | evidence files + extracted motion specs, jank findings, real data values |
+| **`sprig-breakdown-spec-writer`** | per component/page: the `.md` anatomy + the real runnable `isolate/` fixtures                                                                                                                                                                                                                 | the unit's spec files + case list                                        |
 
 Each specialist owns its own procedure — **do not restate the classification
 rubric, capture recipes, or component anatomy here.** They live in the agents
@@ -52,27 +53,30 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
 ## Input & output
 
 - **Input** — the prototype this skill consumes: by default the two-seam
-  `spec/ui/<app>-prototype/` folder (glob `spec/ui/*-prototype/`; legacy
-  `spec/ui/*-prototype.html`). If the user points at a different mock (any
-  HTML/screenshot/PDF), use that. When a ratified contract exists at the git
-  root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input — the data
-  seam binds against it (bridge 2).
-- **Output** — always `<git-root>/spec/ui/breakdown/`, and nowhere else. Resolve
-  the git root **once** with `git rev-parse --show-toplevel` and build the path
-  from it (`"$(git rev-parse --show-toplevel)"/spec/ui/breakdown`); create
-  `spec/ui/` if absent. Derive the path automatically; never ask. Every artifact
+  `spec/ui/<app>-prototype/` folder (glob `spec/ui/*-prototype/`; a pre-contract
+  single file `spec/ui/*-prototype.html`). If the user points at a different
+  mock (any HTML/screenshot/PDF), use that. When a ratified contract exists at
+  the app root (`spec/contract/`, or `spec/runes/*.rune`), it is ALSO input —
+  the data seam binds against it (bridge 2).
+- **Output** — always `<app-root>/spec/ui/breakdown/`, and nowhere else. The
+  app root is the directory holding the app's `deno.json` and the `spec/` the
+  prototype sits in (a fixture or monorepo package keeps its own;
+  `--root <app>` names it to `sprig spec-check` and `sprig isolate test`); the
+  git root (`git rev-parse --show-toplevel`) is the fallback when no such dir
+  exists (the composed `ui/` + `server/` layout keeps `spec/` there). Resolve
+  it **once** and build the path from it; create `spec/ui/` if absent. Derive the path automatically; never ask. Every artifact
   this skill and its agents produce — the `.md` specs, `isolate/` folders, and
   **every screenshot / filmstrip PNG** — lives under that one directory. The
   directory shape is the `ui-breakdown` contract
   (`../interfaces/ui-breakdown.md`).
 - **NEVER search the filesystem for a breakdown artifact.** You always know
-  where it is: under `<git-root>/spec/ui/breakdown/`. Do not run `find /`,
+  where it is: under `<app-root>/spec/ui/breakdown/`. Do not run `find /`,
   `find ~`, or any whole-disk / home-dir scan to locate a screenshot or output
   file — that pins every CPU core for minutes. If a file you expect isn't at its
-  known path, it wasn't written there; re-derive the path from the git root or
+  known path, it wasn't written there; re-derive the path from the app root or
   re-run the step that writes it. Scope any legitimate lookup to
-  `<git-root>/spec/ui/breakdown` (e.g.
-  `find "$(git rev-parse --show-toplevel)/spec/ui/breakdown" -name '*.png'`).
+  `<app-root>/spec/ui/breakdown` (e.g.
+  `find "<app-root>/spec/ui/breakdown" -name '*.png'`).
 
 ## The flow
 
@@ -80,21 +84,25 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    `opening`) with the source + output dir → it surveys, does the page/component
    census, classifies every region (static vs island vs page-composition, with
    tiers), and writes `design-tokens.md`
-   - the contract **binding** (`spec/contract/binding.md`; legacy
-     `data-model.md` when no contract exists). Take its **inventory** (every
-     page/component with classification, tier, shared/local, renderable?, and
-     its resolved absolute `breakdown_dir`) and surface any **drift errors** it
-     reports. The inventory's paths are what you pass downstream — capture and
-     spec-writers receive their unit dirs resolved, never a name to go find.
+   - the contract **binding** (`spec/contract/binding.md`; the pre-contract
+     `data-model.md` when no contract exists) and
+     `spec/ui/breakdown/inventory.json`. Take its **inventory** (every
+     page/component with classification, tier, shared/local, renderable?, its
+     `region` (the mock DOM selector capture crops by), and its resolved
+     absolute `breakdown_dir` — the same units it wrote to
+     `inventory.json`) and surface any **drift errors** it reports. The
+     inventory's paths are what you pass downstream — capture and spec-writers
+     receive their unit dirs resolved, never a name to go find.
 2. **Capture** (renderable sources only). Resolve the SERVE facts ONCE — the
    serve command (`deno task start` for a two-seam prototype; `file://` for a
-   legacy mock) and a PORT per agent — and pass them in each brief. Then for the
-   renderable units in the inventory, delegate to **`sprig-breakdown-capture`**
-   (fan out per unit/group) → stills/breakpoints/ themes, extracted motion
-   specs, filmstrips, `jank.md`, jank findings, **each unit's `source.html`
-   markup excerpt** plus extracted `js/`/`css/`, and the real captured data
-   values. The excerpts are load-bearing: they are the only markup spec-writers
-   read. (Skip for image/PDF sources — there's nothing to render.)
+   single-file mock) and a PORT per agent — and pass them in each brief. Then
+   for the renderable units in the inventory, delegate to
+   **`sprig-breakdown-capture`** (fan out per unit/group) → stills/breakpoints/
+   themes, extracted motion specs, filmstrips, `jank.md`, jank findings, **each
+   unit's `source.html` markup excerpt** plus extracted `js/`/`css/`, and the
+   real captured data values. The excerpts are load-bearing: they are the only
+   markup spec-writers read. (Skip for image/PDF sources — there's nothing to
+   render.)
 3. **Write specs.** For each component and page, delegate to
    **`sprig-breakdown-spec-writer`** with that unit's classification (from step
    1), its **Used-on line from the analyst's usage matrix** (the anatomy needs
@@ -109,8 +117,14 @@ and in `references/{capture-recipes,isolate-format}.md` (the agents read them).
    4–6-concurrent waves are what keep the agent count sane, not batching.
 4. **Close.** Delegate to **`sprig-breakdown-analyst`** (phase `closing`) with
    the list of specs produced → `index.md` (inventory, usage matrix, build
-   order, tier summary, Unassigned) + the completeness audit. The **Unassigned
-   list ships even when empty.**
+   order, tier summary, Unassigned) + the completeness audit, then it runs
+   `sprig spec-check spec/ui/breakdown`. **The breakdown is done only when that
+   exits 0** — a non-empty Unassigned, a binding row missing from
+   `openapi.json`, an optimistic-write unit without `pending` + `rolled-back`
+   cases, or an unresolved DRY finding (census, same-job, reuse) is a failure
+   to fix, not a note to report. Re-delegate the owning pass (analyst or the
+   unit's spec-writer — a merge re-runs the kept unit's writer with the merged
+   `usedOn`) until it passes.
 
 Independent units within steps 2 and 3 run concurrently — **capped at 4–6
 concurrent, in chunked waves**
@@ -138,8 +152,10 @@ breakdown in a fresh session.
   and summarize its return between hops.
 - **Orchestrator conduct:** after spawning agents, END YOUR TURN — task
   notifications re-invoke you; never `sleep`-poll between passes. Never search
-  the filesystem yourself (skill references live at exact
-  `~/.claude/skills/<skill>/references/` paths).
+  the filesystem yourself (skill references live at exact paths: pass each
+  specialist the absolute path of the `references/` dir next to this SKILL.md
+  (installed or repo copy) — and its sibling `sprig:build/references/` — in
+  its brief).
 - **Brief completely — a specialist that searches was under-briefed.** Every
   path you pass is absolute and copied verbatim from a stage return (the
   analyst's inventory, capture's file lists) — never retyped, never "glob for
@@ -149,14 +165,21 @@ breakdown in a fresh session.
   **static**, justify every island, spec server writes as **optimistic UI**
   (snapshot → mutate → call → roll back). Performance is the build's job; here
   only flag expensive data _shapes_.
-- Page-local by default; promote to `shared-components/` only with evidence.
-- **Bind, don't re-derive** (bridge 2): with a ratified contract at the git
+- **Census before classifying:** a region repeated across pages (same DOM
+  shape, same classes) is ONE unit with a `usedOn` list in
+  `shared-components/`, never a copy per page; a single-page region stays
+  page-local unless the mock's authorial signals say shared. Two look-alikes
+  kept apart each carry `distinct` with its reason.
+- **Bind, don't re-derive** (bridge 2): with a ratified contract at the app
   root, every data-need binds to a real endpoint + DTO in
   `spec/contract/binding.md`; a mismatch is a **drift error** surfaced in
   `index.md`, never papered over with an invented schema.
 - **Extract over describe** wherever the source is readable; schema (never data
-  rows) in the binding / legacy `data-model.md` and prose — case JSON is the one
-  place real captured values belong.
+  rows) in the binding / the pre-contract `data-model.md` and prose — case JSON
+  is the one place real captured values belong.
 - Proposed `isolate/` folders are **real files** `sprig isolate` discovers, not
   docs.
-- The `index.md` audit list ships even when empty ("Unassigned: none").
+- **No business logic in the client:** filter/sort/search/paging bind to query
+  endpoints and every rule beyond required/type is a backend command — never an
+  island reason.
+- `sprig spec-check spec/ui/breakdown` exits 0 before you report done.

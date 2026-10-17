@@ -1,0 +1,7 @@
+<div class="dog-heading-row flex flex-wrap items-center gap-3">
+  <h1 class="dog-heading-name text-4xl md:text-5xl break-words min-w-0">{{ name() }}</h1>
+  <div class="dog-heading-badges flex flex-wrap gap-2">
+    <status-badge [status]="current().status"></status-badge>
+    <overdue-badge [overdue]="current().overdue" [overdueBy]="current().overdueBy"></overdue-badge>
+  </div>
+</div>

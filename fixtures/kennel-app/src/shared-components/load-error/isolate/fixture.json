@@ -1,0 +1,18 @@
+{
+  "category": "shared-components",
+  "folder": "load-error",
+  "controls": {
+    "title": {
+      "type": "text",
+      "value": "Couldn't load today's board"
+    },
+    "message": {
+      "type": "text",
+      "value": "The kennel server didn't answer. Your last check-ins are safe — nothing was lost."
+    },
+    "retryLabel": {
+      "type": "text",
+      "value": "Retry"
+    }
+  }
+}

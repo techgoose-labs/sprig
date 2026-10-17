@@ -1,0 +1,25 @@
+/* Tailwind v4 browser-generated utility rules for the classes used in stay-card across every captured state (source.html). Reference only. */
+.my-1 { margin-block: var(--spacing); }
+.flex { display: flex; }
+.grid { display: grid; }
+.size-5 { width: calc(var(--spacing) * 5); height: calc(var(--spacing) * 5); }
+.flex-1 { flex: 1 1 0%; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0px, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0px, 1fr)); }
+.grid-cols-\[auto_1fr\] { grid-template-columns: auto 1fr; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-baseline { align-items: baseline; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: calc(var(--spacing) * 2); }
+.gap-x-4 { column-gap: calc(var(--spacing) * 4); }
+.gap-y-2 { row-gap: calc(var(--spacing) * 2); }
+.border { border-style: var(--tw-border-style); border-width: 1px; }
+.border-b { border-bottom-style: var(--tw-border-style); border-bottom-width: 1px; }
+.text-2xl { font-size: var(--text-2xl); line-height: var(--tw-leading, var(--text-2xl--line-height)); }
+.text-3xl { font-size: var(--text-3xl); line-height: var(--tw-leading, var(--text-3xl--line-height)); }
+.text-sm { font-size: var(--text-sm); line-height: var(--tw-leading, var(--text-sm--line-height)); }
+.font-semibold { --tw-font-weight: var(--font-weight-semibold); font-weight: var(--font-weight-semibold); }
+.tracking-wide { --tw-tracking: var(--tracking-wide); letter-spacing: var(--tracking-wide); }
+.uppercase { text-transform: uppercase; }
+.tabular-nums { --tw-numeric-spacing: tabular-nums; font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,); }
