@@ -120,7 +120,8 @@
       "framework/cli.ts",
       "packages/keep/mod.ts",
       "packages/keep/vendor/apexcharts.js",
-      "framework/.sprig/config-edits.ts"
+      "framework/.sprig/config-edits.ts",
+      "framework/.sprig/app-scaffold.ts"
     ]
   },
   "git": {
